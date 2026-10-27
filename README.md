@@ -1,4 +1,4 @@
-# Confidence-Aware Demand and Inventory Planning Tool
+# Uncertainty-Aware Demand and Inventory Planning Tool
 
 CS 6170 AI Capstone, Fall 2026, Northeastern University (Khoury College of Computer Sciences)
 
@@ -48,7 +48,7 @@ A web dashboard (SKU search bar plus tabs) serves the best-performing model:
 ## Repository layout
 
 ```
-confidence-aware-planner/
+uncertainty-aware-planner/
 ├── contracts/        FROZEN in week 7. Schemas, interfaces, shared file formats
 ├── configs/          YAML for data, splits, each model, conformal settings
 ├── src/frn/
@@ -77,8 +77,8 @@ confidence-aware-planner/
 ## Quick start
 
 ```bash
-git clone <repo-url> confidence-aware-planner
-cd confidence-aware-planner
+git clone <repo-url> uncertainty-aware-planner
+cd uncertainty-aware-planner
 
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
