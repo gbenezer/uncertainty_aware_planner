@@ -187,21 +187,26 @@ class Imputer(ABC):
     def fit(self, train: pd.DataFrame, config: dict, seed: int) -> None: ...
     def predict(self, df: pd.DataFrame) -> pd.DataFrame:
         """Return imputed_hourly rows (2.2) for stockout hours in df."""
+
     def save(self, path: Path) -> None: ...
     @classmethod
     def load(cls, path: Path) -> "Imputer": ...
+
 
 class Forecaster(ABC):
     def fit(self, train: pd.DataFrame, config: dict, seed: int) -> None: ...
     def predict(self, history: pd.DataFrame, origin_dates) -> pd.DataFrame:
         """Return forecast rows (2.4): all 7 horizons per origin."""
+
     def save(self, path: Path) -> None: ...
     @classmethod
     def load(cls, path: Path) -> "Forecaster": ...
 
+
 class IntervalWrapper(ABC):
     def calibrate(self, calib_preds: pd.DataFrame, config: dict) -> None:
         """Fit on the held-out calibration week only."""
+
     def apply(self, preds: pd.DataFrame) -> pd.DataFrame:
         """Return forecast_calibrated rows (2.5) or imputed rows with *_cal filled."""
 ```
