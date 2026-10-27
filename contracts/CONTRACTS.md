@@ -56,7 +56,7 @@ One row per store-product-hour.
 
 ### 2.2 `imputed_hourly` (Imputation models to Data lead / Forecast models)
 
-One row per store-product-hour **that was a stockout hour** (observed hours are not duplicated here).
+One row per store-product-hour **that was a stockout hour**. Observed hours are not duplicated here, with one exception: in calibration and evaluation runs, in-stock hours that were deliberately masked and imputed are also included, carrying their true sales in `actual`.
 
 **Primary key:** `store_id, product_id, date, hour, model_id, seed, fold`
 
@@ -66,9 +66,10 @@ One row per store-product-hour **that was a stockout hour** (observed hours are 
 | `model_id`, `seed`, `fold`, `split` | | |
 | `q025`, `q975` | float | Raw model quantile outputs |
 | `point` | float | Point estimate (see O1) |
+| `actual` | float, nullable | True sales for a masked in-stock hour. **Null for real stockout hours**, where no ground truth exists. Read only by evaluation and calibration code |
 | `q025_cal`, `q975_cal` | float, nullable | After conformal calibration. Null before `make conformal` |
 
-**Invariants:** `q025 <= point <= q975`. All values `>= 0` (clip, and record clipping rate in the run log).
+**Invariants:** `q025 <= point <= q975`. All values `>= 0` (clip, and record clipping rate in the run log). Rows with non-null `actual` are masked evaluation rows and never feed `demand_daily`.
 
 ### 2.3 `demand_daily` (Data lead to Forecast models)
 
@@ -81,7 +82,7 @@ One row per store-product-day: observed plus recovered demand. This is the forec
 | `store_id`, `product_id`, `date` | | |
 | `imputation_run_id` | str | Which imputation run filled the stockouts. **Forecasts must be reproducible from this**, so versioned copies are kept (experiment card, technical debt) |
 | `demand_observed` | float | Sum over non-stockout hours |
-| `demand_recovered` | float | Sum of `point` over stockout hours. 0 if no stockout hours |
+| `demand_recovered` | float | Sum of `point` over stockout hours (rows with null `actual`). 0 if no stockout hours |
 | `demand_total` | float | `demand_observed + demand_recovered`. The forecast target and input |
 | `n_stockout_hours` | int8 | Count of stockout hours that day (0 to 24) |
 | `recovered_lo`, `recovered_hi` | float, nullable | Summed interval bounds over stockout hours. Display only; forecast models must not consume these |
@@ -180,11 +181,12 @@ Long format so every architecture and slice is comparable.
 
 ## 3. Interfaces (`contracts/interfaces.py`)
 
-Each architecture lives in its own file and implements one of these. Constructors take only a config dict; no architecture reads another's code.
+Each architecture lives in its own file and implements one of these. Configuration is passed once, to the constructor: `fit` and `calibrate_*` take data (and a seed) only. No architecture reads another's code.
 
 ```python
 class Imputer(ABC):
-    def fit(self, train: pd.DataFrame, config: dict, seed: int) -> None: ...
+    def __init__(self, config: dict) -> None: ...
+    def fit(self, train: pd.DataFrame, seed: int) -> None: ...
     def predict(self, df: pd.DataFrame) -> pd.DataFrame:
         """Return imputed_hourly rows (2.2) for stockout hours in df."""
 
@@ -194,8 +196,9 @@ class Imputer(ABC):
 
 
 class Forecaster(ABC):
-    def fit(self, train: pd.DataFrame, config: dict, seed: int) -> None: ...
-    def predict(self, history: pd.DataFrame, origin_dates) -> pd.DataFrame:
+    def __init__(self, config: dict) -> None: ...
+    def fit(self, train: pd.DataFrame, seed: int) -> None: ...
+    def predict(self, history: pd.DataFrame, origin_dates=None) -> pd.DataFrame:
         """Return forecast rows (2.4): all 7 horizons per origin."""
 
     def save(self, path: Path) -> None: ...
@@ -204,17 +207,24 @@ class Forecaster(ABC):
 
 
 class IntervalWrapper(ABC):
-    def calibrate(self, calib_preds: pd.DataFrame, config: dict) -> None:
-        """Fit on the held-out calibration week only."""
+    def __init__(self, config: dict) -> None: ...
 
-    def apply(self, preds: pd.DataFrame) -> pd.DataFrame:
-        """Return forecast_calibrated rows (2.5) or imputed rows with *_cal filled."""
+    def calibrate_forecast(self, calib_preds: pd.DataFrame) -> None:
+        """Fit on the held-out calibration week of a forecast table."""
+    def apply_forecast(self, preds: pd.DataFrame) -> pd.DataFrame:
+        """Return forecast_calibrated rows (2.5)."""
+
+    def calibrate_imputation(self, calib_preds: pd.DataFrame) -> None:
+        """Fit on held-out, masked in-stock hours of an imputed_hourly table."""
+    def apply_imputation(self, preds: pd.DataFrame) -> pd.DataFrame:
+        """Return imputed_hourly rows (2.2) with q025_cal and q975_cal filled."""
 ```
 
 **Rules**
 
 - A `Forecaster` or `Imputer` returns **raw quantiles only**. Calibration happens in an `IntervalWrapper`, so conformal prediction, test-time augmentation, and the external interval network are interchangeable.
 - `predict` is deterministic given a seed and loaded weights.
+- Forecast and imputation calibration have independent state. A method that cannot handle a domain raises `NotImplementedError`.
 - Evaluation takes prediction tables and the actuals; it must never import from `models/` or `uq/`.
 
 ---
