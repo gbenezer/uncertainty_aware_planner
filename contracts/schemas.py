@@ -234,6 +234,9 @@ imputed_hourly = pa.DataFrameSchema(
         **_split_fold(),
         **_quantile_columns({"q025": False, "q975": False}),
         "point": _float(nullable=False, ge=0.0),
+        # True sales for masked in-stock hours (calibration/evaluation only).
+        # Null for real stockout hours, where no ground truth exists.
+        "actual": _float(nullable=True, ge=0.0),
         # populated by `make conformal`; null before
         "q025_cal": _float(nullable=True, ge=0.0),
         "q975_cal": _float(nullable=True, ge=0.0),
@@ -248,7 +251,7 @@ imputed_hourly = pa.DataFrameSchema(
     unique=["store_id", "product_id", "date", "hour", "model_id", "seed", "fold"],
     strict="filter",
     name="imputed_hourly",
-    description="Imputed demand for stockout hours only. Observed hours are not duplicated here.",
+    description="Imputed demand for stockout hours, plus masked in-stock hours (non-null actual) in calibration/evaluation runs.",
 )
 
 # --------------------------------------------------------------------------
