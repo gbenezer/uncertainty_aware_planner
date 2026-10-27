@@ -121,86 +121,192 @@ def _dup(df: pd.DataFrame) -> pd.DataFrame:
 
 CASES = [
     # ---- series_hourly
-    ("series_hourly: hour out of range", "series_hourly",
-     lambda d: _set(d, d.index[0], "hour", 24)),
-    ("series_hourly: negative sales", "series_hourly",
-     lambda d: _set(d, d.index[0], "sales", -1.0)),
-    ("series_hourly: unknown split", "series_hourly",
-     lambda d: _set(d, d.index[0], "split", "holdout")),
+    (
+        "series_hourly: hour out of range",
+        "series_hourly",
+        lambda d: _set(d, d.index[0], "hour", 24),
+    ),
+    (
+        "series_hourly: negative sales",
+        "series_hourly",
+        lambda d: _set(d, d.index[0], "sales", -1.0),
+    ),
+    (
+        "series_hourly: unknown split",
+        "series_hourly",
+        lambda d: _set(d, d.index[0], "split", "holdout"),
+    ),
     ("series_hourly: duplicate key", "series_hourly", _dup),
     # ---- imputed_hourly
-    ("imputed_hourly: point above interval", "imputed_hourly",
-     lambda d: _set(d, d.index[0], "point", lambda x, i: x.loc[i, "q975"] + 1.0)),
-    ("imputed_hourly: quantile model with null interval", "imputed_hourly",
-     lambda d: _set(d, _first(d, d["model_id"] == gen.IMP_MODEL), "q975", np.nan)),
-    ("imputed_hourly: negative actual", "imputed_hourly",
-     lambda d: _set(d, _first(d, d["actual"].notna()), "actual", -1.0)),
+    (
+        "imputed_hourly: point above interval",
+        "imputed_hourly",
+        lambda d: _set(d, d.index[0], "point", lambda x, i: x.loc[i, "q975"] + 1.0),
+    ),
+    (
+        "imputed_hourly: quantile model with null interval",
+        "imputed_hourly",
+        lambda d: _set(d, _first(d, d["model_id"] == gen.IMP_MODEL), "q975", np.nan),
+    ),
+    (
+        "imputed_hourly: negative actual",
+        "imputed_hourly",
+        lambda d: _set(d, _first(d, d["actual"].notna()), "actual", -1.0),
+    ),
     ("imputed_hourly: duplicate key", "imputed_hourly", _dup),
     # ---- demand_daily
-    ("demand_daily: total != observed + recovered", "demand_daily",
-     lambda d: _set(d, d.index[0], "demand_total", lambda x, i: x.loc[i, "demand_total"] + 1.0)),
-    ("demand_daily: recovery on a day with no stockout", "demand_daily",
-     lambda d: _recovery_without_stockout(d)),
-    ("demand_daily: n_stockout_hours above 24", "demand_daily",
-     lambda d: _set(d, d.index[0], "n_stockout_hours", 25)),
+    (
+        "demand_daily: total != observed + recovered",
+        "demand_daily",
+        lambda d: _set(
+            d, d.index[0], "demand_total", lambda x, i: x.loc[i, "demand_total"] + 1.0
+        ),
+    ),
+    (
+        "demand_daily: recovery on a day with no stockout",
+        "demand_daily",
+        lambda d: _recovery_without_stockout(d),
+    ),
+    (
+        "demand_daily: n_stockout_hours above 24",
+        "demand_daily",
+        lambda d: _set(d, d.index[0], "n_stockout_hours", 25),
+    ),
     ("demand_daily: duplicate key", "demand_daily", _dup),
     # ---- forecast
     ("forecast: missing a horizon", "forecast", lambda d: d.drop(d.index[0])),
-    ("forecast: horizon 8", "forecast",
-     lambda d: _set(d, d.index[0], "horizon", 8)),
-    ("forecast: target_date != origin + horizon", "forecast",
-     lambda d: _set(d, d.index[0], "target_date",
-                    lambda x, i: x.loc[i, "target_date"] + pd.Timedelta(days=1))),
-    ("forecast: point above raw interval", "forecast",
-     lambda d: _set(d, _first(d, d["model_id"] == gen.FC_QUANTILE), "point",
-                    lambda x, i: x.loc[i, "q975"] + 1.0)),
-    ("forecast: quantile model with null interval", "forecast",
-     lambda d: _set(d, _first(d, d["model_id"] == gen.FC_QUANTILE), "q025", np.nan)),
-    ("forecast: negative point", "forecast",
-     lambda d: _set(d, d.index[0], "point", -1.0)),
+    ("forecast: horizon 8", "forecast", lambda d: _set(d, d.index[0], "horizon", 8)),
+    (
+        "forecast: target_date != origin + horizon",
+        "forecast",
+        lambda d: _set(
+            d,
+            d.index[0],
+            "target_date",
+            lambda x, i: x.loc[i, "target_date"] + pd.Timedelta(days=1),
+        ),
+    ),
+    (
+        "forecast: point above raw interval",
+        "forecast",
+        lambda d: _set(
+            d,
+            _first(d, d["model_id"] == gen.FC_QUANTILE),
+            "point",
+            lambda x, i: x.loc[i, "q975"] + 1.0,
+        ),
+    ),
+    (
+        "forecast: quantile model with null interval",
+        "forecast",
+        lambda d: _set(d, _first(d, d["model_id"] == gen.FC_QUANTILE), "q025", np.nan),
+    ),
+    (
+        "forecast: negative point",
+        "forecast",
+        lambda d: _set(d, d.index[0], "point", -1.0),
+    ),
     ("forecast: duplicate key", "forecast", _dup),
     # ---- forecast_calibrated
-    ("forecast_calibrated: calibration window ends after origin", "forecast_calibrated",
-     lambda d: _set(d, d.index[0], "calib_window_end",
-                    lambda x, i: x.loc[i, "origin_date"] + pd.Timedelta(days=1))),
-    ("forecast_calibrated: point below calibrated interval", "forecast_calibrated",
-     lambda d: _set(d, d.index[0], "lo95", lambda x, i: x.loc[i, "point"] + 1.0)),
-    ("forecast_calibrated: quantile model missing interval", "forecast_calibrated",
-     lambda d: _set(d, d.index[0], "hi95", np.nan)),
-    ("forecast_calibrated: missing a horizon", "forecast_calibrated",
-     lambda d: d.drop(d.index[0])),
+    (
+        "forecast_calibrated: calibration window ends after origin",
+        "forecast_calibrated",
+        lambda d: _set(
+            d,
+            d.index[0],
+            "calib_window_end",
+            lambda x, i: x.loc[i, "origin_date"] + pd.Timedelta(days=1),
+        ),
+    ),
+    (
+        "forecast_calibrated: point below calibrated interval",
+        "forecast_calibrated",
+        lambda d: _set(d, d.index[0], "lo95", lambda x, i: x.loc[i, "point"] + 1.0),
+    ),
+    (
+        "forecast_calibrated: quantile model missing interval",
+        "forecast_calibrated",
+        lambda d: _set(d, d.index[0], "hi95", np.nan),
+    ),
+    (
+        "forecast_calibrated: missing a horizon",
+        "forecast_calibrated",
+        lambda d: d.drop(d.index[0]),
+    ),
     # ---- review_output
-    ("review_output: recovered row without a range", "review_output",
-     lambda d: _set(d, _first(d, d["kind"] == "recovered"), "lo95", np.nan)),
-    ("review_output: forecast row without a range", "review_output",
-     lambda d: _set(d, _first(d, d["kind"] == "forecast"), "hi95", np.nan)),
-    ("review_output: unknown kind", "review_output",
-     lambda d: _set(d, d.index[0], "kind", "guess")),
-    ("review_output: point outside range", "review_output",
-     lambda d: _set(d, _first(d, d["kind"] == "forecast"), "point",
-                    lambda x, i: x.loc[i, "hi95"] + 1.0)),
+    (
+        "review_output: recovered row without a range",
+        "review_output",
+        lambda d: _set(d, _first(d, d["kind"] == "recovered"), "lo95", np.nan),
+    ),
+    (
+        "review_output: forecast row without a range",
+        "review_output",
+        lambda d: _set(d, _first(d, d["kind"] == "forecast"), "hi95", np.nan),
+    ),
+    (
+        "review_output: unknown kind",
+        "review_output",
+        lambda d: _set(d, d.index[0], "kind", "guess"),
+    ),
+    (
+        "review_output: point outside range",
+        "review_output",
+        lambda d: _set(
+            d,
+            _first(d, d["kind"] == "forecast"),
+            "point",
+            lambda x, i: x.loc[i, "hi95"] + 1.0,
+        ),
+    ),
     ("review_output: duplicate key", "review_output", _dup),
     # ---- edit_log
-    ("edit_log: blank reason", "edit_log",
-     lambda d: _set(d, d.index[0], "reason", "   ")),
-    ("edit_log: edit that changes nothing", "edit_log",
-     lambda d: _set(d, d.index[0], "new_value", lambda x, i: x.loc[i, "old_value"])),
-    ("edit_log: unknown field", "edit_log",
-     lambda d: _set(d, d.index[0], "field", "price")),
+    (
+        "edit_log: blank reason",
+        "edit_log",
+        lambda d: _set(d, d.index[0], "reason", "   "),
+    ),
+    (
+        "edit_log: edit that changes nothing",
+        "edit_log",
+        lambda d: _set(d, d.index[0], "new_value", lambda x, i: x.loc[i, "old_value"]),
+    ),
+    (
+        "edit_log: unknown field",
+        "edit_log",
+        lambda d: _set(d, d.index[0], "field", "price"),
+    ),
     ("edit_log: duplicate edit_id", "edit_log", _dup),
     # ---- metrics
-    ("metrics: PICP above 1", "metrics",
-     lambda d: _set(d, _first(d, d["metric"] == "picp95"), "value", 1.5)),
-    ("metrics: negative WAPE", "metrics",
-     lambda d: _set(d, _first(d, d["metric"] == "wape"), "value", -1.0)),
-    ("metrics: unknown slice", "metrics",
-     lambda d: _set(d, d.index[0], "slice", "medium_sales")),
-    ("metrics: unknown metric", "metrics",
-     lambda d: _set(d, d.index[0], "metric", "rmse")),
+    (
+        "metrics: PICP above 1",
+        "metrics",
+        lambda d: _set(d, _first(d, d["metric"] == "picp95"), "value", 1.5),
+    ),
+    (
+        "metrics: negative WAPE",
+        "metrics",
+        lambda d: _set(d, _first(d, d["metric"] == "wape"), "value", -1.0),
+    ),
+    (
+        "metrics: unknown slice",
+        "metrics",
+        lambda d: _set(d, d.index[0], "slice", "medium_sales"),
+    ),
+    (
+        "metrics: unknown metric",
+        "metrics",
+        lambda d: _set(d, d.index[0], "metric", "rmse"),
+    ),
     ("metrics: duplicate key", "metrics", _dup),
     # ---- slices
-    ("slices: low_sales label above threshold", "slices",
-     lambda d: _set(d, _first(d, d["slice"] == "low_sales"), "mean_scaled_demand", 2.0)),
+    (
+        "slices: low_sales label above threshold",
+        "slices",
+        lambda d: _set(
+            d, _first(d, d["slice"] == "low_sales"), "mean_scaled_demand", 2.0
+        ),
+    ),
     ("slices: duplicate series", "slices", _dup),
 ]
 
@@ -270,7 +376,9 @@ def test_forecast_actuals_match_demand_daily(tables):
     f, daily = tables["forecast"], tables["demand_daily"]
     total = daily.set_index(KEYS)["demand_total"]
     idx = pd.MultiIndex.from_frame(
-        f[["store_id", "product_id", "target_date"]].rename(columns={"target_date": "date"})
+        f[["store_id", "product_id", "target_date"]].rename(
+            columns={"target_date": "date"}
+        )
     )
     assert np.allclose(f["actual"].to_numpy(), total.reindex(idx).to_numpy())
 
@@ -303,7 +411,9 @@ def _contract_primary_keys() -> dict[str, set[str]]:
     """Parse `### 2.N `table`` headings and their **Primary key:** lines."""
     text = CONTRACTS_MD.read_text()
     out: dict[str, set[str]] = {}
-    for m in re.finditer(r"^### 2\.\d+ `(\w+)`.*?(?=^### |\Z)", text, flags=re.S | re.M):
+    for m in re.finditer(
+        r"^### 2\.\d+ `(\w+)`.*?(?=^### |\Z)", text, flags=re.S | re.M
+    ):
         pk = re.search(r"\*\*Primary key:\*\*\s*`([^`]+)`", m.group(0))
         if pk:
             out[m.group(1)] = {c.strip() for c in pk.group(1).split(",")}
@@ -318,7 +428,9 @@ def test_primary_keys_in_contract_match_schemas():
     contract = _contract_primary_keys()
     assert contract, "found no primary keys in CONTRACTS.md; heading format changed?"
     for table, pk in contract.items():
-        assert table in schemas.SCHEMAS, f"CONTRACTS.md documents {table}, but schemas.py has no schema"
+        assert table in schemas.SCHEMAS, (
+            f"CONTRACTS.md documents {table}, but schemas.py has no schema"
+        )
         assert set(schemas.SCHEMAS[table].unique) == pk, (
             f"{table}: CONTRACTS.md key {sorted(pk)} != schema key {sorted(schemas.SCHEMAS[table].unique)}"
         )
@@ -348,13 +460,21 @@ def test_config_is_constructor_only():
     """fit and calibrate_* take data (and a seed) only."""
     assert _params(interfaces.Imputer.fit) == ["self", "train", "seed"]
     assert _params(interfaces.Forecaster.fit) == ["self", "train", "seed"]
-    assert _params(interfaces.IntervalWrapper.calibrate_forecast) == ["self", "calib_preds"]
-    assert _params(interfaces.IntervalWrapper.calibrate_imputation) == ["self", "calib_preds"]
+    assert _params(interfaces.IntervalWrapper.calibrate_forecast) == [
+        "self",
+        "calib_preds",
+    ]
+    assert _params(interfaces.IntervalWrapper.calibrate_imputation) == [
+        "self",
+        "calib_preds",
+    ]
     for cls in (interfaces.Imputer, interfaces.Forecaster, interfaces.IntervalWrapper):
         assert _params(cls.__init__) == ["self", "config"]
 
 
-@pytest.mark.parametrize("cls", [interfaces.Imputer, interfaces.Forecaster, interfaces.IntervalWrapper])
+@pytest.mark.parametrize(
+    "cls", [interfaces.Imputer, interfaces.Forecaster, interfaces.IntervalWrapper]
+)
 def test_interfaces_are_abstract(cls):
     with pytest.raises(TypeError):
         cls({})
@@ -363,7 +483,8 @@ def test_interfaces_are_abstract(cls):
 def test_interval_wrapper_must_handle_both_domains():
     class ForecastOnly(interfaces.IntervalWrapper):
         def calibrate_forecast(self, calib_preds): ...
-        def apply_forecast(self, preds): return preds
+        def apply_forecast(self, preds):
+            return preds
 
     with pytest.raises(TypeError):
         ForecastOnly({})
@@ -372,9 +493,14 @@ def test_interval_wrapper_must_handle_both_domains():
 def test_interval_wrapper_may_decline_a_domain_explicitly():
     class Both(interfaces.IntervalWrapper):
         def calibrate_forecast(self, calib_preds): ...
-        def apply_forecast(self, preds): return preds
-        def calibrate_imputation(self, calib_preds): raise NotImplementedError
-        def apply_imputation(self, preds): raise NotImplementedError
+        def apply_forecast(self, preds):
+            return preds
+
+        def calibrate_imputation(self, calib_preds):
+            raise NotImplementedError
+
+        def apply_imputation(self, preds):
+            raise NotImplementedError
 
     w = Both({})
     with pytest.raises(NotImplementedError):
@@ -392,7 +518,9 @@ def test_finalize_quantiles_clips_orders_and_reports():
     out, frac = interfaces.finalize_quantiles(df)
     assert out["q025"].tolist()[:3] == [1.0, 0.0, 2.0]  # clipped, then swapped
     assert out["q975"].tolist()[:3] == [2.0, 1.0, 3.0]
-    assert out.loc[3, "point"] == 4.0 and np.isnan(out.loc[3, "q025"])  # null interval left alone
+    assert out.loc[3, "point"] == 4.0 and np.isnan(
+        out.loc[3, "q025"]
+    )  # null interval left alone
     assert frac == pytest.approx(0.5)
     assert df.loc[1, "q025"] == -0.5  # input not modified
 
@@ -408,9 +536,11 @@ def test_predict_checked_validates_and_reports_clipping(tables):
         def fit(self, train, seed): ...
         def predict(self, history, origin_dates=None):
             return fresh(tables, "forecast")
+
         def save(self, path): ...
         @classmethod
-        def load(cls, path): return cls({"model_id": "fc-dummy"})
+        def load(cls, path):
+            return cls({"model_id": "fc-dummy"})
 
     out, frac = Dummy({"model_id": "fc-dummy"}).predict_checked(pd.DataFrame())
     assert frac == 0.0 and len(out) == len(tables["forecast"])
@@ -421,9 +551,11 @@ def test_predict_checked_rejects_a_bad_table(tables):
         def fit(self, train, seed): ...
         def predict(self, history, origin_dates=None):
             return fresh(tables, "forecast").drop(columns=["horizon"])
+
         def save(self, path): ...
         @classmethod
-        def load(cls, path): return cls({})
+        def load(cls, path):
+            return cls({})
 
     with pytest.raises((*SCHEMA_ERRORS, KeyError)):
         Bad({"model_id": "fc-bad"}).predict_checked(pd.DataFrame())

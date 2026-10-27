@@ -211,11 +211,13 @@ class IntervalWrapper(ABC):
 
     def calibrate_forecast(self, calib_preds: pd.DataFrame) -> None:
         """Fit on the held-out calibration week of a forecast table."""
+
     def apply_forecast(self, preds: pd.DataFrame) -> pd.DataFrame:
         """Return forecast_calibrated rows (2.5)."""
 
     def calibrate_imputation(self, calib_preds: pd.DataFrame) -> None:
         """Fit on held-out, masked in-stock hours of an imputed_hourly table."""
+
     def apply_imputation(self, preds: pd.DataFrame) -> pd.DataFrame:
         """Return imputed_hourly rows (2.2) with q025_cal and q975_cal filled."""
 ```

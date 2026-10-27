@@ -69,8 +69,13 @@ RUN_ID = "fixture-run-0001"
 SEED, FOLD = 0, 0
 
 COVARIATES = [
-    "discount", "holiday_flag", "activity_flag",
-    "precipitation", "temp_avg", "humidity", "wind_level",
+    "discount",
+    "holiday_flag",
+    "activity_flag",
+    "precipitation",
+    "temp_avg",
+    "humidity",
+    "wind_level",
 ]
 KEYS = ["store_id", "product_id", "date"]
 
@@ -80,8 +85,11 @@ PROFILE = PROFILE / PROFILE.sum()  # share of daily demand per hour
 
 
 def _day_split(day_idx: np.ndarray) -> np.ndarray:
-    return np.where(day_idx < TRAIN_DAYS, "train",
-                    np.where(day_idx < TRAIN_DAYS + CALIB_DAYS, "calib", "test"))
+    return np.where(
+        day_idx < TRAIN_DAYS,
+        "train",
+        np.where(day_idx < TRAIN_DAYS + CALIB_DAYS, "calib", "test"),
+    )
 
 
 def _day(i: int) -> pd.Timestamp:
@@ -136,7 +144,9 @@ def _build_hourly(meta: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
     activity = (rng.random((n_s, N_DAYS)) < 0.2).astype(int)
     holiday = np.zeros(N_DAYS, dtype=int)
     holiday[[5, 19]] = 1
-    precip = rng.gamma(1.0, 2.0, (N_STORES, N_DAYS)) * (rng.random((N_STORES, N_DAYS)) < 0.3)
+    precip = rng.gamma(1.0, 2.0, (N_STORES, N_DAYS)) * (
+        rng.random((N_STORES, N_DAYS)) < 0.3
+    )
     temp = rng.uniform(5, 25, (N_STORES, N_DAYS))
     humid = rng.uniform(40, 90, (N_STORES, N_DAYS))
     wind = rng.integers(1, 6, (N_STORES, N_DAYS)).astype(float)
@@ -183,10 +193,18 @@ def _build_imputed(hourly: pd.DataFrame, rng: np.random.Generator) -> pd.DataFra
     q975 = point + w
     out = pd.DataFrame(
         {
-            "store_id": rows["store_id"], "product_id": rows["product_id"],
-            "date": rows["date"], "hour": rows["hour"],
-            "model_id": IMP_MODEL, "seed": SEED, "split": rows["split"], "fold": np.int8(FOLD),
-            "q025": q025, "q975": q975, "point": point, "actual": rows["actual"],
+            "store_id": rows["store_id"],
+            "product_id": rows["product_id"],
+            "date": rows["date"],
+            "hour": rows["hour"],
+            "model_id": IMP_MODEL,
+            "seed": SEED,
+            "split": rows["split"],
+            "fold": np.int8(FOLD),
+            "q025": q025,
+            "q975": q975,
+            "point": point,
+            "actual": rows["actual"],
             "q025_cal": np.clip(q025 - 0.2 * w, 0.0, None),  # post-conformal state
             "q975_cal": q975 + 0.2 * w,
         }
@@ -198,13 +216,20 @@ def _build_imputed(hourly: pd.DataFrame, rng: np.random.Generator) -> pd.DataFra
     for c in ["q025", "q975", "q025_cal", "q975_cal"]:
         base[c] = np.nan
     out = pd.concat([out, base], ignore_index=True)
-    return out.sort_values(["store_id", "product_id", "date", "hour", "model_id"]).reset_index(drop=True)
+    return out.sort_values(
+        ["store_id", "product_id", "date", "hour", "model_id"]
+    ).reset_index(drop=True)
 
 
 def _build_demand_daily(hourly: pd.DataFrame, imputed: pd.DataFrame) -> pd.DataFrame:
     # one imputation run feeds demand_daily; masked eval rows (non-null actual) never do
     real = imputed[imputed["actual"].isna() & (imputed["model_id"] == IMP_MODEL)]
-    obs = hourly[~hourly["is_stockout"]].groupby(KEYS)["sales"].sum().rename("demand_observed")
+    obs = (
+        hourly[~hourly["is_stockout"]]
+        .groupby(KEYS)["sales"]
+        .sum()
+        .rename("demand_observed")
+    )
     nso = hourly.groupby(KEYS)["is_stockout"].sum().rename("n_stockout_hours")
     rec = real.groupby(KEYS).agg(
         demand_recovered=("point", "sum"),
@@ -220,23 +245,42 @@ def _build_demand_daily(hourly: pd.DataFrame, imputed: pd.DataFrame) -> pd.DataF
     d["imputation_run_id"] = IMP_RUN_ID
     d["fold"] = np.int8(FOLD)
     cols = (
-        KEYS + ["imputation_run_id", "demand_observed", "demand_recovered", "demand_total",
-                "n_stockout_hours", "recovered_lo", "recovered_hi"]
-        + COVARIATES + ["split", "fold"]
+        KEYS
+        + [
+            "imputation_run_id",
+            "demand_observed",
+            "demand_recovered",
+            "demand_total",
+            "n_stockout_hours",
+            "recovered_lo",
+            "recovered_hi",
+        ]
+        + COVARIATES
+        + ["split", "fold"]
     )
     return d[cols]
 
 
-def _build_forecast(meta: pd.DataFrame, daily: pd.DataFrame, model_id: str,
-                    quantile: bool, rng: np.random.Generator) -> pd.DataFrame:
+def _build_forecast(
+    meta: pd.DataFrame,
+    daily: pd.DataFrame,
+    model_id: str,
+    quantile: bool,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
     actual = daily.set_index(KEYS)["demand_total"]
     frames = []
-    for origin_day, split in [(TRAIN_DAYS - 1, "calib"), (TRAIN_DAYS + CALIB_DAYS - 1, "test")]:
+    for origin_day, split in [
+        (TRAIN_DAYS - 1, "calib"),
+        (TRAIN_DAYS + CALIB_DAYS - 1, "test"),
+    ]:
         base = meta[["store_id", "product_id", "mean_scaled_demand"]].merge(
             pd.DataFrame({"horizon": np.arange(1, 8, dtype="uint8")}), how="cross"
         )
         base["origin_date"] = _dt(_day(origin_day))
-        base["target_date"] = _dt(base["origin_date"] + pd.to_timedelta(base["horizon"].astype(int), unit="D"))
+        base["target_date"] = _dt(
+            base["origin_date"] + pd.to_timedelta(base["horizon"].astype(int), unit="D")
+        )
         base["split"] = split
         frames.append(base)
     f = pd.concat(frames, ignore_index=True)
@@ -253,52 +297,95 @@ def _build_forecast(meta: pd.DataFrame, daily: pd.DataFrame, model_id: str,
         f["q975"] = np.nan
     f["point"] = point
     idx = pd.MultiIndex.from_frame(
-        f[["store_id", "product_id", "target_date"]].rename(columns={"target_date": "date"})
+        f[["store_id", "product_id", "target_date"]].rename(
+            columns={"target_date": "date"}
+        )
     )
     f["actual"] = actual.reindex(idx).to_numpy()
     f["model_id"] = model_id
     f["seed"] = SEED
     f["fold"] = np.int8(FOLD)
     f["imputation_run_id"] = IMP_RUN_ID
-    cols = ["store_id", "product_id", "origin_date", "horizon", "target_date", "model_id",
-            "seed", "split", "fold", "imputation_run_id", "q025", "q975", "point", "actual"]
-    return f[cols].sort_values(["store_id", "product_id", "origin_date", "horizon"]).reset_index(drop=True)
+    cols = [
+        "store_id",
+        "product_id",
+        "origin_date",
+        "horizon",
+        "target_date",
+        "model_id",
+        "seed",
+        "split",
+        "fold",
+        "imputation_run_id",
+        "q025",
+        "q975",
+        "point",
+        "actual",
+    ]
+    return (
+        f[cols]
+        .sort_values(["store_id", "product_id", "origin_date", "horizon"])
+        .reset_index(drop=True)
+    )
 
 
-def _build_forecast_calibrated(forecast_q: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
-    f = forecast_q[forecast_q["split"] == "test"].copy()  # calib-week forecasts are the calibration data
+def _build_forecast_calibrated(
+    forecast_q: pd.DataFrame, rng: np.random.Generator
+) -> pd.DataFrame:
+    f = forecast_q[
+        forecast_q["split"] == "test"
+    ].copy()  # calib-week forecasts are the calibration data
     qhat = rng.uniform(0.0, 1.5, len(f))
     f["lo95"] = np.clip(f["q025"] - qhat, 0.0, None)
     f["hi95"] = f["q975"] + qhat
     f["calib_window_start"] = _dt(_day(TRAIN_DAYS))
-    f["calib_window_end"] = _dt(_day(TRAIN_DAYS + CALIB_DAYS - 1))  # may equal origin_date
+    f["calib_window_end"] = _dt(
+        _day(TRAIN_DAYS + CALIB_DAYS - 1)
+    )  # may equal origin_date
     f["qhat95"] = qhat
     return f.reset_index(drop=True)
 
 
-def _build_review_output(daily: pd.DataFrame, fcal: pd.DataFrame, meta: pd.DataFrame) -> pd.DataFrame:
+def _build_review_output(
+    daily: pd.DataFrame, fcal: pd.DataFrame, meta: pd.DataFrame
+) -> pd.DataFrame:
     cov_cols = COVARIATES
     # history: the last 14 days before the forecast origin
-    h = daily[(daily["date"] >= _day(7)) & (daily["date"] <= _day(TRAIN_DAYS + CALIB_DAYS - 1))].copy()
+    h = daily[
+        (daily["date"] >= _day(7))
+        & (daily["date"] <= _day(TRAIN_DAYS + CALIB_DAYS - 1))
+    ].copy()
     recovered = h["n_stockout_hours"] > 0
     hist = pd.DataFrame(
         {
-            "store_id": h["store_id"], "product_id": h["product_id"], "date": h["date"],
+            "store_id": h["store_id"],
+            "product_id": h["product_id"],
+            "date": h["date"],
             "kind": np.where(recovered, "recovered", "observed"),
             "point": h["demand_total"],
             # recovered days always carry a range (display rule); plain observed days do not
-            "lo95": np.where(recovered, h["demand_observed"] + h["recovered_lo"], np.nan),
-            "hi95": np.where(recovered, h["demand_observed"] + h["recovered_hi"], np.nan),
+            "lo95": np.where(
+                recovered, h["demand_observed"] + h["recovered_lo"], np.nan
+            ),
+            "hi95": np.where(
+                recovered, h["demand_observed"] + h["recovered_hi"], np.nan
+            ),
             "n_stockout_hours": h["n_stockout_hours"],
-            "change_warning": False, "review_flag": False,
+            "change_warning": False,
+            "review_flag": False,
         }
     )
     hist[cov_cols] = h[cov_cols]  # same index as h
 
     fut = pd.DataFrame(
         {
-            "store_id": fcal["store_id"], "product_id": fcal["product_id"], "date": fcal["target_date"],
-            "kind": "forecast", "point": fcal["point"], "lo95": fcal["lo95"], "hi95": fcal["hi95"],
+            "store_id": fcal["store_id"],
+            "product_id": fcal["product_id"],
+            "date": fcal["target_date"],
+            "kind": "forecast",
+            "point": fcal["point"],
+            "lo95": fcal["lo95"],
+            "hi95": fcal["hi95"],
             "n_stockout_hours": np.int8(0),
         }
     )
@@ -310,8 +397,12 @@ def _build_review_output(daily: pd.DataFrame, fcal: pd.DataFrame, meta: pd.DataF
 
     width = fut["hi95"] - fut["lo95"]
     wide = width > width.quantile(0.75)
-    changed_series = meta.iloc[3][["store_id", "product_id"]]  # one series gets a change warning
-    changed = (fut["store_id"] == changed_series["store_id"]) & (fut["product_id"] == changed_series["product_id"])
+    changed_series = meta.iloc[3][
+        ["store_id", "product_id"]
+    ]  # one series gets a change warning
+    changed = (fut["store_id"] == changed_series["store_id"]) & (
+        fut["product_id"] == changed_series["product_id"]
+    )
     fut["change_warning"] = changed.to_numpy()
     fut["review_flag"] = (wide | changed).to_numpy()
 
@@ -319,25 +410,64 @@ def _build_review_output(daily: pd.DataFrame, fcal: pd.DataFrame, meta: pd.DataF
     out["model_id"] = FC_QUANTILE
     out["run_id"] = RUN_ID
     out["n_stockout_hours"] = out["n_stockout_hours"].astype("int8")
-    cols = (KEYS + ["kind", "point", "lo95", "hi95", "n_stockout_hours", "change_warning",
-                    "review_flag", "model_id", "run_id"] + cov_cols)
+    cols = (
+        KEYS
+        + [
+            "kind",
+            "point",
+            "lo95",
+            "hi95",
+            "n_stockout_hours",
+            "change_warning",
+            "review_flag",
+            "model_id",
+            "run_id",
+        ]
+        + cov_cols
+    )
     return out[cols].sort_values(KEYS).reset_index(drop=True)
 
 
 def _build_edit_log(daily: pd.DataFrame) -> pd.DataFrame:
     def demand(store, product, day):
-        return float(daily.set_index(KEYS).loc[(store, product, _day(day)), "demand_total"])
+        return float(
+            daily.set_index(KEYS).loc[(store, product, _day(day)), "demand_total"]
+        )
 
     def covariate(store, product, day, col):
         return float(daily.set_index(KEYS).loc[(store, product, _day(day)), col])
 
     edits = [
-        ("s001", "p001", 10, "demand", demand("s001", "p001", 10), None,
-         "Known supplier outage; recorded demand understated", RUN_ID),
-        ("s001", "p002", 22, "discount", covariate("s001", "p002", 22, "discount"), "promo",
-         "Promotion planned for this day", None),
-        ("s002", "p003", 12, "demand", demand("s002", "p003", 12), None,
-         "Data entry error corrected by planner", RUN_ID),
+        (
+            "s001",
+            "p001",
+            10,
+            "demand",
+            demand("s001", "p001", 10),
+            None,
+            "Known supplier outage; recorded demand understated",
+            RUN_ID,
+        ),
+        (
+            "s001",
+            "p002",
+            22,
+            "discount",
+            covariate("s001", "p002", 22, "discount"),
+            "promo",
+            "Promotion planned for this day",
+            None,
+        ),
+        (
+            "s002",
+            "p003",
+            12,
+            "demand",
+            demand("s002", "p003", 12),
+            None,
+            "Data entry error corrected by planner",
+            RUN_ID,
+        ),
     ]
     rows = []
     for i, (s, p, day, field, old, new, reason, applied) in enumerate(edits):
@@ -348,10 +478,16 @@ def _build_edit_log(daily: pd.DataFrame) -> pd.DataFrame:
         rows.append(
             {
                 "edit_id": str(uuid.uuid5(uuid.NAMESPACE_DNS, f"fixture-edit-{i}")),
-                "store_id": s, "product_id": p, "date": _dt(_day(day)),
-                "field": field, "old_value": old, "new_value": float(new),
-                "edited_at": pd.Timestamp("2020-02-10 14:00", tz="UTC") + pd.Timedelta(hours=i),
-                "reason": reason, "applied_in_run_id": applied,
+                "store_id": s,
+                "product_id": p,
+                "date": _dt(_day(day)),
+                "field": field,
+                "old_value": old,
+                "new_value": float(new),
+                "edited_at": pd.Timestamp("2020-02-10 14:00", tz="UTC")
+                + pd.Timedelta(hours=i),
+                "reason": reason,
+                "applied_in_run_id": applied,
             }
         )
     df = pd.DataFrame(rows)
@@ -365,16 +501,32 @@ def _build_slices(meta: pd.DataFrame) -> pd.DataFrame:
     return s
 
 
-def _build_metrics(slices: pd.DataFrame, imputed: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
-    low = set(map(tuple, slices.loc[slices["slice"] == "low_sales", ["store_id", "product_id"]].to_numpy()))
+def _build_metrics(
+    slices: pd.DataFrame, imputed: pd.DataFrame, rng: np.random.Generator
+) -> pd.DataFrame:
+    low = set(
+        map(
+            tuple,
+            slices.loc[
+                slices["slice"] == "low_sales", ["store_id", "product_id"]
+            ].to_numpy(),
+        )
+    )
 
     def n_series(sl):
-        return {"all": len(slices), "low_sales": len(low), "high_sales": len(slices) - len(low)}[sl]
+        return {
+            "all": len(slices),
+            "low_sales": len(low),
+            "high_sales": len(slices) - len(low),
+        }[sl]
 
     masked = imputed[(imputed["model_id"] == IMP_MODEL) & imputed["actual"].notna()]
     is_low = [(s, p) in low for s, p in zip(masked["store_id"], masked["product_id"])]
-    masked_n = {"all": len(masked), "low_sales": int(np.sum(is_low)),
-                "high_sales": int(len(masked) - np.sum(is_low))}
+    masked_n = {
+        "all": len(masked),
+        "low_sales": int(np.sum(is_low)),
+        "high_sales": int(len(masked) - np.sum(is_low)),
+    }
 
     # (feature, model_id, split, calibrated?, quantile model?)
     specs = [
@@ -396,13 +548,26 @@ def _build_metrics(slices: pd.DataFrame, imputed: pd.DataFrame, rng: np.random.G
                 "mase": rng.uniform(0.8, 1.3),
             }
             if quantile:
-                vals["picp95"] = rng.uniform(0.93, 0.97) if calibrated else rng.uniform(0.80, 0.90)
-                vals["mpiw95"] = rng.uniform(10, 14) if calibrated else rng.uniform(8, 12)
+                vals["picp95"] = (
+                    rng.uniform(0.93, 0.97) if calibrated else rng.uniform(0.80, 0.90)
+                )
+                vals["mpiw95"] = (
+                    rng.uniform(10, 14) if calibrated else rng.uniform(8, 12)
+                )
             for metric, v in vals.items():
                 rows.append(
-                    {"feature": feature, "model_id": model_id, "fold": np.int8(FOLD), "seed": SEED,
-                     "split": split, "slice": sl, "metric": metric,
-                     "value": float(v) if n > 0 else np.nan, "n": int(n), "calibrated": calibrated}
+                    {
+                        "feature": feature,
+                        "model_id": model_id,
+                        "fold": np.int8(FOLD),
+                        "seed": SEED,
+                        "split": split,
+                        "slice": sl,
+                        "metric": metric,
+                        "value": float(v) if n > 0 else np.nan,
+                        "n": int(n),
+                        "calibrated": calibrated,
+                    }
                 )
     return pd.DataFrame(rows)
 
@@ -441,8 +606,10 @@ def _load_validator():
     try:
         from contracts.schemas import validate  # noqa: WPS433
     except ImportError as e:
-        print(f"WARNING: cannot import contracts.schemas ({e}); writing UNVALIDATED fixtures.",
-              file=sys.stderr)
+        print(
+            f"WARNING: cannot import contracts.schemas ({e}); writing UNVALIDATED fixtures.",
+            file=sys.stderr,
+        )
         return None
     return validate
 
