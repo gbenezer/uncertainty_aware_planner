@@ -64,7 +64,7 @@ One row per store-product-hour **that was a stockout hour**. Observed hours are 
 |---|---|---|
 | `store_id`, `product_id`, `date`, `hour` | | As above |
 | `model_id`, `seed`, `fold`, `split` | | |
-| `q025`, `q975` | float | Raw model quantile outputs |
+| `q025`, `q975` | float, nullable | Raw model quantile outputs. Null only for non-quantile baseline models (see O2) |
 | `point` | float | Point estimate (see O1) |
 | `actual` | float, nullable | True sales for a masked in-stock hour. **Null for real stockout hours**, where no ground truth exists. Read only by evaluation and calibration code |
 | `q025_cal`, `q975_cal` | float, nullable | After conformal calibration. Null before `make conformal` |

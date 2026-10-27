@@ -194,11 +194,6 @@ def _non_baseline_requires(*cols: str) -> pa.Check:
     )
 
 
-def _quantile_columns(levels: dict[str, bool]) -> dict[str, pa.Column]:
-    """levels: column name -> nullable. All quantile outputs are >= 0 (clipped upstream, O4)."""
-    return {c: _float(nullable=n, ge=0.0, required=(not n)) for c, n in levels.items()}
-
-
 # --------------------------------------------------------------------------
 # 2.1 series_hourly
 # --------------------------------------------------------------------------
@@ -232,7 +227,10 @@ imputed_hourly = pa.DataFrameSchema(
         "model_id": _str(),
         "seed": _int(ge=0),
         **_split_fold(),
-        **_quantile_columns({"q025": False, "q975": False}),
+        # Non-quantile baselines have no interval (open decision O2); every other
+        # model must fill both (checked below by _non_baseline_requires).
+        "q025": _float(nullable=True, ge=0.0),
+        "q975": _float(nullable=True, ge=0.0),
         "point": _float(nullable=False, ge=0.0),
         # True sales for masked in-stock hours (calibration/evaluation only).
         # Null for real stockout hours, where no ground truth exists.

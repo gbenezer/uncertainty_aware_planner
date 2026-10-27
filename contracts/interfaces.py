@@ -122,7 +122,8 @@ class Imputer(ABC):
     def predict(self, df: pd.DataFrame) -> pd.DataFrame:
         """Return `imputed_hourly` rows (2.2) for the stockout hours in `df`.
 
-        Returns raw quantiles `q025` and `q975` plus `point`. `q025_cal` and
+        Returns raw quantiles `q025` and `q975` plus `point` (non-quantile
+        baselines leave the quantiles null, open decision O2). `q025_cal` and
         `q975_cal` stay null; calibration is the IntervalWrapper's job.
         Must be deterministic given the seed and loaded weights.
         """
