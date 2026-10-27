@@ -48,10 +48,10 @@ A web dashboard (SKU search bar plus tabs) serves the best-performing model:
 ## Repository layout
 
 ```
-uncertainty-aware-planner/
+demand_imputation_and_forecasting_with_uncertainty/
 ├── contracts/        FROZEN in week 7. Schemas, interfaces, shared file formats
 ├── configs/          YAML for data, splits, each model, conformal settings
-├── src/frn/
+├── src/uncertainty-aware-planner/
 │   ├── data/         download, version record, stockout masks, daily aggregation, splits
 │   ├── models/
 │   │   ├── imputation/    one file per architecture
