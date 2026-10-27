@@ -242,8 +242,8 @@ class IntervalWrapper(ABC):
 
         `calib_preds` has `split == "calib"` and carries the true values in
         `actual`. Calibration data must not overlap the scoring window; the
-        `forecast_calibrated` schema checks that `calib_window_end` precedes
-        every `origin_date`.
+        `forecast_calibrated` schema checks that `calib_window_end` is on or
+        before every `origin_date`.
         """
 
     @abstractmethod
