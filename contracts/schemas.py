@@ -37,7 +37,6 @@ CONTRACT_VERSION = "0.1"
 
 SPLITS = ["train", "val", "calib", "test"]
 KINDS = ["observed", "recovered", "forecast"]
-CONFIDENCE_LABELS = ["high", "medium", "low"]
 FEATURES = ["imputation", "forecasting"]
 SLICES = ["all", "low_sales", "high_sales"]
 METRICS = [
@@ -51,7 +50,7 @@ EDIT_FIELDS_DEMAND = "demand"
 HORIZONS = list(range(1, 8))  # 7-day forecast
 
 # Models whose id contains this token are the non-quantile dataset-paper
-# baselines (open decision O4): they may have null quantile/interval columns.
+# baselines (open decision O2): they may have null quantile/interval columns.
 BASELINE_TOKEN = "baseline"
 
 COVARIATES = [
@@ -179,7 +178,7 @@ def _ordered(*cols: str, name: str | None = None) -> pa.Check:
 
 
 def _non_baseline_requires(*cols: str) -> pa.Check:
-    """Quantile model rows must have the given columns filled. Baselines may leave them null (O4)."""
+    """Quantile model rows must have the given columns filled. Baselines may leave them null (O2)."""
 
     def fn(df: pd.DataFrame) -> bool:
         is_base = df["model_id"].str.contains(BASELINE_TOKEN, regex=False)
@@ -196,7 +195,7 @@ def _non_baseline_requires(*cols: str) -> pa.Check:
 
 
 def _quantile_columns(levels: dict[str, bool]) -> dict[str, pa.Column]:
-    """levels: column name -> nullable. All quantile outputs are >= 0 (clipped upstream, O6)."""
+    """levels: column name -> nullable. All quantile outputs are >= 0 (clipped upstream, O4)."""
     return {c: _float(nullable=n, ge=0.0, required=(not n)) for c, n in levels.items()}
 
 
@@ -282,7 +281,7 @@ demand_daily = pa.DataFrameSchema(
         "demand_recovered": _float(nullable=False, ge=0.0),
         "demand_total": _float(nullable=False, ge=0.0),
         "n_stockout_hours": _int(ge=0, le=24, dtype="int8"),
-        # display only; forecast models must not consume these (O3)
+        # display only; forecast models must not consume these
         "recovered_lo": _float(nullable=True, ge=0.0),
         "recovered_hi": _float(nullable=True, ge=0.0),
         **_covariate_columns(),
@@ -334,13 +333,13 @@ def _complete_horizons(df: pd.DataFrame) -> bool:
 _FORECAST_COLUMNS = {
     **_id_columns(),
     "origin_date": _date(),
-    "horizon": _int(ge=1, le=7, dtype="int8"),
+    "horizon": _int(ge=1, le=7, dtype="uint8"),
     "target_date": _date(),
     "model_id": _str(),
     "seed": _int(ge=0),
     **_split_fold(),
     "imputation_run_id": _str(),
-    # Baseline models (O4) may leave quantiles null; others may not (checked below).
+    # Baseline models (O2) may leave quantiles null; others may not (checked below).
     "q025": _float(nullable=True, ge=0.0),
     "q975": _float(nullable=True, ge=0.0),
     "point": _float(nullable=False, ge=0.0),
@@ -360,9 +359,6 @@ forecast = pa.DataFrameSchema(
             _complete_horizons,
             name="all_seven_horizons_present",
             error="some forecast origins are missing horizons 1..7",
-        ),
-        _ordered(
-            "q025", "q100", "point", "q900", "q975", name="forecast_quantiles_monotone"
         ),
         _ordered("q025", "point", "q975", name="forecast_point_inside_raw_interval"),
         _non_baseline_requires("q025", "q975"),
@@ -397,7 +393,6 @@ def _build_forecast_calibrated() -> pa.DataFrameSchema:
         {
             "lo95": _float(nullable=True, ge=0.0),
             "hi95": _float(nullable=True, ge=0.0),
-            "conformal_method": _str(),
             "calib_window_start": _date(),
             "calib_window_end": _date(),
             "qhat95": _float(nullable=True),
@@ -415,14 +410,6 @@ def _build_forecast_calibrated() -> pa.DataFrameSchema:
                 _complete_horizons,
                 name="all_seven_horizons_present",
                 error="some forecast origins are missing horizons 1..7",
-            ),
-            _ordered(
-                "q025",
-                "q100",
-                "point",
-                "q900",
-                "q975",
-                name="forecast_quantiles_monotone",
             ),
             _ordered("lo95", "point", "hi95", name="point_inside_95_interval"),
             _non_baseline_requires("lo95", "hi95"),
@@ -456,7 +443,7 @@ forecast_calibrated = _build_forecast_calibrated()
 
 def _forecast_rows_complete(df: pd.DataFrame) -> bool:
     f = df[df["kind"] == "forecast"]
-    needed = ["lo95", "hi95", "confidence_label"]
+    needed = ["lo95", "hi95"]
     return bool(not f[needed].isna().any().any())
 
 
@@ -464,11 +451,6 @@ def _recovered_rows_have_range(df: pd.DataFrame) -> bool:
     """Display rule: recovered estimates are never shown without their range."""
     r = df[df["kind"] == "recovered"]
     return bool(not r[["lo95", "hi95"]].isna().any().any())
-
-
-def _label_only_on_forecasts(df: pd.DataFrame) -> bool:
-    nf = df[df["kind"] != "forecast"]
-    return bool(nf["confidence_label"].isna().all())
 
 
 review_output = pa.DataFrameSchema(
@@ -480,7 +462,6 @@ review_output = pa.DataFrameSchema(
         "lo95": _float(nullable=True, ge=0.0),
         "hi95": _float(nullable=True, ge=0.0),
         "n_stockout_hours": _int(ge=0, le=24, dtype="int8"),
-        "confidence_label": _isin(CONFIDENCE_LABELS, nullable=True),
         "change_warning": _bool(),
         "review_flag": _bool(),
         "model_id": _str(),
@@ -490,18 +471,13 @@ review_output = pa.DataFrameSchema(
     checks=[
         pa.Check(
             _forecast_rows_complete,
-            name="forecast_rows_have_interval_and_label",
-            error="forecast rows need lo95, hi95, and confidence_label",
+            name="forecast_rows_have_interval",
+            error="forecast rows need lo95 and hi95",
         ),
         pa.Check(
             _recovered_rows_have_range,
             name="recovered_rows_have_interval",
             error="recovered rows must carry an interval",
-        ),
-        pa.Check(
-            _label_only_on_forecasts,
-            name="label_only_on_forecast_rows",
-            error="confidence_label is only for forecast rows",
         ),
         _ordered("lo95", "point", "hi95", name="point_inside_95_interval"),
     ],
@@ -590,7 +566,7 @@ metrics = pa.DataFrameSchema(
                 >= 0
             ).all(),
             name="nonnegative_metrics",
-            error="WAPE, MASE, MPIW and ECE cannot be negative",
+            error="WAPE, MASE and MPIW cannot be negative",
         ),
     ],
     unique=[
