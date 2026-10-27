@@ -13,21 +13,28 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v7
+      - name: Install uv with all available options
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
-          python-version: "3.14"
-          cache: pip
 
-      # The [dev] extra includes ruff and pytest.
-      - name: Install
-        run: pip install -e ".[dev]"
+          # The version of Python to set UV_PYTHON to (overrides the Python version from .tool-versions)
+          python-version: "3.14"
+
+          # Use uv venv to activate a venv ready to be used by later steps
+          activate-environment: "true"
+
+      # Installs the Python version required by pyproject.toml (>=3.14) plus the
+      # dependencies and the `dev` dependency group (ruff, pytest).
+      # Commit uv.lock, and switch to `uv sync --locked` to fail on a stale lock.
+      - name: Install dependencies
+        run: uv sync --all-groups
 
       # CI only CHECKS formatting. It never rewrites code; run `ruff format .` locally to fix.
       - name: Ruff format check
-        run: ruff format --check .
+        run: uv run ruff format --check .
 
       - name: Ruff lint
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Tests
-        run: pytest -q
+        run: uv run pytest -q
