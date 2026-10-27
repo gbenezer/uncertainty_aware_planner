@@ -29,8 +29,8 @@ pytest.importorskip("pandera")
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from contracts import interfaces, schemas  # noqa: E402
-from fixtures import generate_fixtures as gen  # noqa: E402
+from contracts import interfaces, schemas
+from fixtures import generate_fixtures as gen
 
 try:
     from pandera.errors import SchemaError, SchemaErrors
@@ -412,7 +412,7 @@ def _contract_primary_keys() -> dict[str, set[str]]:
     text = CONTRACTS_MD.read_text()
     out: dict[str, set[str]] = {}
     for m in re.finditer(
-        r"^### 2\.\d+ `(\w+)`.*?(?=^### |\Z)", text, flags=re.S | re.M
+        r"^### 2\.\d+ `(\w+)`.*?(?=^### |\Z)", text, flags=re.DOTALL | re.MULTILINE
     ):
         pk = re.search(r"\*\*Primary key:\*\*\s*`([^`]+)`", m.group(0))
         if pk:
@@ -438,7 +438,7 @@ def test_primary_keys_in_contract_match_schemas():
 
 def test_every_contract_table_has_a_primary_key_line():
     text = CONTRACTS_MD.read_text()
-    documented = set(re.findall(r"^### 2\.\d+ `(\w+)`", text, flags=re.M))
+    documented = set(re.findall(r"^### 2\.\d+ `(\w+)`", text, flags=re.MULTILINE))
     # forecast_calibrated says "same key as forecast" and slices is described in 2.8
     assert documented - {"forecast_calibrated"} <= set(_contract_primary_keys())
 

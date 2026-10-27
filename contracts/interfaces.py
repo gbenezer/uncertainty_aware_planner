@@ -28,8 +28,8 @@ Importing this module does not require pandera. Validation helpers import
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 import pandas as pd
 
@@ -134,7 +134,7 @@ class Imputer(ABC):
 
     @classmethod
     @abstractmethod
-    def load(cls, path: Path) -> "Imputer":
+    def load(cls, path: Path) -> Imputer:
         """Inverse of `save`."""
 
     def predict_checked(self, df: pd.DataFrame) -> tuple[pd.DataFrame, float]:
@@ -197,7 +197,7 @@ class Forecaster(ABC):
 
     @classmethod
     @abstractmethod
-    def load(cls, path: Path) -> "Forecaster":
+    def load(cls, path: Path) -> Forecaster:
         """Inverse of `save`."""
 
     def predict_checked(
