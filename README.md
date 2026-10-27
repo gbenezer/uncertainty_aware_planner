@@ -51,7 +51,7 @@ A web dashboard (SKU search bar plus tabs) serves the best-performing model:
 demand_imputation_and_forecasting_with_uncertainty/
 ├── contracts/        FROZEN in week 7. Schemas, interfaces, shared file formats
 ├── configs/          YAML for data, splits, each model, conformal settings
-├── src/uncertainty-aware-planner/
+├── src/uncertainty_aware_planner/
 │   ├── data/         download, version record, stockout masks, daily aggregation, splits
 │   ├── models/
 │   │   ├── imputation/    one file per architecture
@@ -59,7 +59,7 @@ demand_imputation_and_forecasting_with_uncertainty/
 │   ├── uq/           conformal.py
 │   ├── evaluation/   metrics, low-sales slice, fairness report, error analysis
 │   ├── pipeline/     orchestration, seeds, run log
-│   └── flags/        confidence labels, "demand has changed" warning
+│   └── flags/        review flag, "demand has changed" warning
 ├── api/              FastAPI service + planner edit log
 ├── dashboard/        SKU search and tabs
 ├── fixtures/         small SYNTHETIC tables that match contracts/schemas.py
@@ -69,6 +69,8 @@ demand_imputation_and_forecasting_with_uncertainty/
 ├── tests/            mirrors src/; schema tests run against fixtures
 └── docs/             experiment cards, datasheet, governance plan, architecture figure
 ```
+
+The repository is `demand_imputation_and_forecasting_with_uncertainty`; the importable Python package is `uncertainty_aware_planner` (underscores, since hyphens cannot appear in imports).
 
 **Design rule:** streams hand off through files that obey `contracts/`, not through each other's code. Evaluation reads prediction tables only. Conformal prediction wraps any model's quantile output. Each architecture lives in its own file behind a shared interface.
 
@@ -162,13 +164,13 @@ All architectures are compared under identical conditions. These settings live i
 
 ## Ownership
 
-| Area | Lead |
+| Area (under `src/uncertainty_aware_planner/` unless noted) | Lead |
 |---|---|
-| `src/frn/data/`, fairness report, DLinear imputation (quantile) | Tarakaram |
-| `src/frn/evaluation/`, `src/frn/uq/conformal.py`, TimesNet imputation, DLinear baselines | Gil |
-| `api/`, `dashboard/`, DLinear forecasting (quantile) | Jeena |
-| `src/frn/pipeline/`, `slurm/`, TFT forecasting, final runs, security check | Vishnu |
-| `contracts/` | All four; changes need every lead's approval |
+| `data/`, `uq/conformal.py`, DLinear imputation (quantile) | Tarakaram |
+| `evaluation/`, fairness report, TimesNet imputation, DLinear baselines | Gil |
+| `api/`, `dashboard/` (both at repo root), DLinear forecasting (quantile) | Jeena |
+| `pipeline/`, `slurm/` (repo root), TFT forecasting, final runs, security check | Vishnu |
+| `contracts/` (repo root) | All four; changes need every lead's approval |
 
 Ownership is enforced through `CODEOWNERS`. Each lead also writes one section of the final report.
 
