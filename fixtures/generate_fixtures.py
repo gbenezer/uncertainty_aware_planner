@@ -61,6 +61,7 @@ DAILY_SCALE = 10.0  # daily demand mean = mean_scaled_demand * DAILY_SCALE
 MASK_RATE = 0.05  # share of in-stock calib-week hours masked for imputation eval
 
 IMP_MODEL = "imp-dlinear-quantile"
+IMP_BASELINE = "imp-dlinear-baseline"
 FC_QUANTILE = "fc-dlinear-quantile"
 FC_BASELINE = "fc-dlinear-baseline"
 IMP_RUN_ID = "imp-dlinear-quantile_s0_f0"
@@ -190,11 +191,19 @@ def _build_imputed(hourly: pd.DataFrame, rng: np.random.Generator) -> pd.DataFra
             "q975_cal": q975 + 0.2 * w,
         }
     )
-    return out.sort_values(["store_id", "product_id", "date", "hour"]).reset_index(drop=True)
+    # Non-quantile baseline over the same hours: point estimate only, no interval (O2)
+    base = out.copy()
+    base["model_id"] = IMP_BASELINE
+    base["point"] = rate * rng.uniform(0.8, 1.2, len(rows))
+    for c in ["q025", "q975", "q025_cal", "q975_cal"]:
+        base[c] = np.nan
+    out = pd.concat([out, base], ignore_index=True)
+    return out.sort_values(["store_id", "product_id", "date", "hour", "model_id"]).reset_index(drop=True)
 
 
 def _build_demand_daily(hourly: pd.DataFrame, imputed: pd.DataFrame) -> pd.DataFrame:
-    real = imputed[imputed["actual"].isna()]  # masked eval rows never feed demand_daily
+    # one imputation run feeds demand_daily; masked eval rows (non-null actual) never do
+    real = imputed[imputed["actual"].isna() & (imputed["model_id"] == IMP_MODEL)]
     obs = hourly[~hourly["is_stockout"]].groupby(KEYS)["sales"].sum().rename("demand_observed")
     nso = hourly.groupby(KEYS)["is_stockout"].sum().rename("n_stockout_hours")
     rec = real.groupby(KEYS).agg(
@@ -362,13 +371,14 @@ def _build_metrics(slices: pd.DataFrame, imputed: pd.DataFrame, rng: np.random.G
     def n_series(sl):
         return {"all": len(slices), "low_sales": len(low), "high_sales": len(slices) - len(low)}[sl]
 
-    masked = imputed[imputed["actual"].notna()]
+    masked = imputed[(imputed["model_id"] == IMP_MODEL) & imputed["actual"].notna()]
     is_low = [(s, p) in low for s, p in zip(masked["store_id"], masked["product_id"])]
     masked_n = {"all": len(masked), "low_sales": int(np.sum(is_low)),
                 "high_sales": int(len(masked) - np.sum(is_low))}
 
     # (feature, model_id, split, calibrated?, quantile model?)
     specs = [
+        ("imputation", IMP_BASELINE, "calib", False, False),
         ("imputation", IMP_MODEL, "calib", False, True),
         ("imputation", IMP_MODEL, "calib", True, True),
         ("forecasting", FC_BASELINE, "test", False, False),
