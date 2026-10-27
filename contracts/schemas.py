@@ -386,8 +386,12 @@ forecast = pa.DataFrameSchema(
 
 
 def _calib_window_before_origin(df: pd.DataFrame) -> bool:
-    """Calibration data must not overlap the scoring window (no leakage)."""
-    return bool((df["calib_window_end"] < df["origin_date"]).all())
+    """Calibration data must be known at the forecast origin (no leakage).
+
+    The calibration week is the last week of history, so it may end ON the
+    origin date but never after it.
+    """
+    return bool((df["calib_window_end"] <= df["origin_date"]).all())
 
 
 def _build_forecast_calibrated() -> pa.DataFrameSchema:
@@ -418,8 +422,8 @@ def _build_forecast_calibrated() -> pa.DataFrameSchema:
             _non_baseline_requires("lo95", "hi95"),
             pa.Check(
                 _calib_window_before_origin,
-                name="calibration_window_precedes_origin",
-                error="calibration window overlaps or follows the forecast origin",
+                name="calibration_window_not_after_origin",
+                error="calibration window ends after the forecast origin",
             ),
         ],
         unique=[
