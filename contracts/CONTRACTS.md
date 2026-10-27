@@ -39,7 +39,7 @@ This file is the human-readable description. `contracts/schemas.py` (pandera/pyd
 
 One row per store-product-hour.
 
-**Primary key:** `store_id, product_id, date, hour`
+**Primary key:** `store_id, product_id, date, hour, split, fold` (`split` and `fold` are in the key because rolling-origin folds reuse the same hours)
 
 | Column | Type | Notes |
 |---|---|---|
@@ -74,7 +74,7 @@ One row per store-product-hour **that was a stockout hour** (observed hours are 
 
 One row per store-product-day: observed plus recovered demand. This is the forecasting input and is built from `series_hourly` and one chosen `imputed_hourly` run.
 
-**Primary key:** `store_id, product_id, date, imputation_run_id`
+**Primary key:** `store_id, product_id, date, imputation_run_id, split, fold`
 
 | Column | Type | Notes |
 |---|---|---|
@@ -84,7 +84,7 @@ One row per store-product-day: observed plus recovered demand. This is the forec
 | `demand_recovered` | float | Sum of `point` over stockout hours. 0 if no stockout hours |
 | `demand_total` | float | `demand_observed + demand_recovered`. The forecast target and input |
 | `n_stockout_hours` | int8 | Count of stockout hours that day (0 to 24) |
-| `recovered_lo`, `recovered_hi` | float, nullable | Summed interval bounds over stockout hours (see O3) |
+| `recovered_lo`, `recovered_hi` | float, nullable | Summed interval bounds over stockout hours. Display only; forecast models must not consume these |
 | covariates | | `discount`, `holiday_flag`, `activity_flag`, `precipitation`, `temp_avg`, `humidity`, `wind_level` |
 | `split`, `fold` | | |
 
@@ -162,7 +162,7 @@ Planner overrides. **The original dataset is never modified.** Edits are applied
 
 Long format so every architecture and slice is comparable.
 
-**Primary key:** `feature, model_id, fold, seed, slice, metric`
+**Primary key:** `feature, model_id, fold, seed, split, slice, metric, calibrated`
 
 | Column | Type | Notes |
 |---|---|---|
@@ -248,7 +248,7 @@ Written by `pipeline/run_log.py` for every stage of every run. One record per st
   "git_commit": "<hash>",
   "git_dirty": false,
   "config_hash": "<sha256 of resolved configs>",
-  "contract_version": "1.0",
+  "contract_version": "<CONTRACT_VERSION from schemas.py>",
   "inputs": ["<paths or run_ids>"],
   "outputs": ["<paths>"],
   "edit_ids_applied": [],
