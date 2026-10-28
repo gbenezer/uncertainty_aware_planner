@@ -5,11 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "datasets>=5.1.0",
     "numpy>=2.5.4",
-    "pandas>=3.1.0",
+    "pandas>=3.0.0",
     "pandera>=0.35.0",
     "pyarrow>=26.0.0",
     "pydantic>=2.14.1",
+    "pygrinder>=0.7",
+    "pytorch-forecasting>=1.8.0",
+    "tsdb>=0.8",
 ]
 
 [dependency-groups]
