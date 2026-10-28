@@ -4,9 +4,17 @@ contracts/schemas.py
 Enforced version of CONTRACTS.md. If this file and CONTRACTS.md disagree,
 fix both in the same PR.
 
-STATUS: DRAFT 0.1, freeze at the Week 7 Midpoint Design Review (Oct 27, 2026).
+STATUS: DRAFT 0.1, freeze at the Week 7.
+
 After freeze, any change needs approval from all four leads and a bump of
 CONTRACT_VERSION.
+
+Table numbering follows CONTRACTS.md section 2:
+    2.1 raw_series          2.6 imputation_output (API-facing)
+    2.2 series_hourly       2.8 forecasting_output (API-facing)
+    2.3 imputed_hourly      2.9 covariate_output (API-facing)
+    2.4 demand_daily        2.10 edit_log
+    2.5 forecast            2.11 metrics (+ slices.parquet)
 
 Usage
 -----
@@ -20,6 +28,7 @@ Requires pandera >= 0.19 and pandas.
 
 from __future__ import annotations
 
+import datetime
 import sys
 
 import numpy as np
@@ -30,6 +39,8 @@ try:  # pandera >= 0.24 exposes the pandas API under pandera.pandas
 except ImportError:  # older pandera
     import pandera as pa
 
+from pandera.engines import pandas_engine
+
 CONTRACT_VERSION = "0.1"
 
 # --------------------------------------------------------------------------
@@ -37,7 +48,7 @@ CONTRACT_VERSION = "0.1"
 # --------------------------------------------------------------------------
 
 SPLITS = ["train", "val", "calib", "test"]
-KINDS = ["observed", "recovered", "forecast"]
+KINDS = ["observed", "recovered"]  # imputation_output.kind (2.6)
 FEATURES = ["imputation", "forecasting"]
 SLICES = ["all", "low_sales", "high_sales"]
 METRICS = [
@@ -49,22 +60,27 @@ METRICS = [
 ]
 EDIT_FIELDS_DEMAND = "demand"
 HORIZONS = list(range(1, 8))  # 7-day forecast
+SEQ_LEN = 24  # hours per day in the raw sequence columns
 
 # Models whose id contains this token are the non-quantile dataset-paper
 # baselines (open decision O2): they may have null quantile/interval columns.
 BASELINE_TOKEN = "baseline"
 
+# Covariate column names as they appear in the dataset (CONTRACTS.md 2.1+).
 COVARIATES = [
     "discount",
     "holiday_flag",
     "activity_flag",
-    "precipitation",
-    "temp_avg",
-    "humidity",
-    "wind_level",
+    "precpt",
+    "avg_temperature",
+    "avg_humidity",
+    "avg_wind_level",
 ]
 
 TOL = 1e-6  # numeric tolerance for equality / ordering checks
+
+_UUID_RE = r"(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+_YMD_RE = r"^\d{4}-\d{2}-\d{2}$"
 
 
 # --------------------------------------------------------------------------
@@ -77,8 +93,30 @@ def _str(nullable: bool = False, required: bool = True, **kw) -> pa.Column:
 
 
 def _date(nullable: bool = False, required: bool = True) -> pa.Column:
+    """datetime.date (no time component, no timezone)."""
+    return pa.Column(
+        pandas_engine.Date, nullable=nullable, required=required, coerce=True
+    )
+
+
+def _datetime(nullable: bool = False, required: bool = True) -> pa.Column:
+    """Naive (timezone-independent) datetime.datetime."""
     return pa.Column(
         "datetime64[ns]", nullable=nullable, required=required, coerce=True
+    )
+
+
+def _time(nullable: bool = False, required: bool = True) -> pa.Column:
+    """Naive datetime.time. Stored as Python objects (pandas has no native time dtype)."""
+    return pa.Column(
+        object,
+        checks=pa.Check(
+            lambda s: s.map(lambda v: isinstance(v, datetime.time)),
+            name="is_datetime_time",
+            error="values must be datetime.time",
+        ),
+        nullable=nullable,
+        required=required,
     )
 
 
@@ -87,7 +125,7 @@ def _float(
 ) -> pa.Column:
     checks = [pa.Check.ge(ge)] if ge is not None else []
     return pa.Column(
-        float, checks=checks, nullable=nullable, required=required, coerce=True
+        "float64", checks=checks, nullable=nullable, required=required, coerce=True
     )
 
 
@@ -116,41 +154,91 @@ def _isin(values: list, nullable: bool = False) -> pa.Column:
     return pa.Column(str, checks=pa.Check.isin(values), nullable=nullable, coerce=True)
 
 
+def _sequence(length: int, kinds: str, name: str) -> pa.Column:
+    """Fixed-length numeric sequence per row (list / ndarray cell).
+
+    `kinds` is a string of numpy dtype kinds that the elements may have,
+    e.g. "f" for float64 sequences, "iu" for int32 sequences.
+    """
+
+    def fn(s: pd.Series) -> pd.Series:
+        def ok(v) -> bool:
+            if v is None:
+                return False
+            try:
+                arr = np.asarray(v)
+            except Exception:  # noqa: BLE001
+                return False
+            return arr.ndim == 1 and len(arr) == length and arr.dtype.kind in kinds
+
+        return s.map(ok)
+
+    return pa.Column(
+        object,
+        checks=pa.Check(
+            fn,
+            name=f"{name}_is_sequence_of_{length}",
+            error=f"{name} must be a length-{length} numeric sequence",
+        ),
+        nullable=False,
+    )
+
+
 def _id_columns() -> dict[str, pa.Column]:
-    """Anonymized codes. Never decoded or joined to outside data."""
+    """Anonymized store/product codes (int64). Never decoded or joined to outside data."""
     return {
-        "store_id": _str(),
-        "product_id": _str(),
+        "store_id": _int(),
+        "product_id": _int(),
     }
 
 
-def _optional_hierarchy() -> dict[str, pa.Column]:
-    """City and product-group codes. Present if the pipeline chooses to carry them."""
+def _hierarchy_columns() -> dict[str, pa.Column]:
+    """City, store and product-category codes (CONTRACTS.md 2.1)."""
     return {
-        "city_id": _str(nullable=True, required=False),
-        "group_id": _str(nullable=True, required=False),
-        "cat1_id": _str(nullable=True, required=False),
-        "cat2_id": _str(nullable=True, required=False),
-        "cat3_id": _str(nullable=True, required=False),
+        "city_id": _int(),
+        "store_id": _int(),
+        "management_group_id": _int(),
+        "first_category_id": _int(),
+        "second_category_id": _int(),
+        "third_category_id": _int(),
+        "product_id": _int(),
     }
 
 
-def _covariate_columns(required: bool = True) -> dict[str, pa.Column]:
+def _covariate_columns() -> dict[str, pa.Column]:
     return {
-        "discount": _float(nullable=True, required=required),
-        "holiday_flag": _int(nullable=True, dtype="Int8", required=required),
-        "activity_flag": _int(nullable=True, dtype="Int8", required=required),
-        "precipitation": _float(nullable=True, required=required),
-        "temp_avg": _float(nullable=True, required=required),
-        "humidity": _float(nullable=True, required=required),
-        "wind_level": _float(nullable=True, required=required),
+        "discount": _float(),
+        "holiday_flag": _int(dtype="int32"),
+        "activity_flag": _int(dtype="int32"),
+        "precpt": _float(),
+        "avg_temperature": _float(),
+        "avg_humidity": _float(),
+        "avg_wind_level": _float(),
     }
 
 
-def _split_fold(required: bool = True) -> dict[str, pa.Column]:
+def _split_fold(prefix: str) -> dict[str, pa.Column]:
+    """`<prefix>_split` and `<prefix>_fold` (fold is null for calib and test)."""
     return {
-        "split": _isin(SPLITS),
-        "fold": _int(ge=0, dtype="int8", required=required, nullable=False),
+        f"{prefix}_split": _isin(SPLITS),
+        f"{prefix}_fold": _int(nullable=True, ge=0, dtype="UInt32"),
+    }
+
+
+def _quantile_columns() -> dict[str, pa.Column]:
+    """Raw model quantiles. Null only for non-quantile baselines (checked per table)."""
+    return {
+        "q025": _float(nullable=True, ge=0.0),
+        "q975": _float(nullable=True, ge=0.0),
+    }
+
+
+def _calibrated_columns() -> dict[str, pa.Column]:
+    """Populated after conformalization; null before."""
+    return {
+        "q025_cal": _float(nullable=True, ge=0.0),
+        "q975_cal": _float(nullable=True, ge=0.0),
+        "qhat95": _float(nullable=True),  # CQR adjustment may be negative
     }
 
 
@@ -178,11 +266,11 @@ def _ordered(*cols: str, name: str | None = None) -> pa.Check:
     )
 
 
-def _non_baseline_requires(*cols: str) -> pa.Check:
+def _non_baseline_requires(model_col: str, *cols: str) -> pa.Check:
     """Quantile model rows must have the given columns filled. Baselines may leave them null (O2)."""
 
     def fn(df: pd.DataFrame) -> bool:
-        is_base = df["model_id"].str.contains(BASELINE_TOKEN, regex=False)
+        is_base = df[model_col].str.contains(BASELINE_TOKEN, regex=False)
         for c in cols:
             if c in df.columns and df.loc[~is_base, c].isna().any():
                 return False
@@ -195,66 +283,126 @@ def _non_baseline_requires(*cols: str) -> pa.Check:
     )
 
 
+def _hourly_parts_consistent(df: pd.DataFrame) -> bool:
+    """`date` and `time` must be the parts of `datetime`."""
+    ts = pd.to_datetime(df["datetime"])
+    date_ok = pd.to_datetime(df["date"]) == ts.dt.normalize()
+    time_ok = ts.dt.time == df["time"]
+    return bool((date_ok & time_ok).all())
+
+
+_HOURLY_PARTS_CHECK = pa.Check(
+    _hourly_parts_consistent,
+    name="date_and_time_match_datetime",
+    error="date/time columns disagree with datetime",
+)
+
+
+def _target_date_matches(df: pd.DataFrame) -> bool:
+    expected = pd.to_datetime(df["origin_date"]) + pd.to_timedelta(
+        df["horizon"].astype("int64"), unit="D"
+    )
+    return bool((pd.to_datetime(df["target_date"]) == expected).all())
+
+
+_TARGET_DATE_CHECK = pa.Check(
+    _target_date_matches,
+    name="target_date_is_origin_plus_horizon",
+    error="target_date != origin_date + horizon",
+)
+
 # --------------------------------------------------------------------------
-# 2.1 series_hourly
+# 2.1 raw_series
+# --------------------------------------------------------------------------
+
+raw_series = pa.DataFrameSchema(
+    columns={
+        **_hierarchy_columns(),
+        "dt": _str(checks=pa.Check.str_matches(_YMD_RE)),  # string, YYYY-MM-DD
+        "sale_amount": _float(ge=0.0),  # normalized units
+        "hours_sale": _sequence(SEQ_LEN, "f", "hours_sale"),
+        "stock_hour6_22_cnt": _int(ge=0, dtype="int32"),
+        "hours_stock_status": _sequence(SEQ_LEN, "iu", "hours_stock_status"),
+        **_covariate_columns(),
+    },
+    unique=["store_id", "product_id", "dt"],
+    strict="filter",
+    name="raw_series",
+    description="One row per store-product-day, with 24-hour sequences. Raw data format, unmodified.",
+)
+
+# --------------------------------------------------------------------------
+# 2.2 series_hourly
 # --------------------------------------------------------------------------
 
 series_hourly = pa.DataFrameSchema(
     columns={
-        **_id_columns(),
-        **_optional_hierarchy(),
+        **_hierarchy_columns(),
         "date": _date(),
-        "hour": _int(ge=0, le=23, dtype="int8"),
-        "sales": _float(nullable=False, ge=0.0),  # normalized units, observed
+        "time": _time(),
+        "datetime": _datetime(),
+        # normalized units; censored (not demand) where is_stockout
+        "scaled_sales_quantity": _float(ge=0.0),
         "is_stockout": _bool(),
         **_covariate_columns(),
-        **_split_fold(),
     },
-    unique=["store_id", "product_id", "date", "hour", "split", "fold"],
+    checks=[_HOURLY_PARTS_CHECK],
+    unique=["store_id", "product_id", "datetime"],
     strict="filter",  # drop unknown columns rather than fail; use strict=True after freeze if preferred
     name="series_hourly",
     description="One row per store-product-hour. Stockout rows are censored, not zero demand.",
 )
 
 # --------------------------------------------------------------------------
-# 2.2 imputed_hourly
+# 2.3 imputed_hourly
 # --------------------------------------------------------------------------
 
 imputed_hourly = pa.DataFrameSchema(
     columns={
-        **_id_columns(),
+        **_hierarchy_columns(),
         "date": _date(),
-        "hour": _int(ge=0, le=23, dtype="int8"),
-        "model_id": _str(),
-        "seed": _int(ge=0),
-        **_split_fold(),
+        "time": _time(),
+        "datetime": _datetime(),
+        "impute_model_id": _str(),
+        "impute_seed": _int(ge=0, dtype="uint32"),
+        **_split_fold("impute"),
         # Non-quantile baselines have no interval (open decision O2); every other
         # model must fill both (checked below by _non_baseline_requires).
-        "q025": _float(nullable=True, ge=0.0),
-        "q975": _float(nullable=True, ge=0.0),
-        "point": _float(nullable=False, ge=0.0),
+        **_quantile_columns(),
+        "estimated_demand": _float(nullable=False, ge=0.0),
         # True sales for masked in-stock hours (calibration/evaluation only).
         # Null for real stockout hours, where no ground truth exists.
-        "actual": _float(nullable=True, ge=0.0),
-        # populated by `make conformal`; null before
-        "q025_cal": _float(nullable=True, ge=0.0),
-        "q975_cal": _float(nullable=True, ge=0.0),
+        "actual_demand": _float(nullable=True, ge=0.0),
+        **_calibrated_columns(),
     },
     checks=[
-        _ordered("q025", "point", "q975", name="imputed_point_inside_raw_interval"),
+        _HOURLY_PARTS_CHECK,
         _ordered(
-            "q025_cal", "point", "q975_cal", name="imputed_point_inside_cal_interval"
+            "q025", "estimated_demand", "q975", name="imputed_point_inside_raw_interval"
         ),
-        _non_baseline_requires("q025", "q975"),
+        _ordered(
+            "q025_cal",
+            "estimated_demand",
+            "q975_cal",
+            name="imputed_point_inside_cal_interval",
+        ),
+        _non_baseline_requires("impute_model_id", "q025", "q975"),
     ],
-    unique=["store_id", "product_id", "date", "hour", "model_id", "seed", "fold"],
+    unique=[
+        "store_id",
+        "product_id",
+        "datetime",
+        "impute_model_id",
+        "impute_seed",
+        "impute_fold",
+    ],
     strict="filter",
     name="imputed_hourly",
-    description="Imputed demand for stockout hours, plus masked in-stock hours (non-null actual) in calibration/evaluation runs.",
+    description="Imputed demand for stockout hours, plus masked in-stock hours (non-null actual_demand) in calibration/evaluation runs.",
 )
 
 # --------------------------------------------------------------------------
-# 2.3 demand_daily
+# 2.4 demand_daily
 # --------------------------------------------------------------------------
 
 
@@ -269,25 +417,17 @@ def _demand_total_consistent(df: pd.DataFrame) -> bool:
     )
 
 
-def _no_recovery_without_stockout(df: pd.DataFrame) -> bool:
-    no_so = df["n_stockout_hours"] == 0
-    return bool((df.loc[no_so, "demand_recovered"].abs() <= TOL).all())
-
-
 demand_daily = pa.DataFrameSchema(
     columns={
-        **_id_columns(),
+        **_hierarchy_columns(),
         "date": _date(),
         "imputation_run_id": _str(),
         "demand_observed": _float(nullable=False, ge=0.0),
         "demand_recovered": _float(nullable=False, ge=0.0),
         "demand_total": _float(nullable=False, ge=0.0),
-        "n_stockout_hours": _int(ge=0, le=24, dtype="int8"),
-        # display only; forecast models must not consume these
-        "recovered_lo": _float(nullable=True, ge=0.0),
-        "recovered_hi": _float(nullable=True, ge=0.0),
+        "stock_hour6_22_cnt": _int(ge=0, dtype="int32"),
         **_covariate_columns(),
-        **_split_fold(),
+        **_split_fold("forecast"),
     },
     checks=[
         pa.Check(
@@ -295,211 +435,204 @@ demand_daily = pa.DataFrameSchema(
             name="demand_total_is_observed_plus_recovered",
             error="demand_total != demand_observed + demand_recovered",
         ),
-        pa.Check(
-            _no_recovery_without_stockout,
-            name="no_recovery_without_stockout",
-            error="demand_recovered > 0 on a day with no stockout hours",
-        ),
-        _ordered(
-            "recovered_lo",
-            "demand_recovered",
-            "recovered_hi",
-            name="recovered_inside_bounds",
-        ),
     ],
-    unique=["store_id", "product_id", "date", "imputation_run_id", "split", "fold"],
+    unique=[
+        "store_id",
+        "product_id",
+        "date",
+        "imputation_run_id",
+        "forecast_split",
+        "forecast_fold",
+    ],
     strict="filter",
     name="demand_daily",
     description="Observed + recovered daily demand. Forecast input and target. Versioned by imputation_run_id.",
 )
 
 # --------------------------------------------------------------------------
-# 2.4 forecast
+# 2.5 forecast
 # --------------------------------------------------------------------------
 
-
-def _target_date_matches(df: pd.DataFrame) -> bool:
-    expected = df["origin_date"] + pd.to_timedelta(df["horizon"], unit="D")
-    return bool((df["target_date"] == expected).all())
+_FORECAST_RUN_KEYS = [
+    "store_id",
+    "product_id",
+    "origin_date",
+    "imputation_run_id",
+    "forecast_model_id",
+    "forecast_seed",
+    "forecast_fold",
+]
 
 
 def _complete_horizons(df: pd.DataFrame) -> bool:
-    """Every (store, product, origin, model, seed, fold) must carry all 7 horizons."""
-    keys = ["store_id", "product_id", "origin_date", "model_id", "seed", "fold"]
+    """Every (store, product, origin, imputation run, model, seed, fold) must carry all 7 horizons."""
     want = set(HORIZONS)
+    # dropna=False: fold is null for calib/test and those groups must still be checked
     return bool(
-        df.groupby(keys)["horizon"].agg(lambda s: set(s.tolist()) == want).all()
+        df.groupby(_FORECAST_RUN_KEYS, dropna=False)["horizon"]
+        .agg(lambda s: set(int(h) for h in s) == want)
+        .all()
     )
 
 
-_FORECAST_COLUMNS = {
-    **_id_columns(),
-    "origin_date": _date(),
-    "horizon": _int(ge=1, le=7, dtype="uint8"),
-    "target_date": _date(),
-    "model_id": _str(),
-    "seed": _int(ge=0),
-    **_split_fold(),
-    "imputation_run_id": _str(),
-    # Baseline models (O2) may leave quantiles null; others may not (checked below).
-    "q025": _float(nullable=True, ge=0.0),
-    "q975": _float(nullable=True, ge=0.0),
-    "point": _float(nullable=False, ge=0.0),
-    # Only evaluation code reads this column
-    "actual": _float(nullable=True, ge=0.0),
-}
+def _run_id_matches(df: pd.DataFrame) -> bool:
+    """run_id is `<model_id>-<seed>` (CONTRACTS.md section 1)."""
+    expected = df["forecast_model_id"] + "-" + df["forecast_seed"].astype(str)
+    return bool((df["forecast_run_id"] == expected).all())
+
 
 forecast = pa.DataFrameSchema(
-    columns=_FORECAST_COLUMNS,
+    columns={
+        **_hierarchy_columns(),
+        "date": _date(),
+        "imputation_run_id": _str(),
+        "forecast_model_id": _str(),
+        "forecast_seed": _int(ge=0, dtype="uint32"),
+        **_split_fold("forecast"),
+        "forecast_run_id": _str(),
+        "origin_date": _date(),  # last day of history used
+        "horizon": _int(ge=1, le=7, dtype="uint8"),
+        "target_date": _date(),
+        # Baseline models (O2) may leave quantiles null; others may not (checked below).
+        **_quantile_columns(),
+        "estimated_demand": _float(nullable=False, ge=0.0),
+        # demand_total for target_date, when it exists. Only evaluation code reads this column.
+        "actual_demand": _float(nullable=True, ge=0.0),
+        **_calibrated_columns(),
+    },
     checks=[
-        pa.Check(
-            _target_date_matches,
-            name="target_date_is_origin_plus_horizon",
-            error="target_date != origin_date + horizon",
-        ),
+        _TARGET_DATE_CHECK,
         pa.Check(
             _complete_horizons,
             name="all_seven_horizons_present",
             error="some forecast origins are missing horizons 1..7",
         ),
-        _ordered("q025", "point", "q975", name="forecast_point_inside_raw_interval"),
-        _non_baseline_requires("q025", "q975"),
+        pa.Check(
+            _run_id_matches,
+            name="run_id_is_model_id_dash_seed",
+            error="forecast_run_id != <forecast_model_id>-<forecast_seed>",
+        ),
+        _ordered(
+            "q025", "estimated_demand", "q975", name="forecast_point_inside_raw_interval"
+        ),
+        _ordered(
+            "q025_cal",
+            "estimated_demand",
+            "q975_cal",
+            name="forecast_point_inside_cal_interval",
+        ),
+        _non_baseline_requires("forecast_model_id", "q025", "q975"),
     ],
     unique=[
         "store_id",
         "product_id",
         "origin_date",
         "horizon",
-        "model_id",
-        "seed",
-        "fold",
+        "imputation_run_id",
+        "forecast_model_id",
+        "forecast_seed",
+        "forecast_fold",
     ],
     strict="filter",
     name="forecast",
-    description="Raw (uncalibrated) 7-day forecasts. One row per store-product-forecast-day.",
+    description="Forecasts with raw and (once conformalized) calibrated quantiles. One row per store-product-forecast-day.",
 )
 
 # --------------------------------------------------------------------------
-# 2.5 forecast_calibrated
+# 2.6 imputation_output  (API-facing)
 # --------------------------------------------------------------------------
 
 
-def _calib_window_before_origin(df: pd.DataFrame) -> bool:
-    """Calibration data must be known at the forecast origin (no leakage).
-
-    The calibration week is the last week of history, so it may end ON the
-    origin date but never after it.
-    """
-    return bool((df["calib_window_end"] <= df["origin_date"]).all())
-
-
-def _build_forecast_calibrated() -> pa.DataFrameSchema:
-    cols = dict(_FORECAST_COLUMNS)
-    cols.update(
-        {
-            "lo95": _float(nullable=True, ge=0.0),
-            "hi95": _float(nullable=True, ge=0.0),
-            "calib_window_start": _date(),
-            "calib_window_end": _date(),
-            "qhat95": _float(nullable=True),
-        }
-    )
-    return pa.DataFrameSchema(
-        columns=cols,
-        checks=[
-            pa.Check(
-                _target_date_matches,
-                name="target_date_is_origin_plus_horizon",
-                error="target_date != origin_date + horizon",
-            ),
-            pa.Check(
-                _complete_horizons,
-                name="all_seven_horizons_present",
-                error="some forecast origins are missing horizons 1..7",
-            ),
-            _ordered("lo95", "point", "hi95", name="point_inside_95_interval"),
-            _non_baseline_requires("lo95", "hi95"),
-            pa.Check(
-                _calib_window_before_origin,
-                name="calibration_window_not_after_origin",
-                error="calibration window ends after the forecast origin",
-            ),
-        ],
-        unique=[
-            "store_id",
-            "product_id",
-            "origin_date",
-            "horizon",
-            "model_id",
-            "seed",
-            "fold",
-        ],
-        strict="filter",
-        name="forecast_calibrated",
-        description="Conformalized forecasts. Same key as `forecast` plus lo/hi bounds.",
-    )
-
-
-forecast_calibrated = _build_forecast_calibrated()
-
-# --------------------------------------------------------------------------
-# 2.6 review_output  (the ONLY table the API reads)
-# --------------------------------------------------------------------------
-
-
-def _forecast_rows_complete(df: pd.DataFrame) -> bool:
-    f = df[df["kind"] == "forecast"]
-    needed = ["lo95", "hi95"]
-    return bool(not f[needed].isna().any().any())
+def _observed_rows_have_no_interval(df: pd.DataFrame) -> bool:
+    o = df[df["kind"] == "observed"]
+    return bool(o[["q025_cal", "q975_cal"]].isna().all().all())
 
 
 def _recovered_rows_have_range(df: pd.DataFrame) -> bool:
     """Display rule: recovered estimates are never shown without their range."""
     r = df[df["kind"] == "recovered"]
-    return bool(not r[["lo95", "hi95"]].isna().any().any())
+    return bool(not r[["q025_cal", "q975_cal"]].isna().any().any())
 
 
-review_output = pa.DataFrameSchema(
+imputation_output = pa.DataFrameSchema(
     columns={
-        **_id_columns(),
+        **_hierarchy_columns(),
         "date": _date(),
+        "time": _time(),
+        "datetime": _datetime(),
         "kind": _isin(KINDS),
-        "point": _float(nullable=False, ge=0.0),
-        "lo95": _float(nullable=True, ge=0.0),
-        "hi95": _float(nullable=True, ge=0.0),
-        "n_stockout_hours": _int(ge=0, le=24, dtype="int8"),
-        "change_warning": _bool(),
-        "review_flag": _bool(),
-        "model_id": _str(),
-        "run_id": _str(),
-        **_covariate_columns(),
+        "demand": _float(nullable=False, ge=0.0),
+        "q025_cal": _float(nullable=True, ge=0.0),
+        "q975_cal": _float(nullable=True, ge=0.0),
     },
     checks=[
+        _HOURLY_PARTS_CHECK,
         pa.Check(
-            _forecast_rows_complete,
-            name="forecast_rows_have_interval",
-            error="forecast rows need lo95 and hi95",
+            _observed_rows_have_no_interval,
+            name="observed_rows_have_null_interval",
+            error="observed rows must have null q025_cal / q975_cal",
         ),
         pa.Check(
             _recovered_rows_have_range,
             name="recovered_rows_have_interval",
-            error="recovered rows must carry an interval",
+            error="recovered rows must carry a calibrated interval",
         ),
-        _ordered("lo95", "point", "hi95", name="point_inside_95_interval"),
+        _ordered("q025_cal", "demand", "q975_cal", name="demand_inside_cal_interval"),
     ],
-    unique=["store_id", "product_id", "date"],
+    unique=["store_id", "product_id", "datetime"],
     strict="filter",
-    name="review_output",
-    description="Single serving table for the API/dashboard: selected model only.",
+    name="imputation_output",
+    description="API-facing hourly imputation series: observed and recovered demand, one row per store-product-hour.",
 )
 
 # --------------------------------------------------------------------------
-# 2.7 edit_log  (API-owned, append-only)
+# 2.8 forecasting_output  (API-facing)
+# --------------------------------------------------------------------------
+
+forecasting_output = pa.DataFrameSchema(
+    columns={
+        **_hierarchy_columns(),
+        "origin_date": _date(),
+        "horizon": _int(ge=1, le=7, dtype="uint8"),
+        "target_date": _date(),
+        "date": _date(),
+        "demand": _float(nullable=False, ge=0.0),  # forecast, or actual for the origin date
+        "q025_cal": _float(nullable=True, ge=0.0),
+        "q975_cal": _float(nullable=True, ge=0.0),
+    },
+    checks=[
+        _TARGET_DATE_CHECK,
+        _ordered("q025_cal", "demand", "q975_cal", name="demand_inside_cal_interval"),
+    ],
+    unique=["store_id", "product_id", "origin_date", "horizon", "date"],
+    strict="filter",
+    name="forecasting_output",
+    description="API-facing 7-day daily forecast series, one row per store-product-forecast-day.",
+)
+
+# --------------------------------------------------------------------------
+# 2.9 covariate_output  (API-facing)
+# --------------------------------------------------------------------------
+
+covariate_output = pa.DataFrameSchema(
+    columns={
+        **_hierarchy_columns(),
+        "date": _date(),
+        **_covariate_columns(),
+    },
+    unique=["store_id", "product_id", "date"],
+    strict="filter",
+    name="covariate_output",
+    description="API-facing covariate tab, one row per historical store-product-day.",
+)
+
+# --------------------------------------------------------------------------
+# 2.10 edit_log  (API-owned, append-only)
 # --------------------------------------------------------------------------
 
 edit_log = pa.DataFrameSchema(
     columns={
-        "edit_id": _str(),
+        "edit_id": _str(checks=pa.Check.str_matches(_UUID_RE)),
         **_id_columns(),
         "date": _date(),
         "field": _str(),  # "demand" or a covariate name
@@ -537,7 +670,7 @@ edit_log = pa.DataFrameSchema(
 )
 
 # --------------------------------------------------------------------------
-# 2.8 metrics  (long format) and slices
+# 2.11 metrics  (long format) and slices
 # --------------------------------------------------------------------------
 
 metrics = pa.DataFrameSchema(
@@ -608,7 +741,7 @@ slices = pa.DataFrameSchema(
     unique=["store_id", "product_id"],
     strict="filter",
     name="slices",
-    description="Computed once. Every consumer uses this membership for low/high-selling reports.",
+    description="Computed once (slices.parquet). Every consumer uses this membership for low/high-selling reports.",
 )
 
 # --------------------------------------------------------------------------
@@ -616,12 +749,14 @@ slices = pa.DataFrameSchema(
 # --------------------------------------------------------------------------
 
 SCHEMAS: dict[str, pa.DataFrameSchema] = {
+    "raw_series": raw_series,
     "series_hourly": series_hourly,
     "imputed_hourly": imputed_hourly,
     "demand_daily": demand_daily,
     "forecast": forecast,
-    "forecast_calibrated": forecast_calibrated,
-    "review_output": review_output,
+    "imputation_output": imputation_output,
+    "forecasting_output": forecasting_output,
+    "covariate_output": covariate_output,
     "edit_log": edit_log,
     "metrics": metrics,
     "slices": slices,
