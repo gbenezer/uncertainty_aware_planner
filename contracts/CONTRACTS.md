@@ -5,7 +5,7 @@ Shared data formats and interfaces for the Uncertainty-Aware Demand and Inventor
 **Status:** DRAFT. To be reviewed by all four leads and **frozen at Week 7**.
 **After freeze:** any change is a PR that every lead approves, with `CONTRACT_VERSION` bumped in `contracts/schemas.py`.
 
-This file is the human-readable description. `contracts/schemas.py` (pandera/pydantic) is the enforced version; if they disagree, fix the disagreement in the same PR. `contracts/interfaces.py` holds the abstract classes.
+This file is the human-readable description.
 
 ---
 
@@ -13,8 +13,7 @@ This file is the human-readable description. `contracts/schemas.py` (pandera/pyd
 
 | Item | Rule |
 | --- | --- |
-| File format | Parquet for tables, YAML for configs, JSON for run logs |
-| Keys | `store_id`, `product_id` are the dataset's anonymized integer codes, stored as int64. Never decoded or joined to outside data |
+| File format | Table file format TBD, YAML for configs, JSON for run logs |
 | Time | `date` is a calendar date (no timezone) in year-month-day format. Hourly tables carry `date`, `time` (naive time of day) and `datetime` (naive datetime). All are timezone-independent |
 | Units | Demand is in the dataset's **normalized** sales units. Never describe it as real units or currency |
 | Quantile columns | Named `q<level>` with level as 3-digit per-mille, e.g. `q025`, `q500`, `q975`. Always monotone non-decreasing across levels (enforce after prediction) |
@@ -22,8 +21,7 @@ This file is the human-readable description. `contracts/schemas.py` (pandera/pyd
 | Splits | `split` is one of `train`, `val`, `calib`, `test`. Rolling-origin folds also carry `fold` (int) |
 | Seeds | `seed` is an int on every prediction table |
 | Identifiers | `model_id` is `<feature>-<architecture>-<variant>`, e.g. `imp-timesnet-quantile`, `fc-tft-quantile` |
-| Run IDs | `run_id` is `<model_id>-<seed>`|
-| Paths | Under `data/` (gitignored). Layout in section 6 |
+| Run IDs | `run_id` is `<model_id>-<seed>` |
 
 ### Quantile levels
 
