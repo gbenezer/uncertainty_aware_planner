@@ -14,8 +14,8 @@ This file is the human-readable description. `contracts/schemas.py` (pandera/pyd
 | Item | Rule |
 | --- | --- |
 | File format | Parquet for tables, YAML for configs, JSON for run logs |
-| Keys | `store_id`, `product_id` are the dataset's anonymized codes, stored as strings. Never decoded or joined to outside data |
-| Time | `date` is a calendar date (no timezone) in year-month-day format. `hour` is an integer 0 to 23. Hourly tables carry both |
+| Keys | `store_id`, `product_id` are the dataset's anonymized integer codes, stored as int64. Never decoded or joined to outside data |
+| Time | `date` is a calendar date (no timezone) in year-month-day format. Hourly tables carry `date`, `time` (naive time of day) and `datetime` (naive datetime). All are timezone-independent |
 | Units | Demand is in the dataset's **normalized** sales units. Never describe it as real units or currency |
 | Quantile columns | Named `q<level>` with level as 3-digit per-mille, e.g. `q025`, `q500`, `q975`. Always monotone non-decreasing across levels (enforce after prediction) |
 | Missing values | Null, never 0, for "not computed"|
@@ -121,7 +121,7 @@ One row per store-product-hour **that was a stockout hour**. Observed hours are 
 |`q975_cal`|float, nullable|Upper quantile output after conformal calibration. Null before conformalization|
 |`qhat95`|float, nullable|Conformal adjustment applied|
 
-**Invariants:** `q025 <= point <= q975`. All estimated values `>= 0` (clip, and record clipping rate in the run log). Rows with non-null `actual` are masked evaluation rows and never feed `demand_daily`.
+**Invariants:** `q025 <= estimated_demand <= q975`. All estimated values `>= 0` (clip, and record clipping rate in the run log). Rows with non-null `actual_demand` are masked evaluation rows and never feed `demand_daily`.
 
 ### 2.4 `demand_daily`
 
@@ -295,7 +295,7 @@ class Imputer(ABC):
     def __init__(self, config: dict) -> None: ...
     def fit(self, train: pd.DataFrame, seed: int) -> None: ...
     def predict(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Return imputed_hourly rows (2.2) for stockout hours in df."""
+        """Return imputed_hourly rows (2.3) for stockout hours in df."""
 
     def save(self, path: Path) -> None: ...
     @classmethod
@@ -306,7 +306,7 @@ class Forecaster(ABC):
     def __init__(self, config: dict) -> None: ...
     def fit(self, train: pd.DataFrame, seed: int) -> None: ...
     def predict(self, history: pd.DataFrame, origin_dates=None) -> pd.DataFrame:
-        """Return forecast rows (2.4): all 7 horizons per origin."""
+        """Return forecast rows (2.5): all 7 horizons per origin."""
 
     def save(self, path: Path) -> None: ...
     @classmethod
@@ -320,13 +320,13 @@ class IntervalWrapper(ABC):
         """Fit on the held-out calibration week of a forecast table."""
 
     def apply_forecast(self, preds: pd.DataFrame) -> pd.DataFrame:
-        """Return forecast_calibrated rows (2.5)."""
+        """Return forecast rows (2.5) with q025_cal, q975_cal and qhat95 filled."""
 
     def calibrate_imputation(self, calib_preds: pd.DataFrame) -> None:
         """Fit on held-out, masked in-stock hours of an imputed_hourly table."""
 
     def apply_imputation(self, preds: pd.DataFrame) -> pd.DataFrame:
-        """Return imputed_hourly rows (2.2) with q025_cal and q975_cal filled."""
+        """Return imputed_hourly rows (2.3) with q025_cal, q975_cal and qhat95 filled."""
 ```
 
 **Rules**
@@ -391,15 +391,16 @@ data/
   runs/<run_id>/
     imputed_hourly.parquet
     demand_daily.parquet
-    forecast.parquet
-    forecast_calibrated.parquet
+    forecast.parquet                 includes calibrated columns once conformalized
     run_log.json
-  serving/review_output.parquet      selected model only
+  serving/imputation_output.parquet  selected model only
+  serving/forecasting_output.parquet selected model only
+  serving/covariate_output.parquet
   serving/edit_log.parquet           API-owned
 results/
   metrics.parquet  (or csv for committed summaries)
   fairness/        by-group tables and figures
-fixtures/                      synthetic tables for each of 2.1 to 2.8
+fixtures/                      synthetic tables for each of 2.1 to 2.11
 ```
 
 --- -->
@@ -408,12 +409,12 @@ fixtures/                      synthetic tables for each of 2.1 to 2.8
 
 | Table | Produced by | Consumed by |
 | --- | --- | --- |
-| `series_hourly`, `slices` | Data (Tarakaram) | Imputation models, Evaluation |
+| `raw_series`, `series_hourly`, `slices` | Data (Tarakaram) | Data, Imputation models, Evaluation |
 | `imputed_hourly` | Imputation models (Tarakaram, Gil) | Data, UQ, Evaluation |
 | `demand_daily` | Data (Tarakaram), reading `edit_log` | Forecast models |
 | `forecast` | Forecast models (Jeena, Vishnu) | UQ, Evaluation |
-| `forecast_calibrated` | UQ (Tarakaram) | Evaluation, flags, API |
-| `review_output` | Pipeline (Vishnu) with `flags/` | API and dashboard (Jeena) |
+| `imputed_hourly` and `forecast` calibrated columns (`q025_cal`, `q975_cal`, `qhat95`) | UQ (Tarakaram) | Evaluation, Pipeline |
+| `imputation_output`, `forecasting_output`, `covariate_output` | Pipeline (Vishnu) | API and dashboard (Jeena) |
 | `edit_log` | API (Jeena) | Data (overlay) |
 | `metrics` | Evaluation (Gil) | Pipeline (model selection), reports |
 
