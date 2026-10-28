@@ -205,7 +205,7 @@ The table read for the historical hourly imputation time series tab; one row per
 |`q025_cal`|float, nullable|Lower quantile output after conformal calibration. Null for observed data|
 |`q975_cal`|float, nullable|Upper quantile output after conformal calibration. Null for observed data|
 
-### 2.8 `forecasting_output` (API-facing table)
+### 2.7 `forecasting_output` (API-facing table)
 
 The table read for the 7-day daily forecast time series tab; one row per store-product-forecast-day.
 
@@ -226,7 +226,7 @@ The table read for the 7-day daily forecast time series tab; one row per store-p
 |`q025_cal`|float, nullable|Lower quantile output after conformal calibration.|
 |`q975_cal`|float, nullable|Upper quantile output after conformal calibration.|
 
-### 2.9 `covariate_output` (API-facing table)
+### 2.8 `covariate_output` (API-facing table)
 
 The table read for the covariate tab; one row per historical store-product-day.
 
@@ -248,7 +248,7 @@ The table read for the covariate tab; one row per historical store-product-day.
 |`avg_humidity`|float64|The average humidity|
 |`avg_wind_level`|float64|The average wind force|
 
-### 2.10 `edit_log` (API-owned, append-only)
+### 2.9 `edit_log` (API-owned, append-only)
 
 Planner overrides. **The original dataset is never modified.** Edits are applied as an overlay at the next forecast run.
 
@@ -266,7 +266,7 @@ Planner overrides. **The original dataset is never modified.** Edits are applied
 
 **Rules:** append-only (corrections are new rows). The pipeline reads the log, applies the overlay to produce `demand_daily`, and records the set of `edit_id`s used in the run log.
 
-### 2.11 `metrics` (Evaluation output)
+### 2.10 `metrics` (Evaluation output)
 
 Long format so every architecture and slice is comparable.
 
