@@ -624,6 +624,20 @@ wheels = [
 ]
 
 [[package]]
+name = "mapie"
+version = "1.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b3/a0/4aa8f92e3423cb9f8478608b6da89cfa0477b367039035c6102cc2d1cc33/mapie-1.6.0.tar.gz", hash = "sha256:471631634184c4cc22641b8a72572df5b5e281e237b0c00ec6c1c668b78767c2", size = 13478928, upload-time = "2026-10-19T09:08:17.127Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/67/d2/c2a652d10310b8e10731bcff875d0dd1b2fe1e682e73579ef33f428ad6ba/mapie-1.6.0-py3-none-any.whl", hash = "sha256:6bb6b217f33f1301913d230efab68b8b6ec3c0dcdf1e7ad28ccce73435f71dfb", size = 573257, upload-time = "2026-10-19T09:08:14.985Z" },
+]
+
+[[package]]
 name = "markupsafe"
 version = "3.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1796,6 +1810,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "datasets" },
+    { name = "mapie" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pandera" },
@@ -1815,6 +1830,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "datasets", specifier = ">=5.1.0" },
+    { name = "mapie", specifier = ">=1.6.0" },
     { name = "numpy", specifier = ">=2.5.4" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "pandera", specifier = ">=0.35.0" },
