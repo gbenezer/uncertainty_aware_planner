@@ -3,25 +3,25 @@ name = "uncertainty_aware_planner"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12,<=3.13"
 dependencies = [
     "dash>=4.4.1",
-    "datasets>=5.1.0",
+    "datasets<5",
     "mapie>=1.6.0",
     "numpy>=2.5.4",
-    "pandas>=3.0.0",
-    "pandera>=0.35.0",
+    "pandas>=3.0.6",
     "plotly>=7.1.0",
-    "pyarrow>=26.0.0",
-    "pydantic>=2.14.1",
     "pygrinder>=0.7",
+    "pypots>=1.5",
     "pytorch-forecasting>=1.8.0",
+    "torch>=2.15.0",
+    "transformers>=4.57",
     "tsdb>=0.8",
 ]
 
 [dependency-groups]
 dev = [
     "jupyter>=1.1.1",
-    "pytest>=9.1.1",
+    "pytest>=9.2.0",
     "ruff>=0.17.3",
 ]
