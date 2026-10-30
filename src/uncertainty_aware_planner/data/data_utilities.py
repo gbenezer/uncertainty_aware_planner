@@ -4,21 +4,11 @@
 # Original Code
 import numpy as np
 from datasets import load_dataset
+from uncertainty_aware_planner.utils.constants import HORIZON, COVARIATES, PRIMARY_KEYS
 
 # relevant constant definitions
-HORIZON = 90  # total number of days in traing set
 WINDOW_NUMBER = 6  # needs to evenly divide HORIZON, number of folds/splits, cannot be both random and uncorrelated
 WINDOW_DURATION = HORIZON // WINDOW_NUMBER  # number of days per window
-COVARIATES = [
-    "discount",
-    "holiday_flag",
-    "activity_flag",
-    "precpt",
-    "avg_temperature",
-    "avg_humidity",
-    "avg_wind_level",
-]
-PRIMARY_KEYS = ["store_id", "product_id", "dt"]
 MAX_MISSING_PATCH = 4
 MIN_MISSING_PATCH = 2
 NUMBER_OPEN_HOURS = 16
@@ -232,8 +222,7 @@ def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
                 where a value was observed originally but masked by
                 `mimic_missing` (the entries that can be used for evaluation).
             "params": dict of model configuration values: "n_steps" (240),
-                "n_features" (9), "patch_len" (16, hours per day) and "OT"
-                (1, the number of target channels, i.e. sales).
+                "n_features" (9), and "patch_len" (16, hours per day).
     """
 
     # Load the full dataset
@@ -253,20 +242,25 @@ def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
 
     # convert the nested scaled sales per hour to a NumPy array
     # reshape appropriately, and take only hours that the store is open
-    hours_sale = np.array(data["hours_sale"].tolist())
+    # (original code had float64, used lists, and really went crazy with RAM)
+    hours_sale = np.stack(data["hours_sale"].to_numpy()).astype(np.float32)
     hours_sale_origin = hours_sale.reshape(*data_shape)[..., 6:22]
 
     # convert the nested stockout indicator to a NumPy array
     # reshape appropriately, and take only hours that the store is open
-    hours_stock_status = np.array(data["hours_stock_status"].tolist())
+    # (original code had float64, used lists, and really went crazy with RAM)
+    hours_stock_status = np.stack(data["hours_stock_status"].to_numpy()).astype(np.int8)
     hours_stock_status = hours_stock_status.reshape(*data_shape)[..., 6:22]
 
     # convert zero sales volume where stockout is occurring to NaN values
     hours_sale = np.where(hours_stock_status == 1, np.nan, hours_sale_origin)
 
     # reshape covariate data
-    covariate = data[COVARIATES].values.reshape(
-        series_num * WINDOW_NUMBER, WINDOW_DURATION, len(COVARIATES)
+    # float32 conversion (binary covariates were int32 and floats were float64)
+    covariate = (
+        data[COVARIATES]
+        .values.reshape(series_num * WINDOW_NUMBER, WINDOW_DURATION, len(COVARIATES))
+        .astype(np.float32)
     )
 
     # normalize covariates
@@ -327,7 +321,6 @@ def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
             "n_steps": WINDOW_DURATION * NUMBER_OPEN_HOURS,
             "n_features": number_features,
             "patch_len": NUMBER_OPEN_HOURS,
-            "OT": 1,
         },
     }
     return data
