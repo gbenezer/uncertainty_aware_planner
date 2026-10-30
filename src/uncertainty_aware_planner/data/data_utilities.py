@@ -192,7 +192,7 @@ def mimic_missing(
     return patch_ts_missing, valid_idx
 
 
-def load_data(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
+def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
     """Load FreshRetailNet-50K and build windowed, censored hourly sales data.
 
     Downloads (or reads from cache) the training split of the Hugging Face
