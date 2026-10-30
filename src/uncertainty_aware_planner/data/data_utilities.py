@@ -344,7 +344,7 @@ def split_by_window(data):
 
     return {
         w: {
-            "X": X[w::WINDOW_NUMBER],
+            "train_set": {"X": X[w::WINDOW_NUMBER]},
             "ts_origin": ts_origin[w::WINDOW_NUMBER],
             "valid_idx": valid_idx[w::WINDOW_NUMBER],
             "params": data["params"],
