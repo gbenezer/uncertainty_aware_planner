@@ -4,14 +4,11 @@
 # Original Code
 import numpy as np
 from datasets import load_dataset
-from uncertainty_aware_planner.utils.constants import HORIZON, COVARIATES, PRIMARY_KEYS
+from uncertainty_aware_planner.utils.constants import HORIZON, COVARIATES, PRIMARY_KEYS, NUMBER_OPEN_HOURS, WINDOW_DURATION, WINDOW_NUMBER
 
 # relevant constant definitions
-WINDOW_NUMBER = 6  # needs to evenly divide HORIZON, number of folds/splits, cannot be both random and uncorrelated
-WINDOW_DURATION = HORIZON // WINDOW_NUMBER  # number of days per window
 MAX_MISSING_PATCH = 4
 MIN_MISSING_PATCH = 2
-NUMBER_OPEN_HOURS = 16
 
 # TODO: change to a more generic directory
 DEFAULT_CACHE_DIR = "/home/gil/projects/uncertainty_aware_planner/data"
@@ -312,9 +309,8 @@ def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
         -1, WINDOW_DURATION * NUMBER_OPEN_HOURS, 1
     )
 
-    train_set = {"X": data}
     data = {
-        "train_set": train_set,
+        "train_set": {"X": data},
         "ts_origin": hours_sale_origin,
         "valid_idx": valid_idx,
         "params": {
@@ -325,7 +321,7 @@ def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
     }
     return data
 
-def split_by_window(data):
+def split_by_window_imputation(data):
     """Group the output of load_raw_data_for_imputation by window index.
 
     Row k of every array is series k // WINDOW_NUMBER, window k % WINDOW_NUMBER,
