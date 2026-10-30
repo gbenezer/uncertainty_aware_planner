@@ -324,3 +324,30 @@ def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
         },
     }
     return data
+
+def split_by_window(data):
+    """Group the output of load_raw_data_for_imputation by window index.
+
+    Row k of every array is series k // WINDOW_NUMBER, window k % WINDOW_NUMBER,
+    so the strided slice [w::WINDOW_NUMBER] picks window w for every series.
+    Series order is preserved, so row j in any window is the same series j
+    in every other window.
+
+    Returns:
+        dict {window_idx: {"X", "ts_origin", "valid_idx", "params"}} where the
+        arrays have shape (n_series, 240, ...). The arrays are views of the
+        originals, not copies, so no extra memory is used.
+    """
+    X = data["train_set"]["X"]
+    ts_origin = data["ts_origin"]
+    valid_idx = data["valid_idx"]
+
+    return {
+        w: {
+            "X": X[w::WINDOW_NUMBER],
+            "ts_origin": ts_origin[w::WINDOW_NUMBER],
+            "valid_idx": valid_idx[w::WINDOW_NUMBER],
+            "params": data["params"],
+        }
+        for w in range(WINDOW_NUMBER)
+    }
