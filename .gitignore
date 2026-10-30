@@ -221,3 +221,6 @@ __marimo__/
 
 # Data folder (where local copy of data may be cached)
 data/*
+
+# Models trained during local experiments
+experiments/*/models/*
