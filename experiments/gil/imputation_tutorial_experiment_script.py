@@ -27,7 +27,8 @@ warnings.simplefilter("ignore")
 print(DEVICE)
 
 # data loading
-data = load_raw_data_for_imputation(missing_rate=CONFIG["missing_rate"])
+data = load_raw_data_for_imputation(missing_rate=CONFIG["missing_rate"], 
+cache_dir="./data")
 windowed_data_view = split_by_window_imputation(data)
 
 # updating the config
