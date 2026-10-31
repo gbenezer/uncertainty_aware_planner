@@ -25,3 +25,8 @@ dev = [
     "pytest>=9.2.0",
     "ruff>=0.17.3",
 ]
+
+[tool.pytest.ini_options]
+# The project is not installed as a package (no build system), so tests import it from src/.
+pythonpath = ["src", "."]
+testpaths = ["tests"]
