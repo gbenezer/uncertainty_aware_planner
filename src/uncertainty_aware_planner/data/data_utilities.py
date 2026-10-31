@@ -4,7 +4,14 @@
 # Original Code
 import numpy as np
 from datasets import load_dataset
-from uncertainty_aware_planner.utils.constants import HORIZON, COVARIATES, PRIMARY_KEYS, NUMBER_OPEN_HOURS, WINDOW_DURATION, WINDOW_NUMBER
+from uncertainty_aware_planner.utils.constants import (
+    HORIZON,
+    COVARIATES,
+    PRIMARY_KEYS,
+    NUMBER_OPEN_HOURS,
+    WINDOW_DURATION,
+    WINDOW_NUMBER,
+)
 
 # relevant constant definitions
 MAX_MISSING_PATCH = 4
@@ -320,6 +327,7 @@ def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
         },
     }
     return data
+
 
 def split_by_window_imputation(data):
     """Group the output of load_raw_data_for_imputation by window index.

@@ -33,4 +33,6 @@ WINDOW_NUMBER = 3
 WINDOW_DURATION = HORIZON // WINDOW_NUMBER
 
 # train-test splits for imputation by window index, with last window reserved for calibration
-IMPUTATION_SPLITS = [combination for combination in combinations(range(WINDOW_NUMBER - 1), 2)]
+IMPUTATION_SPLITS = [
+    combination for combination in combinations(range(WINDOW_NUMBER - 1), 2)
+]

@@ -5,6 +5,7 @@ import random
 import numpy as np
 import torch
 
+
 def set_seed(seed_value=1024):
     np.random.seed(seed_value)
     random.seed(seed_value)

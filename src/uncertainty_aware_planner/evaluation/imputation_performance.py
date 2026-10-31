@@ -4,7 +4,8 @@
 import numpy as np
 import warnings
 from uncertainty_aware_planner.utils.constants import WINDOW_DURATION, NUMBER_OPEN_HOURS
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 
 
 def evaluation_mnar(input_data, imputation_data, valid_idx=None, lag=1, verbose=True):
@@ -97,17 +98,19 @@ def evaluation_mnar(input_data, imputation_data, valid_idx=None, lag=1, verbose=
 
     # ---- MASE ----
     # naive-forecast errors from stockout-free day pairs only
-    clean_day = n_real_stockout == 0                                   # (n_windows, days)
-    pair_ok = clean_day[:, lag:] & clean_day[:, :-lag]                 # (n_windows, days - lag)
+    clean_day = n_real_stockout == 0  # (n_windows, days)
+    pair_ok = clean_day[:, lag:] & clean_day[:, :-lag]  # (n_windows, days - lag)
     naive_err = np.abs(sales_true[:, lag:] - sales_true[:, :-lag])
 
     # pooled scale: mean naive error over all clean day pairs in the data
     n_pairs_total = pair_ok.sum()
-    pooled_scale = (naive_err * pair_ok).sum() / n_pairs_total if n_pairs_total > 0 else np.nan
+    pooled_scale = (
+        (naive_err * pair_ok).sum() / n_pairs_total if n_pairs_total > 0 else np.nan
+    )
     if not pooled_scale > 0:
         pooled_scale = np.nan
 
-    abs_err_eval = np.abs(err)                                         # eval_days only
+    abs_err_eval = np.abs(err)  # eval_days only
     mase = abs_err_eval.mean() / pooled_scale if abs_err_eval.size else np.nan
 
     # per-window MASE as a diagnostic only (heavy-tailed, so report the median)
@@ -117,7 +120,9 @@ def evaluation_mnar(input_data, imputation_data, valid_idx=None, lag=1, verbose=
         (naive_err * pair_ok).sum(axis=-1) / np.maximum(n_pairs, 1),
         np.nan,
     )
-    scale_w = np.where(scale_w > 0.01 * pooled_scale, scale_w, np.nan)  # floor near-degenerate windows
+    scale_w = np.where(
+        scale_w > 0.01 * pooled_scale, scale_w, np.nan
+    )  # floor near-degenerate windows
     scaled = np.abs(sales_pred - sales_true) / scale_w[:, None]
     mase_days = eval_days & ~np.isnan(scale_w)[:, None]
     mase_window_median = np.median(scaled[mase_days]) if mase_days.any() else np.nan
@@ -135,6 +140,10 @@ def evaluation_mnar(input_data, imputation_data, valid_idx=None, lag=1, verbose=
         print("wpe", results["wpe"])
         print(f"mase (lag={lag}, pooled scale)", results["mase"])
         print("median per-window scaled error", results["mase_window_median"])
-        print("evaluated days across all store-product series", results["n_eval_days"],
-              "| days used for per-window diagnostic across all store-product series", results["n_mase_days"])
+        print(
+            "evaluated days across all store-product series",
+            results["n_eval_days"],
+            "| days used for per-window diagnostic across all store-product series",
+            results["n_mase_days"],
+        )
     return results
