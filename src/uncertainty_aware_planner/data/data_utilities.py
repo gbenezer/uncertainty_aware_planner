@@ -18,7 +18,8 @@ MAX_MISSING_PATCH = 4
 MIN_MISSING_PATCH = 2
 
 # TODO: change to a more generic directory
-DEFAULT_CACHE_DIR = "/home/gil/projects/uncertainty_aware_planner/data"
+# Assumes utilization of these functions from the root folder of the directory
+DEFAULT_CACHE_DIR = "./data"
 
 
 def mimic_missing(
