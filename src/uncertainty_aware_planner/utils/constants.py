@@ -27,7 +27,7 @@ NUMBER_OPEN_HOURS = 16
 
 # number of non-overlapping windows to use to split the data across all experiments
 # needs to evenly divide HORIZON, number of folds/splits, cannot be both random and uncorrelated
-WINDOW_NUMBER = 6
+WINDOW_NUMBER = 3
 
 # derived constant; number of days per window, needs to be an integer
 WINDOW_DURATION = HORIZON // WINDOW_NUMBER
