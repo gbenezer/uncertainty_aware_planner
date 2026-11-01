@@ -147,3 +147,42 @@ def evaluation_mnar(input_data, imputation_data, valid_idx=None, lag=1, verbose=
             results["n_mase_days"],
         )
     return results
+
+def evaluation_mnar_old(input_data, imputation_data, verbose=True):
+    """Day-level WAPE / WPE against raw sale_amount, on artificially masked,
+    stockout-free days.
+
+    Args:
+        input_data: one entry of split_by_window_imputation.
+        imputation_data: model.predict(...)["imputation"], shape (n, 240, n_features).
+            Only feature 0 (hourly sales) is used.
+        verbose: print the metrics.
+
+    Returns:
+        dict with "wape" and "wpe".
+    """
+    n = input_data["ts_origin"].shape[0]
+    day_shape = (n, WINDOW_DURATION, NUMBER_OPEN_HOURS)
+
+    pred_hourly = np.asarray(imputation_data)[..., 0].reshape(day_shape)
+    masked_hourly = input_data["valid_idx"][..., 0].reshape(day_shape)
+
+    # predicted daily total = imputed open hours + untouched off-hours sales
+    sale_amount_pred = (
+        pred_hourly.sum(axis=-1, dtype=np.float64) + input_data["off_hours_sale"]
+    )
+    sale_amount = input_data["sale_amount"]
+
+    # days with artificial masking (mimic_missing only masks stockout-free days)
+    valid_days = masked_hourly.any(axis=-1)
+
+    denom = (sale_amount * valid_days).sum()
+    wape = (np.abs(sale_amount_pred - sale_amount) * valid_days).sum() / denom
+    wpe = ((sale_amount_pred - sale_amount) * valid_days).sum() / denom
+
+    if verbose:
+        print(f"wape {wape:.4f}")
+        print(f"wpe {wpe:.4f}")
+        print(f"evaluated days: {int(valid_days.sum())}")
+
+    return {"wape": float(wape), "wpe": float(wpe)}
