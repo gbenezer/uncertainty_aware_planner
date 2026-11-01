@@ -14,7 +14,7 @@ dependencies = [
     "pygrinder>=0.7",
     "pypots>=1.5",
     "pytorch-forecasting>=1.8.0",
-    "torch>=2.9,<=2.11.0",
+    "torch>=2.8,<2.9.0",
     "transformers>=4.57",
     "tsdb>=0.8",
 ]
