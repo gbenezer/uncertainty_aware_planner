@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 import pandas as pd
 from pypots.imputation.dlinear import DLinear
-from pypots.optim.adamw import AdamW
+from pypots.optim.adamw import Adam
 from uncertainty_aware_planner.data.data_utilities import (
     load_raw_data_for_imputation,
     split_by_window_imputation,
@@ -24,12 +24,13 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 CONFIG = {
     "saving_path": MODEL_DIR,
-    "EPOCHS": 10,
+    "EPOCHS": 5,
     "batch_size": 128,
     "patience": 5,
     "d_model": 64,
     "lr": 0.001,
-    "missing_rate": 0.5,
+    "weight_decay": 1e-5,
+    "missing_rate": 0.3,
     "alpha": 1e-2,
 }
 SEEDS = [42, 235, 1024, 4, 16, 23]
@@ -42,6 +43,14 @@ data = load_raw_data_for_imputation(
     missing_rate=CONFIG["missing_rate"], cache_dir="./data"
 )
 windowed_data_view = split_by_window_imputation(data)
+
+for key, value in data["params"].items():
+    print(key)
+    print(value)
+
+print("moving_avg_window_size")
+output = CONFIG["patch_len"] // 2 * 2 + 1
+print(output)
 
 # updating the config
 CONFIG.update(data["params"])
@@ -65,11 +74,12 @@ for seed in SEEDS:
             MIT_weight=1,
             batch_size=CONFIG["batch_size"],
             epochs=CONFIG["EPOCHS"],
-            optimizer=AdamW(lr=CONFIG["lr"]),
+            optimizer=Adam(lr=CONFIG["lr"], weight_decay=CONFIG["weight_decay"]),
             device=DEVICE,
             saving_path=CONFIG["saving_path"],
             patience=CONFIG["patience"],
         )
+        print(model.model)
 
         model.fit(train_set=windowed_data_view[train_idx]["train_set"])
 
@@ -89,4 +99,4 @@ for seed in SEEDS:
             rows.append(res)
 
         # incremental save so a crash doesn't lose finished runs
-        pd.DataFrame(rows).to_csv(OUT_DIR / "dlinear_experiment_run_1.csv", index=False)
+        pd.DataFrame(rows).to_csv(OUT_DIR / "dlinear_experiment_run_2.csv", index=False)
