@@ -72,8 +72,8 @@ CFG=configs/forecasting_models/temporal_fusion_transformer.yaml
 DEMAND=data/processed/demand_daily/<imputation-run-id>.parquet
 FORECAST="python -m uncertainty_aware_planner.pipeline.forecast --config $CFG --demand-daily $DEMAND"
 
-# 1. smoke test on a GPU node: tiny model, 2 batches (minutes)
-sbatch --job-name=tft_smoke --time=00:30:00 slurm/gpu_job.sbatch $FORECAST --seed 2025 --fold 1 --smoke
+# 1. smoke test: tiny model, 2 batches, on CPU (--smoke forces CPU); checks data loading and outputs
+sbatch --job-name=tft_smoke --mem=64G --time=00:30:00 slurm/cpu_job.sbatch $FORECAST --seed 2025 --fold 1 --smoke
 
 # 2. one fold, full settings: check runtime and memory with seff before launching the grid
 sbatch --job-name=tft_f1 slurm/gpu_job.sbatch $FORECAST --seed 2025 --fold 1
