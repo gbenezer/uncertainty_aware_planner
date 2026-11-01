@@ -48,12 +48,12 @@ for key, value in data["params"].items():
     print(key)
     print(value)
 
+# updating the config
+CONFIG.update(data["params"])
+
 print("moving_avg_window_size")
 output = CONFIG["patch_len"] // 2 * 2 + 1
 print(output)
-
-# updating the config
-CONFIG.update(data["params"])
 
 # creating a list for dataframe construction
 dataframe_row_dictionaries = []
