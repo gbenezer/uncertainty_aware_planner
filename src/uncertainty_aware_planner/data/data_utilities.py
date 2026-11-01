@@ -14,8 +14,8 @@ from uncertainty_aware_planner.utils.constants import (
 )
 
 # relevant constant definitions
-MAX_MISSING_PATCH = 4
-MIN_MISSING_PATCH = 2
+MAX_MISSING_PATCH = 7
+MIN_MISSING_PATCH = 3
 
 # TODO: change to a more generic directory
 # Assumes utilization of these functions from the root folder of the directory
@@ -226,6 +226,16 @@ def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
             "valid_idx": boolean array of shape (n_windows, n_steps, 1), True
                 where a value was observed originally but masked by
                 `mimic_missing` (the entries that can be used for evaluation).
+            "sale_amount": float64 array of shape (n_windows, WINDOW_DURATION)
+                with the raw daily `sale_amount` column, used as the
+                denominator and reference in evaluation (see
+                evaluation_mnar).
+            "off_hours_sale": float64 array of shape (n_windows,
+                WINDOW_DURATION) with each day's sales outside the open hours
+                (hours 0-5 and 22-23). Imputation only touches the open
+                hours, so these are added back to the imputed open-hour total
+                to rebuild a predicted daily total comparable to
+                `sale_amount`.
             "params": dict of model configuration values: "n_steps" (240),
                 "n_features" (9), and "patch_len" (16, hours per day).
     """
@@ -249,7 +259,21 @@ def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
     # reshape appropriately, and take only hours that the store is open
     # (original code had float64, used lists, and really went crazy with RAM)
     hours_sale = np.stack(data["hours_sale"].to_numpy()).astype(np.float32)
-    hours_sale_origin = hours_sale.reshape(*data_shape)[..., 6:22]
+    hours_sale_full = hours_sale.reshape(*data_shape)
+    hours_sale_origin = hours_sale_full[..., 6:22]
+
+    # raw daily sales and the sales outside the open hours (hours 0-5 and
+    # 22-23), carried through so that evaluation can compare against the raw
+    # sale_amount column as in the original evaluation code
+    off_hours_sale = hours_sale_full[..., :6].sum(
+        axis=-1, dtype=np.float64
+    ) + hours_sale_full[..., 22:].sum(axis=-1, dtype=np.float64)
+    sale_amount = (
+        data["sale_amount"]
+        .to_numpy()
+        .astype(np.float64)
+        .reshape(series_num * WINDOW_NUMBER, WINDOW_DURATION)
+    )
 
     # convert the nested stockout indicator to a NumPy array
     # reshape appropriately, and take only hours that the store is open
@@ -321,6 +345,8 @@ def load_raw_data_for_imputation(missing_rate=0.5, cache_dir=DEFAULT_CACHE_DIR):
         "train_set": {"X": data},
         "ts_origin": hours_sale_origin,
         "valid_idx": valid_idx,
+        "sale_amount": sale_amount,
+        "off_hours_sale": off_hours_sale,
         "params": {
             "n_steps": WINDOW_DURATION * NUMBER_OPEN_HOURS,
             "n_features": number_features,
@@ -339,19 +365,25 @@ def split_by_window_imputation(data):
     in every other window.
 
     Returns:
-        dict {window_idx: {"X", "ts_origin", "valid_idx", "params"}} where the
-        arrays have shape (n_series, 240, ...). The arrays are views of the
-        originals, not copies, so no extra memory is used.
+        dict {window_idx: {"train_set", "ts_origin", "valid_idx",
+        "sale_amount", "off_hours_sale", "params"}} where the arrays have
+        shape (n_series, 240, ...) or (n_series, WINDOW_DURATION) for the daily
+        arrays. The arrays are views of the originals, not copies, so no extra
+        memory is used.
     """
     X = data["train_set"]["X"]
     ts_origin = data["ts_origin"]
     valid_idx = data["valid_idx"]
+    sale_amount = data["sale_amount"]
+    off_hours_sale = data["off_hours_sale"]
 
     return {
         w: {
             "train_set": {"X": X[w::WINDOW_NUMBER]},
             "ts_origin": ts_origin[w::WINDOW_NUMBER],
             "valid_idx": valid_idx[w::WINDOW_NUMBER],
+            "sale_amount": sale_amount[w::WINDOW_NUMBER],
+            "off_hours_sale": off_hours_sale[w::WINDOW_NUMBER],
             "params": data["params"],
         }
         for w in range(WINDOW_NUMBER)
