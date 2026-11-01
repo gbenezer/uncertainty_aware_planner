@@ -28,7 +28,7 @@ Every output gets a `.manifest.json` (config, seed, dataset revision, counts) fo
 
 ## Step 3. Imputation models (PyPOTS: DLinear, TimesNet)
 
-**3.1 Load the data and copy the conversion helper into your model file.** The helper turns a PyPOTS prediction into `imputed_hourly` rows. It writes one row per hour the model filled, and the index's `keep_start` stops overlapping windows from filling an hour twice.
+**3.1 Load the data and conversion helper function into your model file.** The helper function `to_imputed_hourly` turns a PyPOTS prediction into `imputed_hourly` rows. It writes one row per hour the model filled, and the index's `keep_start` stops overlapping windows from filling an hour twice.
 
 ```python
 from pathlib import Path
@@ -39,31 +39,11 @@ import pandas as pd
 from uncertainty_aware_planner.data.config import load_config
 from uncertainty_aware_planner.data.cube import load_cube
 from uncertainty_aware_planner.data.pypots_arrays import build_pypots_set
+from uncertainty_aware_planner.data.helper_functions import to_imputed_hourly
 
 cfg = load_config()
 cube = load_cube(cfg)
 masks = pd.read_parquet("data/processed/eval_masks.parquet")
-
-
-def to_imputed_hourly(dataset, index, imputation):
-    """imputed_hourly rows (the columns `daily` reads) for every hidden hour a sample owns."""
-    x = dataset["X"][..., 0]
-    truth = dataset.get("X_ori", dataset["X"])[..., 0]
-    sample, step = np.nonzero(np.isnan(x))
-    start = pd.to_datetime(index["start_date"]).to_numpy().astype("datetime64[h]")
-    keep = pd.to_datetime(index["keep_start"]).to_numpy().astype("datetime64[h]")
-    stamp = start[sample] + step.astype("timedelta64[h]")
-    own = stamp >= keep[sample]
-    sample, step, stamp = sample[own], step[own], stamp[own]
-    return pd.DataFrame(
-        {
-            "store_id": index["store_id"].to_numpy()[sample],
-            "product_id": index["product_id"].to_numpy()[sample],
-            "datetime": stamp.astype("datetime64[s]"),
-            "estimated_demand": np.clip(imputation[sample, step], 0, None),
-            "actual_demand": truth[sample, step],  # NaN at real stockouts, true sales at masked hours
-        }
-    )
 ```
 
 **3.2 Cross-validation (folds 1–6).** Train on each fold's `train` window and predict its `val` window. The `val` set has the shared masks applied: the masked hours are NaN in `X`, and their true sales are in `X_ori`.
