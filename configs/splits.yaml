@@ -1,0 +1,34 @@
+# Time-based splits. README: "These settings live in configs/splits.yaml, not in code."
+# Data: train 2024-03-28..06-25 (90 days), official eval 06-26..07-02 (7 days), verified 2026-10-29.
+
+final:
+  # Dataset authors train on all training days and test once on the eval week; we hold out the
+  # last training week for conformal calibration (Feature Cards).
+  train: [2024-03-28, 2024-06-18]
+  calib: [2024-06-19, 2024-06-25]
+  test: [2024-06-26, 2024-07-02]
+
+folds:
+  # Feature Cards: train on 4 weeks before a cut-off, evaluate on the 4 weeks after, 6 cut-offs.
+  # A cut-off is the first val day. Feasible cut-offs are 2024-04-25..2024-05-22 (28 days); six were
+  # drawn once with splits.draw_cutoffs(seed=cutoff_seed) and fixed here so every model uses them.
+  train_days: 28
+  val_days: 28
+  cutoff_seed: 6170
+  cutoffs: [2024-04-29, 2024-05-02, 2024-05-06, 2024-05-08, 2024-05-09, 2024-05-13]
+
+forecasting:
+  horizon_days: 7  # dataset paper: 7-day forecast
+  # Folds: 28 train days hold one 21 + 7 day window. Final: dataset authors use 70 (TFT) and
+  # 62 (DLinear); the team picks one shared value (Feature Cards: same lag features for all models).
+  fold_encoder_days: 21
+  final_encoder_days: 70
+
+imputation:
+  window_days: 28  # Feature Cards: 4-week windows; all 24 hours are used
+  masks:
+    # Dataset authors' mimic_missing (latent_demand_recovery/exp/data/generate_data.py).
+    seed: 1024
+    missing_rate: 0.3
+    min_missing_days: 3
+    max_missing_days: 7
