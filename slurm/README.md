@@ -62,3 +62,27 @@ source slurm/env.sh
 ## 4. Requeue and resume
 
 `gpu_job.sbatch` and `array_job.sbatch` ask SLURM for `SIGUSR1` 90 s before the time limit. Training code that uses a Lightning `Trainer` with `SLURMEnvironment` saves `hpc_ckpt_*.ckpt` in its `default_root_dir` and requeues itself; the requeued job resumes from that checkpoint. This only works when the command is launched with `srun` (the scripts do this) and the run directory is the same on restart. Non-Lightning scripts are simply stopped at the time limit.
+
+## 5. TFT runs
+
+`demand_daily` comes from the data stage (`python -m uncertainty_aware_planner.data daily ...`, see `src/uncertainty_aware_planner/data/README.md`). Outputs: `data/processed/forecast/<run_id>/*.parquet` (CONTRACTS.md 2.5) and `data/runs/forecasting/<run_id>/<fold>/` (checkpoint, logs, all quantiles, `run_log.json`).
+
+```bash
+CFG=configs/forecasting_models/temporal_fusion_transformer.yaml
+DEMAND=data/processed/demand_daily/<imputation-run-id>.parquet
+FORECAST="python -m uncertainty_aware_planner.pipeline.forecast --config $CFG --demand-daily $DEMAND"
+
+# 1. smoke test on a GPU node: tiny model, 2 batches (minutes)
+sbatch --job-name=tft_smoke --time=00:30:00 slurm/gpu_job.sbatch $FORECAST --seed 2025 --fold 1 --smoke
+
+# 2. one fold, full settings: check runtime and memory with seff before launching the grid
+sbatch --job-name=tft_f1 slurm/gpu_job.sbatch $FORECAST --seed 2025 --fold 1
+
+# 3. final model: forecast the calibration week (add "test" only for the final evaluation run)
+sbatch --job-name=tft_final slurm/gpu_job.sbatch $FORECAST --seed 2025 --eval-parts calib
+
+# 4. full grid: 3 seeds x (6 folds + final calib)
+sbatch --job-name=tft_grid --array=0-20%4 slurm/array_job.sbatch "2025 2026 2027" "1 2 3 4 5 6 final" $FORECAST
+```
+
+On a laptop, run the same command with `--smoke` (CPU); the TFT config's `smoke` block sets the tiny model.
