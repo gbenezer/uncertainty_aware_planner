@@ -86,3 +86,18 @@ sbatch --job-name=tft_grid --array=0-20%4 slurm/array_job.sbatch "2025 2026 2027
 ```
 
 On a laptop, run the same command with `--smoke` (CPU); the TFT config's `smoke` block sets the tiny model.
+
+### Paper check (no imputation yet)
+
+The authors' censored TFT scores 31.75% WAPE on the test week. To reproduce it before an imputation run exists, build a `demand_daily` that keeps the recorded sales in stockout hours, train the final model, and score the median the way the paper does:
+
+```bash
+sbatch --job-name=censored --mem=64G slurm/cpu_job.sbatch bash -c "python -m uncertainty_aware_planner.pipeline.censored && \
+    python -m uncertainty_aware_planner.data daily --imputed data/processed/imputed_hourly/imp-none-censored.parquet --run-id imp-none-censored"
+sbatch --job-name=tft_paper slurm/gpu_job.sbatch python -m uncertainty_aware_planner.pipeline.forecast --config $CFG \
+    --demand-daily data/processed/demand_daily/imp-none-censored.parquet --seed 2025 --eval-parts calib test
+python experiments/vishnu/paper_wape.py --demand-daily data/processed/demand_daily/imp-none-censored.parquet \
+    --quantiles data/runs/forecasting/fc-tft-quantile-2025/final/quantiles_test.parquet
+```
+
+Expect a WAPE near the paper's, not equal to it: we train on 03-28..06-18 (the calibration week is held out) where the authors train on all 90 days, and our quantiles are 0.025/0.5/0.975 instead of 0.1..0.9.
