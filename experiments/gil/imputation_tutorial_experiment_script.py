@@ -8,7 +8,7 @@ from uncertainty_aware_planner.data.data_utilities import (
     load_raw_data_for_imputation,
     split_by_window_imputation,
 )
-from uncertainty_aware_planner.evaluation.imputation_performance import evaluation_mnar
+from uncertainty_aware_planner.evaluation.imputation_performance import evaluation_mnar, evaluation_mnar_old
 from uncertainty_aware_planner.utils.constants import IMPUTATION_SPLITS
 from uncertainty_aware_planner.utils.util_functions import set_seed
 
@@ -85,7 +85,7 @@ for seed in SEEDS:
 
         for partition, idx in (("train", train_idx), ("test", eval_idx)):
             preds = model.predict(test_set=windowed_data_view[idx]["train_set"])
-            res = evaluation_mnar(
+            res = evaluation_mnar_old(
                 input_data=windowed_data_view[idx],
                 imputation_data=preds["imputation"],
                 verbose=True,
@@ -99,4 +99,4 @@ for seed in SEEDS:
             rows.append(res)
 
         # incremental save so a crash doesn't lose finished runs
-        pd.DataFrame(rows).to_csv(OUT_DIR / "dlinear_experiment_run_2.csv", index=False)
+        pd.DataFrame(rows).to_csv(OUT_DIR / "dlinear_experiment_run_3.csv", index=False)
