@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 import pandas as pd
 from pypots.imputation.dlinear import DLinear
-from pypots.optim.adamw import Adam
+from pypots.optim.adam import Adam
 from uncertainty_aware_planner.data.data_utilities import (
     load_raw_data_for_imputation,
     split_by_window_imputation,
