@@ -76,6 +76,9 @@ def fit(
     # pytorch-forecasting checkpoints pickle normalizers and encoders, which torch>=2.6 refuses to load
     # with weights_only=True (pytorch-forecasting #2463). Only our own checkpoints are loaded here.
     trainer.fit(model, train_dataloaders=train_dl, weights_only=False)
+    # Requeue checkpoints are only for resuming this run; a later rerun in run_dir must start fresh.
+    for stale in run_dir.glob("hpc_ckpt_*.ckpt"):
+        stale.unlink()
     return Path(checkpoint.last_model_path)
 
 

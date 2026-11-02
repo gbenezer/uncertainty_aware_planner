@@ -51,10 +51,14 @@ masks = pd.read_parquet("data/processed/eval_masks.parquet")
 ```python
 for fold in range(1, 7):
     train_set, _ = build_pypots_set(cube, cfg, "train", fold=fold)  # {"X"}
-    val_set, val_index = build_pypots_set(cube, cfg, "val", fold=fold, masks=masks)  # {"X", "X_ori"}
+    val_set, val_index = build_pypots_set(
+        cube, cfg, "val", fold=fold, masks=masks
+    )  # {"X", "X_ori"}
     model = ...  # e.g. pypots.imputation.DLinear(n_steps=672, n_features=6, ...); settings are yours
     model.fit(train_set)
-    rows = to_imputed_hourly(val_set, val_index, model.predict(val_set)["imputation"][..., 0])
+    rows = to_imputed_hourly(
+        val_set, val_index, model.predict(val_set)["imputation"][..., 0]
+    )
     # rows with a non-null actual_demand are the masked hours evaluation scores on
 ```
 
@@ -65,15 +69,23 @@ train_set, _ = build_pypots_set(cube, cfg, "train")  # (150000, 672, 6), 2.4 GB
 model = ...  # a new model with the settings you chose in 3.2
 model.fit(train_set)
 calib_set, calib_index = build_pypots_set(cube, cfg, "calib", masks=masks)
-calib_rows = to_imputed_hourly(calib_set, calib_index, model.predict(calib_set)["imputation"][..., 0])
+calib_rows = to_imputed_hourly(
+    calib_set, calib_index, model.predict(calib_set)["imputation"][..., 0]
+)
 ```
 
 **3.4 Fill every real stockout and save the file for Step 4.** The `recovery` part covers 03-28..06-25, so every real stockout hour gets exactly one row, all with a null `actual_demand`.
 
 ```python
-recovery_set, recovery_index = build_pypots_set(cube, cfg, "recovery")  # (200000, 672, 6), 3.2 GB
-rows = to_imputed_hourly(recovery_set, recovery_index, model.predict(recovery_set)["imputation"][..., 0])
-output = Path("data/processed/imputed_hourly/imp-dlinear-quantile-1024.parquet")  # <model_id>-<seed>
+recovery_set, recovery_index = build_pypots_set(
+    cube, cfg, "recovery"
+)  # (200000, 672, 6), 3.2 GB
+rows = to_imputed_hourly(
+    recovery_set, recovery_index, model.predict(recovery_set)["imputation"][..., 0]
+)
+output = Path(
+    "data/processed/imputed_hourly/imp-dlinear-quantile-1024.parquet"
+)  # <model_id>-<seed>
 output.parent.mkdir(parents=True, exist_ok=True)
 rows.to_parquet(output)
 ```
@@ -107,13 +119,17 @@ from uncertainty_aware_planner.data.config import load_config
 from uncertainty_aware_planner.data.timeseries_dataset import build_timeseries_datasets
 
 cfg = load_config()
-demand = pd.read_parquet("data/processed/demand_daily/imp-dlinear-quantile-1024.parquet")
+demand = pd.read_parquet(
+    "data/processed/demand_daily/imp-dlinear-quantile-1024.parquet"
+)
 
 for fold in range(1, 7):
     train_ds, val_ds, spec = build_timeseries_datasets(demand, cfg, fold=fold)
     train_dl = train_ds.to_dataloader(train=True, batch_size=..., num_workers=0)
     val_dl = val_ds.to_dataloader(train=False, batch_size=..., num_workers=0)
-    model = ...  # e.g. TemporalFusionTransformer.from_dataset(train_ds, ...); settings are yours
+    model = (
+        ...
+    )  # e.g. TemporalFusionTransformer.from_dataset(train_ds, ...); settings are yours
 ```
 
 **5.2 Final model.** Train on 03-28..06-18 with a 70-day input. Forecast the calibration week for conformal calibration, then forecast the test week **once**, at the end.

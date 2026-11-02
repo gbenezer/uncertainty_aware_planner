@@ -37,8 +37,11 @@ dataloader:
 output_dir: data/processed/forecast
 run_dir: data/runs/forecasting
 
-# --smoke overrides: a tiny model and a few batches, to check the code path end to end.
+# --smoke overrides: a tiny model and a few batches, to check the code path end to end. Separate output
+# folders so a smoke run never mixes with a real run of the same seed and fold.
 smoke:
+  output_dir: data/processed/forecast_smoke
+  run_dir: data/runs/forecasting_smoke
   model: {hidden_size: 8, attention_head_size: 1, lstm_layers: 1, hidden_continuous_size: 4}
   trainer: {max_epochs: 1, limit_train_batches: 2, accelerator: cpu}
   dataloader: {batch_size: 64, num_workers: 0}
