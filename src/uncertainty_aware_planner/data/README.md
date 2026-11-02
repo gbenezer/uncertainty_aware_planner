@@ -7,8 +7,8 @@ Loads FreshRetailNet-50K at a pinned revision, then validates, cleans and splits
 ## Step 1. Set up (everyone)
 
 ```bash
+uv venv --python 3.12.3
 uv sync --frozen --all-groups
-export PYTHONPATH=src        # the package isn't installed (pyproject.toml has no build system)
 ```
 
 ## Step 2. Prepare the shared data (everyone, once per machine)
