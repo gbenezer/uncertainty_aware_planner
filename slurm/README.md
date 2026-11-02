@@ -40,6 +40,8 @@ sbatch --array=0-20%4 slurm/array_job.sbatch "2025 2026 2027" "1 2 3 4 5 6 final
     python -m <module> <args...>
 ```
 
+**Limits (QOS `gpu`):** at most 8 jobs submitted and 4 running per user, and every array task counts as a job. `sbatch` rejects a larger array outright (`QOSMaxSubmitJobPerUserLimit`), so submit a grid in chunks with the same arguments, for example one seed (7 tasks) at a time: `--array=0-6`, then `--array=7-13`, then `--array=14-20`. `sacctmgr show qos format=name,maxsubmitpu,maxjobspu` shows the current limits.
+
 Name jobs with `--job-name` so the logs are easy to find, e.g. `sbatch --job-name=tft_f3 slurm/gpu_job.sbatch ...`.
 
 ## 3. Monitoring
@@ -81,8 +83,9 @@ sbatch --job-name=tft_f1 slurm/gpu_job.sbatch $FORECAST --seed 2025 --fold 1
 # 3. final model: forecast the calibration week (add "test" only for the final evaluation run)
 sbatch --job-name=tft_final slurm/gpu_job.sbatch $FORECAST --seed 2025 --eval-parts calib
 
-# 4. full grid: 3 seeds x (6 folds + final calib)
-sbatch --job-name=tft_grid --array=0-20%4 slurm/array_job.sbatch "2025 2026 2027" "1 2 3 4 5 6 final" $FORECAST
+# 4. full grid: 3 seeds x (6 folds + final calib) = tasks 0-20, one seed per submit (QOS limit, see section 2)
+sbatch --job-name=tft_grid --array=0-6%3 slurm/array_job.sbatch "2025 2026 2027" "1 2 3 4 5 6 final" $FORECAST
+# when those finish: the same command with --array=7-13%3, then --array=14-20%3
 ```
 
 On a laptop, run the same command with `--smoke` (CPU); the TFT config's `smoke` block sets the tiny model.

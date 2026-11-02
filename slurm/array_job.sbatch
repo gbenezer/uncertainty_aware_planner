@@ -2,12 +2,13 @@
 # Seed x fold grid as one job array. Each task runs the command with "--seed S" and, unless the fold is
 # "final", "--fold F" appended. Seeds and folds are arguments, never defaults in this file.
 #
-#   sbatch --array=0-20%4 slurm/array_job.sbatch "2025 2026 2027" "1 2 3 4 5 6 final" \
+#   sbatch --array=0-6%3 slurm/array_job.sbatch "2025 2026 2027" "1 2 3 4 5 6 final" \
 #       python -m uncertainty_aware_planner.pipeline.forecast --config configs/forecasting_models/temporal_fusion_transformer.yaml \
 #       --demand-daily data/processed/demand_daily/<run-id>.parquet
 #
 # Task i runs seed SEEDS[i / n_folds] and fold FOLDS[i % n_folds]; size --array as 0..(n_seeds*n_folds - 1).
-# "%4" caps how many tasks run at once. Use --array=7 (for example) to rerun a single task.
+# "%3" caps how many tasks run at once. Explorer allows 8 submitted GPU jobs per user (array tasks count),
+# so submit a big grid in chunks (--array=0-6, 7-13, 14-20). Use --array=7 (for example) to rerun one task.
 #SBATCH --job-name=uap_array
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
