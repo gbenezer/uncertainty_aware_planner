@@ -9,8 +9,8 @@ from uncertainty_aware_planner.data.splits import Window, final_windows, fold_wi
 
 STEPS, FEATURES = (
     28 * 24,
-    6,
-)  # 28-day windows, all 24 hours; sales + 4 covariates + hour
+    9,
+)  # 28-day windows, all 24 hours; sales + 7 covariates + hour
 
 
 def test_tile_covers_each_day_exactly_once():

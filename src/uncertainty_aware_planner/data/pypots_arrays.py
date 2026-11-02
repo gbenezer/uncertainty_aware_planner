@@ -2,8 +2,9 @@
 
 Layout follows the dataset authors (latent_demand_recovery/exp/data/generate_data.py): windows of whole
 days flattened to (days x hours) steps, features [sales, covariates..., hour of day], stockout hours NaN,
-covariates divided by their window max + 0.1. Two Feature Card differences: all 24 hours are used (D6),
-and the calibration week never enters a training set (D7).
+covariates divided by their window max + 0.1. Three differences, following our documents: all 24 hours are
+used (D6), the calibration week never enters a training set (D7), and all 7 covariates are used (D8, Dev
+Contract A.2), not the authors' 4.
 
 Parts: fold k -> "train", "val"; final -> "train", "calib", "recovery" (imputes real stockouts through the
 calibration week; each day is owned by exactly one window, see `keep_start` in the index).

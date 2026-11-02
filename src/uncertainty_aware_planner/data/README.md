@@ -51,36 +51,43 @@ masks = pd.read_parquet("data/processed/eval_masks.parquet")
 ```python
 for fold in range(1, 7):
     train_set, _ = build_pypots_set(cube, cfg, "train", fold=fold)  # {"X"}
-    val_set, val_index = build_pypots_set(cube, cfg, "val", fold=fold, masks=masks)  # {"X", "X_ori"}
-    model = ...  # e.g. pypots.imputation.DLinear(n_steps=672, n_features=6, ...); settings are yours
+    # {"X", "X_ori"}: masked hours are NaN in X, their true sales are in X_ori
+    val_set, val_index = build_pypots_set(cube, cfg, "val", fold=fold, masks=masks)
+    # e.g. pypots.imputation.DLinear(n_steps=672, n_features=9, ...); settings are yours
+    model = ...
     model.fit(train_set)
-    rows = to_imputed_hourly(val_set, val_index, model.predict(val_set)["imputation"][..., 0])
+    imputation = model.predict(val_set)["imputation"][..., 0]
+    rows = to_imputed_hourly(val_set, val_index, imputation)
     # rows with a non-null actual_demand are the masked hours evaluation scores on
 ```
 
 **3.3 Final model.** Train on 03-28..06-18 only (the calibration week is held out), then predict the calibration week. Its masked hours are what conformal calibration and the held-out check use.
 
 ```python
-train_set, _ = build_pypots_set(cube, cfg, "train")  # (150000, 672, 6), 2.4 GB
+train_set, _ = build_pypots_set(cube, cfg, "train")  # (150000, 672, 9), 3.6 GB
 model = ...  # a new model with the settings you chose in 3.2
 model.fit(train_set)
 calib_set, calib_index = build_pypots_set(cube, cfg, "calib", masks=masks)
-calib_rows = to_imputed_hourly(calib_set, calib_index, model.predict(calib_set)["imputation"][..., 0])
+calib_imputation = model.predict(calib_set)["imputation"][..., 0]
+calib_rows = to_imputed_hourly(calib_set, calib_index, calib_imputation)
 ```
 
 **3.4 Fill every real stockout and save the file for Step 4.** The `recovery` part covers 03-28..06-25, so every real stockout hour gets exactly one row, all with a null `actual_demand`.
 
 ```python
-recovery_set, recovery_index = build_pypots_set(cube, cfg, "recovery")  # (200000, 672, 6), 3.2 GB
-rows = to_imputed_hourly(recovery_set, recovery_index, model.predict(recovery_set)["imputation"][..., 0])
-output = Path("data/processed/imputed_hourly/imp-dlinear-quantile-1024.parquet")  # <model_id>-<seed>
+# (200000, 672, 9), 4.8 GB
+recovery_set, recovery_index = build_pypots_set(cube, cfg, "recovery")
+imputation = model.predict(recovery_set)["imputation"][..., 0]
+rows = to_imputed_hourly(recovery_set, recovery_index, imputation)
+# the file name is the run ID, <model_id>-<seed>
+output = Path("data/processed/imputed_hourly/imp-dlinear-quantile-1024.parquet")
 output.parent.mkdir(parents=True, exist_ok=True)
 rows.to_parquet(output)
 ```
 
-- **Inputs:** each sample is one 28-day window of one series, 672 hourly steps × 6 features: `[sales, discount, holiday_flag, precpt, avg_temperature, hour/23]`. Sales are feature 0 and are what you impute. Real stockout hours are NaN.
+- **Inputs:** each sample is one 28-day window of one series, 672 hourly steps × 9 features: `[sales, discount, holiday_flag, activity_flag, precpt, avg_temperature, avg_humidity, avg_wind_level, hour/23]`. Sales are feature 0 and are what you impute. Real stockout hours are NaN. The covariates are all 7 the Dev Contract lists for Feature 1, each divided by its window max + 0.1, and come from `imputation.covariates` in `configs/data.yaml`.
 - **Columns:** `to_imputed_hourly` gives the five columns Step 4 reads. Before handing the tables to evaluation, add the rest of CONTRACTS.md §2.3: model id, seed, fold, split and quantiles.
-- **Memory:** the final arrays come on top of the 4.5 GB load. Build one part at a time and `del` it when you're done.
+- **Memory:** the final arrays come on top of the 4.5 GB load. Building `recovery` peaks at about 13 GB, so use the cluster or a machine with at least 16 GB. Build one part at a time and `del` it when you're done.
 
 ## Step 4. Build `demand_daily` from one imputation run
 
@@ -107,13 +114,15 @@ from uncertainty_aware_planner.data.config import load_config
 from uncertainty_aware_planner.data.timeseries_dataset import build_timeseries_datasets
 
 cfg = load_config()
-demand = pd.read_parquet("data/processed/demand_daily/imp-dlinear-quantile-1024.parquet")
+run_id = "imp-dlinear-quantile-1024"
+demand = pd.read_parquet(f"data/processed/demand_daily/{run_id}.parquet")
 
 for fold in range(1, 7):
     train_ds, val_ds, spec = build_timeseries_datasets(demand, cfg, fold=fold)
     train_dl = train_ds.to_dataloader(train=True, batch_size=..., num_workers=0)
     val_dl = val_ds.to_dataloader(train=False, batch_size=..., num_workers=0)
-    model = ...  # e.g. TemporalFusionTransformer.from_dataset(train_ds, ...); settings are yours
+    # e.g. TemporalFusionTransformer.from_dataset(train_ds, ...); settings are yours
+    model = ...
 ```
 
 **5.2 Final model.** Train on 03-28..06-18 with a 70-day input. Forecast the calibration week for conformal calibration, then forecast the test week **once**, at the end.
