@@ -35,9 +35,9 @@ sbatch --mem=64G slurm/cpu_job.sbatch python -m uncertainty_aware_planner.data s
 # any GPU command
 sbatch slurm/gpu_job.sbatch python path/to/script.py --arg value
 
-# 3 seeds x (6 folds + final) = 21 tasks, at most 4 at a time
-sbatch --array=0-20%4 slurm/array_job.sbatch "2025 2026 2027" "1 2 3 4 5 6 final" \
-    python -m <module> <args...>
+# 3 seeds x (6 folds + final) = 21 tasks: one seed (7 tasks) per submit, 3 at a time
+sbatch --array=0-6%3 slurm/array_job.sbatch "2025 2026 2027" "1 2 3 4 5 6 final" \
+    python -m <module> <args...>   # then --array=7-13%3 and --array=14-20%3
 ```
 
 **Limits (QOS `gpu`):** at most 8 jobs submitted and 4 running per user, and every array task counts as a job. `sbatch` rejects a larger array outright (`QOSMaxSubmitJobPerUserLimit`), so submit a grid in chunks with the same arguments, for example one seed (7 tasks) at a time: `--array=0-6`, then `--array=7-13`, then `--array=14-20`. `sacctmgr show qos format=name,maxsubmitpu,maxjobspu` shows the current limits.
