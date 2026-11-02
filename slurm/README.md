@@ -80,10 +80,10 @@ sbatch --job-name=tft_smoke --mem=64G --time=00:30:00 slurm/cpu_job.sbatch $FORE
 # 2. one fold, full settings: check runtime and memory with seff before launching the grid
 sbatch --job-name=tft_f1 slurm/gpu_job.sbatch $FORECAST --seed 2025 --fold 1
 
-# 3. final model: forecast the calibration week (add "test" only for the final evaluation run)
-sbatch --job-name=tft_final slurm/gpu_job.sbatch $FORECAST --seed 2025 --eval-parts calib
+# 3. final model: forecasts the calibration and test weeks from one checkpoint (calib alone: --eval-parts calib)
+sbatch --job-name=tft_final slurm/gpu_job.sbatch $FORECAST --seed 2025
 
-# 4. full grid: 3 seeds x (6 folds + final calib) = tasks 0-20, one seed per submit (QOS limit, see section 2)
+# 4. full grid: 3 seeds x (6 folds + final) = tasks 0-20, one seed per submit (QOS limit, see section 2)
 sbatch --job-name=tft_grid --array=0-6%3 slurm/array_job.sbatch "2025 2026 2027" "1 2 3 4 5 6 final" $FORECAST
 # when those finish: the same command with --array=7-13%3, then --array=14-20%3
 ```

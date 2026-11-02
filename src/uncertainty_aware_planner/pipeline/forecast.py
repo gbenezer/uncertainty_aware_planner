@@ -6,8 +6,8 @@
         --seed 2025 [--fold 3 | --eval-parts calib test] [--smoke]
 
 Fold k trains on the fold's train window and forecasts its val window (rolling 7-day origins). Without
---fold the final model trains on 03-28..06-18 and forecasts the calibration week (and the test week when
-"test" is listed; run that once, at the end).
+--fold the final model trains on 03-28..06-18 and forecasts the calibration and test weeks from the same
+checkpoint, so conformal offsets fitted on calib apply to the model that made the test forecasts.
 
 Outputs: <output_dir>/<run_id>/{fold<k>,final_<part>}.parquet and <run_dir>/<run_id>/{fold<k>,final}/ with
 the checkpoint, training logs, all predicted quantiles and run_log.json.
@@ -21,8 +21,7 @@ import json
 import platform
 import subprocess
 import time
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 
 import pandas as pd
 import torch
@@ -94,7 +93,7 @@ def run(
     started = time.time()
     set_seed(seed)
     model_module = ARCHITECTURES[model_cfg["architecture"]]
-    parts = ["val"] if fold is not None else list(eval_parts or ["calib"])
+    parts = ["val"] if fold is not None else list(eval_parts or ["calib", "test"])
     rid = run_id(model_cfg["model_id"], seed)
     run_dir = (
         resolve(model_cfg["run_dir"])
@@ -158,7 +157,7 @@ def run(
             **stats,
         }
 
-    log["finished_at"] = datetime.now(timezone.utc).isoformat()
+    log["finished_at"] = datetime.now(UTC).isoformat()
     log["wall_seconds"] = round(time.time() - started, 1)
     with open(run_dir / "run_log.json", "w") as f:
         json.dump(log, f, indent=2, default=str)
@@ -183,7 +182,10 @@ def main(argv: list[str] | None = None) -> None:
         "--fold", type=int, help="rolling fold 1..6; omit for the final split"
     )
     group.add_argument(
-        "--eval-parts", nargs="+", choices=["calib", "test"], default=["calib"]
+        "--eval-parts",
+        nargs="+",
+        choices=["calib", "test"],
+        default=["calib", "test"],
     )
     parser.add_argument(
         "--data-config", help="defaults to data_config in the model config"

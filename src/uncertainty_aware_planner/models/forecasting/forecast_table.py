@@ -82,7 +82,7 @@ def long_quantiles(
         rows[column] = rows[column].astype("int64")
 
     stats = {
-        "n_rows": int(len(rows)),
+        "n_rows": len(rows),
         "quantile_crossing_rate": float(crossing.mean()) if crossing.size else 0.0,
         "negative_clip_rate": float(negative.mean()) if negative.size else 0.0,
     }
