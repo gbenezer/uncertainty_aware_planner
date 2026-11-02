@@ -14,7 +14,7 @@ dependencies = [
     "pygrinder>=0.7",
     "pypots>=1.5",
     "pytorch-forecasting>=1.8.0",
-    "torch>=2.15.0",
+    "torch>=2.8,<2.9.0",
     "transformers>=4.57",
     "tsdb>=0.8",
 ]
@@ -26,7 +26,14 @@ dev = [
     "ruff>=0.17.3",
 ]
 
-[tool.pytest.ini_options]
-# The project is not installed as a package (no build system), so tests import it from src/.
-pythonpath = ["src", "."]
-testpaths = ["tests"]
+[build-system]
+requires = ["uv_build>=0.10.0,<0.11.0"]
+build-backend = "uv_build"
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
