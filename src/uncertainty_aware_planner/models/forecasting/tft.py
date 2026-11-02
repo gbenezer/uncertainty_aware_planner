@@ -8,6 +8,7 @@ calibration week is reserved for conformal prediction.
 from __future__ import annotations
 
 import pickle
+import shutil
 import signal
 import sys
 from pathlib import Path
@@ -52,6 +53,9 @@ def fit(
     """
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
+    if not any(run_dir.glob("hpc_ckpt_*.ckpt")):
+        # A fresh run (not a SLURM requeue): drop checkpoints from earlier runs of this seed and fold.
+        shutil.rmtree(run_dir / "checkpoints", ignore_errors=True)
     # Dataset parameters, to rebuild datasets for inference later (TimeSeriesDataSet.from_parameters).
     with open(run_dir / "dataset_params.pkl", "wb") as f:
         pickle.dump(train_ds.get_parameters(), f)
