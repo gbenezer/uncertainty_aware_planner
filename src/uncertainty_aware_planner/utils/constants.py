@@ -1,6 +1,4 @@
 # File to hold library-wide global constants
-from itertools import combinations
-
 
 # total number of days in traing set
 HORIZON = 90
@@ -31,6 +29,3 @@ WINDOW_NUMBER = 6
 
 # derived constant; number of days per window, needs to be an integer
 WINDOW_DURATION = HORIZON // WINDOW_NUMBER
-
-# train-test splits for imputation by window index, with last window reserved for calibration
-IMPUTATION_SPLITS = [combination for combination in combinations(range(WINDOW_NUMBER - 1), 2)]
