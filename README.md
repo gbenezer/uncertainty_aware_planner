@@ -78,15 +78,29 @@ The repository is `demand_imputation_and_forecasting_with_uncertainty`; the impo
 
 ## Quick start
 
+The environment is managed with [uv](https://docs.astral.sh/uv/) and pinned in `uv.lock`; Python 3.12 is installed by uv if missing.
+
+macOS / Linux:
+
 ```bash
-git clone <repo-url> uncertainty-aware-planner
-cd uncertainty-aware-planner
-
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-
-make test        # schema tests on fixtures; should pass with no data downloaded
+curl -LsSf https://astral.sh/uv/install.sh | sh
+git clone https://github.com/gbenezer/uncertainty_aware_planner
+cd uncertainty_aware_planner
+uv sync --all-groups     # .venv with the project, ruff and pytest
+uv run pytest            # tests on fixtures; pass with no data downloaded
 ```
+
+Windows (PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+git clone https://github.com/gbenezer/uncertainty_aware_planner
+cd uncertainty_aware_planner
+uv sync --all-groups
+uv run pytest
+```
+
+`uv run <cmd>` runs inside `.venv` without activating it. To activate: `source .venv/bin/activate` (macOS / Linux) or `.venv\Scripts\activate` (Windows). Linux and Windows get the CUDA 12.8 build of torch (it also runs on CPU-only machines); macOS gets the standard PyPI build (CPU / Apple MPS).
 
 ### Running on the Explorer cluster
 

@@ -21,6 +21,8 @@ sinfo -p gpu,short -o "%P %l %G"      # check partition names, time limits, GPU 
 sbatch slurm/setup_env.sbatch         # installs uv if missing, uv sync, checks CUDA
 ```
 
+The scripts run on Explorer (Linux), so the laptop OS only matters for connecting. **From Windows:** run the same `ssh` command in PowerShell or Windows Terminal (OpenSSH ships with Windows 10/11), or use WSL or VS Code Remote-SSH. Clone and submit on Explorer itself rather than copying scripts over from a Windows checkout; `.gitattributes` keeps `*.sh` / `*.sbatch` on LF line endings in any case.
+
 The setup log must show `cuda True` and a GPU name. torch is pinned to 2.8 (cu128) because torch ≥ 2.9 drops the V100 (compute capability 7.0). If a partition or limit in `sinfo` differs from the `#SBATCH` lines, override at submit time (`sbatch --partition=... --time=...`) rather than editing the scripts for one run.
 
 Caches (`HF_HOME`, `HF_DATASETS_CACHE`, `UV_CACHE_DIR`) live under `/scratch/$USER/uap`; set `UAP_SCRATCH` to move them. The dataset itself stays in `data/` as configured in `configs/data.yaml`.
