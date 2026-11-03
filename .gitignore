@@ -224,3 +224,6 @@ data/*
 
 # Models trained during local experiments
 experiments/*/models/*
+# SLURM job logs (keep the folder so --output paths work)
+slurm/job_logs/*
+!slurm/job_logs/.gitkeep
