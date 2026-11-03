@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --gres=gpu:1
+#SBATCH --time=04:00:00
+#SBATCH --job-name=gb_submission_1
+#SBATCH --mem=32GB
+#SBATCH --ntasks=1
+#SBATCH --output=slurm/job_logs/myjob.%j.out
+#SBATCH --error=slurm/job_logs/myjob.%j.err
+
+source .venv/bin/activate
+python experiments/gil/imputation_tutorial_experiment_script.py

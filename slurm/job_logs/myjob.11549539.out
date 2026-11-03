@@ -1,0 +1,192 @@
+[34m
+████████╗██╗███╗   ███╗███████╗    ███████╗███████╗██████╗ ██╗███████╗███████╗    █████╗ ██╗
+╚══██╔══╝██║████╗ ████║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║██╔════╝██╔════╝   ██╔══██╗██║
+   ██║   ██║██╔████╔██║█████╗█████╗███████╗█████╗  ██████╔╝██║█████╗  ███████╗   ███████║██║
+   ██║   ██║██║╚██╔╝██║██╔══╝╚════╝╚════██║██╔══╝  ██╔══██╗██║██╔══╝  ╚════██║   ██╔══██║██║
+   ██║   ██║██║ ╚═╝ ██║███████╗    ███████║███████╗██║  ██║██║███████╗███████║██╗██║  ██║██║
+   ╚═╝   ╚═╝╚═╝     ╚═╝╚══════╝    ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝╚═╝
+ai4ts v0.0.3 - building AI for unified time-series analysis, https://time-series.ai [0m
+
+cuda
+n_steps
+480
+n_features
+9
+patch_len
+16
+moving_avg_window_size
+17
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.5654
+wpe -0.5348
+evaluated days: 236814
+wape 0.5853
+wpe -0.4370
+evaluated days: 271240
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.3608
+wpe -0.1071
+evaluated days: 236814
+wape 0.3964
+wpe -0.1416
+evaluated days: 271240
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.5698
+wpe -0.5388
+evaluated days: 236814
+wape 0.6054
+wpe -0.4003
+evaluated days: 271240
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.5608
+wpe -0.5133
+evaluated days: 236814
+wape 0.6115
+wpe -0.5758
+evaluated days: 271240
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.5786
+wpe -0.5520
+evaluated days: 236814
+wape 0.6317
+wpe -0.4437
+evaluated days: 271240
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.4617
+wpe -0.3642
+evaluated days: 236814
+wape 0.5484
+wpe -0.3428
+evaluated days: 271240

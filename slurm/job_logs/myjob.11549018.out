@@ -1,0 +1,216 @@
+[34m
+████████╗██╗███╗   ███╗███████╗    ███████╗███████╗██████╗ ██╗███████╗███████╗    █████╗ ██╗
+╚══██╔══╝██║████╗ ████║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║██╔════╝██╔════╝   ██╔══██╗██║
+   ██║   ██║██╔████╔██║█████╗█████╗███████╗█████╗  ██████╔╝██║█████╗  ███████╗   ███████║██║
+   ██║   ██║██║╚██╔╝██║██╔══╝╚════╝╚════██║██╔══╝  ██╔══██╗██║██╔══╝  ╚════██║   ██╔══██║██║
+   ██║   ██║██║ ╚═╝ ██║███████╗    ███████║███████╗██║  ██║██║███████╗███████║██╗██║  ██║██║
+   ╚═╝   ╚═╝╚═╝     ╚═╝╚══════╝    ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝╚═╝
+ai4ts v0.0.3 - building AI for unified time-series analysis, https://time-series.ai [0m
+
+cuda
+n_steps
+480
+n_features
+9
+patch_len
+16
+moving_avg_window_size
+17
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.5571688272173602
+wpe -0.5146664550794654
+mase (lag=1, pooled scale) 1.2907007886154735
+median per-window scaled error 1.0190734053521753
+evaluated days across all store-product series 237158 | days used for per-window diagnostic across all store-product series 235027
+wape 0.5953112034435216
+wpe -0.422154808091661
+mase (lag=1, pooled scale) 1.4428835976474252
+median per-window scaled error 1.207203806479059
+evaluated days across all store-product series 270345 | days used for per-window diagnostic across all store-product series 269138
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.3828896003683528
+wpe -0.1384358526991165
+mase (lag=1, pooled scale) 0.8869769538547837
+median per-window scaled error 0.7125493757089236
+evaluated days across all store-product series 237158 | days used for per-window diagnostic across all store-product series 235027
+wape 0.4236440970723553
+wpe -0.1725077738458491
+mase (lag=1, pooled scale) 1.0268060056152586
+median per-window scaled error 0.8236318352266347
+evaluated days across all store-product series 270345 | days used for per-window diagnostic across all store-product series 269138
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.5461709993772258
+wpe -0.4975216332057824
+mase (lag=1, pooled scale) 1.2652239414321675
+median per-window scaled error 1.0016186346346714
+evaluated days across all store-product series 237158 | days used for per-window diagnostic across all store-product series 235027
+wape 0.6042669800045108
+wpe -0.36545342079201976
+mase (lag=1, pooled scale) 1.4645901320269223
+median per-window scaled error 1.1816269187269608
+evaluated days across all store-product series 270345 | days used for per-window diagnostic across all store-product series 269138
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.6167022254401494
+wpe -0.5834326852850352
+mase (lag=1, pooled scale) 1.4286119571545866
+median per-window scaled error 1.1820993147974315
+evaluated days across all store-product series 237158 | days used for per-window diagnostic across all store-product series 235027
+wape 0.686908378832291
+wpe -0.6531692216654367
+mase (lag=1, pooled scale) 1.66489195427636
+median per-window scaled error 1.3940822418855063
+evaluated days across all store-product series 270345 | days used for per-window diagnostic across all store-product series 269138
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.5871765179759805
+wpe -0.5557754038116524
+mase (lag=1, pooled scale) 1.3602146383405427
+median per-window scaled error 1.1163494817738926
+evaluated days across all store-product series 237158 | days used for per-window diagnostic across all store-product series 235027
+wape 0.6275133066899705
+wpe -0.4450606783342408
+mase (lag=1, pooled scale) 1.5209333408998351
+median per-window scaled error 1.280780356241889
+evaluated days across all store-product series 270345 | days used for per-window diagnostic across all store-product series 269138
+_DLinear(
+  (series_decomp): SeriesDecompositionBlock(
+    (moving_avg): MovingAvgBlock(
+      (avg): AvgPool1d(kernel_size=(17,), stride=(1,), padding=(0,))
+    )
+  )
+  (backbone): BackboneDLinear(
+    (linear_seasonal): Linear(in_features=480, out_features=480, bias=True)
+    (linear_trend): Linear(in_features=480, out_features=480, bias=True)
+  )
+  (seasonal_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (trend_saits_embedding): SaitsEmbedding(
+    (embedding_layer): Linear(in_features=18, out_features=64, bias=True)
+  )
+  (linear_seasonal_output): Linear(in_features=64, out_features=9, bias=True)
+  (linear_trend_output): Linear(in_features=64, out_features=9, bias=True)
+  (training_loss): SaitsLoss(
+    (loss_calc_func): MAE()
+  )
+  (validation_metric): MSE()
+)
+wape 0.4326777316705082
+wpe -0.2718367477010215
+mase (lag=1, pooled scale) 1.0023128757446016
+median per-window scaled error 0.743751136535905
+evaluated days across all store-product series 237158 | days used for per-window diagnostic across all store-product series 235027
+wape 0.4742805470670489
+wpe -0.27703147654724597
+mase (lag=1, pooled scale) 1.1495359369819358
+median per-window scaled error 0.9017881000886678
+evaluated days across all store-product series 270345 | days used for per-window diagnostic across all store-product series 269138

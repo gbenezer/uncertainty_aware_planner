@@ -1,0 +1,66 @@
+2026-11-01 13:08:44 [INFO]: Using the given device: cuda
+2026-11-01 13:08:44 [WARNING]: ‼️ saving_path not given. Model files and tensorboard file will not be saved.
+2026-11-01 13:08:44 [INFO]: Using customized MAE as the training loss function.
+2026-11-01 13:08:44 [INFO]: Using customized MSE as the validation metric function.
+2026-11-01 13:08:44 [INFO]: DLinear initialized with the given hyperparameters, the number of trainable parameters: 465,362
+2026-11-01 13:08:56 [INFO]: Epoch 001 - training loss (MAE): 0.1572
+2026-11-01 13:09:08 [INFO]: Epoch 002 - training loss (MAE): 0.0645
+2026-11-01 13:09:20 [INFO]: Epoch 003 - training loss (MAE): 0.0511
+2026-11-01 13:09:32 [INFO]: Epoch 004 - training loss (MAE): 0.0458
+2026-11-01 13:09:44 [INFO]: Epoch 005 - training loss (MAE): 0.0434
+2026-11-01 13:09:44 [INFO]: Finished training. The best model is from epoch#5.
+2026-11-01 13:09:58 [INFO]: Using the given device: cuda
+2026-11-01 13:09:58 [WARNING]: ‼️ saving_path not given. Model files and tensorboard file will not be saved.
+2026-11-01 13:09:58 [INFO]: Using customized MAE as the training loss function.
+2026-11-01 13:09:58 [INFO]: Using customized MSE as the validation metric function.
+2026-11-01 13:09:58 [INFO]: DLinear initialized with the given hyperparameters, the number of trainable parameters: 465,362
+2026-11-01 13:10:11 [INFO]: Epoch 001 - training loss (MAE): 0.1481
+2026-11-01 13:10:23 [INFO]: Epoch 002 - training loss (MAE): 0.0662
+2026-11-01 13:10:35 [INFO]: Epoch 003 - training loss (MAE): 0.0506
+2026-11-01 13:10:47 [INFO]: Epoch 004 - training loss (MAE): 0.0454
+2026-11-01 13:10:59 [INFO]: Epoch 005 - training loss (MAE): 0.0411
+2026-11-01 13:10:59 [INFO]: Finished training. The best model is from epoch#5.
+2026-11-01 13:11:12 [INFO]: Using the given device: cuda
+2026-11-01 13:11:12 [WARNING]: ‼️ saving_path not given. Model files and tensorboard file will not be saved.
+2026-11-01 13:11:12 [INFO]: Using customized MAE as the training loss function.
+2026-11-01 13:11:12 [INFO]: Using customized MSE as the validation metric function.
+2026-11-01 13:11:12 [INFO]: DLinear initialized with the given hyperparameters, the number of trainable parameters: 465,362
+2026-11-01 13:11:24 [INFO]: Epoch 001 - training loss (MAE): 0.1546
+2026-11-01 13:11:36 [INFO]: Epoch 002 - training loss (MAE): 0.0698
+2026-11-01 13:11:49 [INFO]: Epoch 003 - training loss (MAE): 0.0532
+2026-11-01 13:12:01 [INFO]: Epoch 004 - training loss (MAE): 0.0456
+2026-11-01 13:12:13 [INFO]: Epoch 005 - training loss (MAE): 0.0423
+2026-11-01 13:12:13 [INFO]: Finished training. The best model is from epoch#5.
+2026-11-01 13:12:26 [INFO]: Using the given device: cuda
+2026-11-01 13:12:26 [WARNING]: ‼️ saving_path not given. Model files and tensorboard file will not be saved.
+2026-11-01 13:12:26 [INFO]: Using customized MAE as the training loss function.
+2026-11-01 13:12:26 [INFO]: Using customized MSE as the validation metric function.
+2026-11-01 13:12:26 [INFO]: DLinear initialized with the given hyperparameters, the number of trainable parameters: 465,362
+2026-11-01 13:12:38 [INFO]: Epoch 001 - training loss (MAE): 0.1418
+2026-11-01 13:12:51 [INFO]: Epoch 002 - training loss (MAE): 0.0665
+2026-11-01 13:13:03 [INFO]: Epoch 003 - training loss (MAE): 0.0513
+2026-11-01 13:13:15 [INFO]: Epoch 004 - training loss (MAE): 0.0452
+2026-11-01 13:13:26 [INFO]: Epoch 005 - training loss (MAE): 0.0431
+2026-11-01 13:13:26 [INFO]: Finished training. The best model is from epoch#5.
+2026-11-01 13:13:39 [INFO]: Using the given device: cuda
+2026-11-01 13:13:39 [WARNING]: ‼️ saving_path not given. Model files and tensorboard file will not be saved.
+2026-11-01 13:13:39 [INFO]: Using customized MAE as the training loss function.
+2026-11-01 13:13:39 [INFO]: Using customized MSE as the validation metric function.
+2026-11-01 13:13:39 [INFO]: DLinear initialized with the given hyperparameters, the number of trainable parameters: 465,362
+2026-11-01 13:13:52 [INFO]: Epoch 001 - training loss (MAE): 0.1357
+2026-11-01 13:14:04 [INFO]: Epoch 002 - training loss (MAE): 0.0614
+2026-11-01 13:14:17 [INFO]: Epoch 003 - training loss (MAE): 0.0519
+2026-11-01 13:14:28 [INFO]: Epoch 004 - training loss (MAE): 0.0474
+2026-11-01 13:14:40 [INFO]: Epoch 005 - training loss (MAE): 0.0433
+2026-11-01 13:14:40 [INFO]: Finished training. The best model is from epoch#5.
+2026-11-01 13:14:52 [INFO]: Using the given device: cuda
+2026-11-01 13:14:52 [WARNING]: ‼️ saving_path not given. Model files and tensorboard file will not be saved.
+2026-11-01 13:14:52 [INFO]: Using customized MAE as the training loss function.
+2026-11-01 13:14:52 [INFO]: Using customized MSE as the validation metric function.
+2026-11-01 13:14:52 [INFO]: DLinear initialized with the given hyperparameters, the number of trainable parameters: 465,362
+2026-11-01 13:15:06 [INFO]: Epoch 001 - training loss (MAE): 0.1457
+2026-11-01 13:15:18 [INFO]: Epoch 002 - training loss (MAE): 0.0625
+2026-11-01 13:15:30 [INFO]: Epoch 003 - training loss (MAE): 0.0488
+2026-11-01 13:15:42 [INFO]: Epoch 004 - training loss (MAE): 0.0459
+2026-11-01 13:15:54 [INFO]: Epoch 005 - training loss (MAE): 0.0420
+2026-11-01 13:15:54 [INFO]: Finished training. The best model is from epoch#5.

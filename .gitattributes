@@ -1,0 +1,4 @@
+# Shell and SLURM scripts run with bash on Explorer: keep LF line endings even in a Windows checkout,
+# otherwise a script copied from Windows fails with "$'\r': command not found".
+*.sh     text eol=lf
+*.sbatch text eol=lf
