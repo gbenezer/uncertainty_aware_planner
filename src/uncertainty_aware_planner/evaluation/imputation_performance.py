@@ -148,6 +148,7 @@ def evaluation_mnar(input_data, imputation_data, valid_idx=None, lag=1, verbose=
         )
     return results
 
+
 def evaluation_mnar_old(input_data, imputation_data, verbose=True):
     """Day-level WAPE / WPE against raw sale_amount, on artificially masked,
     stockout-free days.

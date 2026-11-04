@@ -1,3 +1,4 @@
+
 [project]
 name = "uncertainty_aware_planner"
 version = "0.1.0"
@@ -14,6 +15,7 @@ dependencies = [
     "pygrinder>=0.7",
     "pypots>=1.5",
     "pytorch-forecasting>=1.8.0",
+    "pyyaml>=6.0",
     "streamlit>=1.66.1",
     "torch>=2.8,<2.9.0",
     "transformers>=4.57",
@@ -37,4 +39,8 @@ url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 [tool.uv.sources]
-torch = { index = "pytorch-cu128" }
+torch = [{ index = "pytorch-cu128", marker = "sys_platform != 'darwin'" }]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]

@@ -1,0 +1,47 @@
+# Temporal Fusion Transformer (Feature 2, "advanced" architecture). Settings follow the dataset authors'
+# demand_forecasting/TFT/trainTFT.py and configs/tft_config.py unless noted.
+architecture: tft
+model_id: fc-tft-quantile
+data_config: configs/data.yaml  # dataset fields, splits and encoder lengths come from here
+
+# 95% interval. 0.5 is the middle quantile pytorch-forecasting uses as its point prediction; only q025 and
+# q975 go into the CONTRACTS.md 2.5 forecast table (the median is kept in the run directory).
+# The authors used [0.1, 0.3, 0.5, 0.7, 0.9].
+quantiles: [0.025, 0.5, 0.975]
+
+model:  # TemporalFusionTransformer.from_dataset keyword arguments
+  hidden_size: 128
+  attention_head_size: 8
+  lstm_layers: 2
+  hidden_continuous_size: 16
+  dropout: 0.1
+  learning_rate: 0.01
+  optimizer: adamw
+  weight_decay: 1.0e-4
+  # The plateau scheduler watches val_loss, which does not exist without a validation set (as for the
+  # authors), so it never fires. null would be cleaner but crashes pytorch-forecasting 1.8 (empty scheduler).
+  reduce_on_plateau_patience: 1000
+
+trainer:  # lightning.pytorch.Trainer keyword arguments
+  max_epochs: 5
+  gradient_clip_val: 0.1
+  accelerator: auto
+  devices: 1
+  limit_train_batches: null  # set to a small int for quick checks
+
+dataloader:
+  batch_size: 1024
+  num_workers: 8
+
+# Forecast tables (CONTRACTS.md 2.5) and run directories (checkpoints, logs, run_log.json); both gitignored.
+output_dir: data/processed/forecast
+run_dir: data/runs/forecasting
+
+# --smoke overrides: a tiny model and a few batches, to check the code path end to end. Separate output
+# folders so a smoke run never mixes with a real run of the same seed and fold.
+smoke:
+  output_dir: data/processed/forecast_smoke
+  run_dir: data/runs/forecasting_smoke
+  model: {hidden_size: 8, attention_head_size: 1, lstm_layers: 1, hidden_continuous_size: 4}
+  trainer: {max_epochs: 1, limit_train_batches: 2, accelerator: cpu}
+  dataloader: {batch_size: 64, num_workers: 0}
