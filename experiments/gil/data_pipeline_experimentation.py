@@ -24,13 +24,12 @@ DLINEAR_CONFIG_FILE = Path("configs/imputation_models/dlinear_imputation_baselin
 PUBLIC_DATA_CONFIG_FILE = Path("configs/data.yaml")
 SPLIT_CONFIG_FILE = Path("configs/splits.yaml")
 EXPERIMENT_DATA_DIRECTORY = Path("experiments/gil/data")
-RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "fourth_dlinear_baseline_experiment.csv"
+RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "first_dlinear_baseline_experiment.csv"
 REPO_DIR = Path(__file__).resolve().parent
 
 # other variables
 DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-SEEDS = [42, 2048, 1]
-# SEEDS = [86400, 12, 214, 8, 73, 4]
+SEEDS = [86400, 12, 214, 8, 73, 4, 42, 2048, 1]
 
 
 # temporary helper function to get to a working imputation baseline experiment log
@@ -131,14 +130,17 @@ for seed in SEEDS:
         # as well as for both considering all hours of the day and only
         # hours where the store is open
         run_results = []
-        for daily_pool, include_outside in [(True, True), (True, False), (False, True), (False, False)]:
+        for indicators_included, daily_pool, include_outside in [(False, True, True), (False, True, False), (False, False, True), (False, False, False), (True, True, True), (True, True, False), (True, False, True), (True, False, False)]:
             result = calculate_imputation_percent_errors(
                 to_imputed_hourly_df=rows,
-                indicators_included=False,
+                indicators_included=indicators_included,
                 daily_pool=daily_pool,
                 window=(6, 22),
                 include_outside_window=include_outside,
             )
+            result["indicators_included"] = indicators_included
+            result["daily_pool"] = daily_pool
+            result["include_outside"] = include_outside
             result.update({**experiment_dict, **run_dict})
             run_results.append(result)
 
@@ -149,46 +151,3 @@ for seed in SEEDS:
             header=not RESULTS_FILE.exists(),
             index=False,
         )
-
-# experimental_results = pd.DataFrame(result_dict_list)
-# experimental_results.to_csv(path_or_buf=(EXPERIMENT_DATA_DIRECTORY / "initial_dlinear_baseline_experiment.csv"))
-
-
-# experimental_file_path = (
-#     EXPERIMENT_DATA_DIRECTORY / "dlinear_baseline_evaluation_1_fold_1.csv"
-# )
-# rows = pd.read_csv(experimental_file_path, index_col=0)
-
-# vanilla_results = calculate_imputation_percent_errors(
-#     to_imputed_hourly_df=rows,
-#     indicators_included=False,
-#     daily_pool=True,
-#     window=(6, 22),
-#     include_outside_window=True,
-# )
-# stringent_daily_results = calculate_imputation_percent_errors(
-#     to_imputed_hourly_df=rows,
-#     indicators_included=False,
-#     daily_pool=True,
-#     window=(6, 22),
-#     include_outside_window=False,
-# )
-# hourly_results = calculate_imputation_percent_errors(
-#     to_imputed_hourly_df=rows,
-#     indicators_included=False,
-#     daily_pool=False,
-#     window=(6, 22),
-#     include_outside_window=True,
-# )
-# stringent_hourly_results = calculate_imputation_percent_errors(
-#     to_imputed_hourly_df=rows,
-#     indicators_included=False,
-#     daily_pool=False,
-#     window=(6, 22),
-#     include_outside_window=False,
-# )
-
-# print(f"Vanilla Daily: {vanilla_results}")
-# print(f"Stringent Daily: {stringent_daily_results}")
-# print(f"Vanilla Hourly: {hourly_results}")
-# print(f"Stringent Hourly: {stringent_hourly_results}")
