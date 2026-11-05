@@ -19,12 +19,12 @@ uv run python -m uncertainty_aware_planner.data splits   # data/processed/splits
 uv run python -m uncertainty_aware_planner.data masks    # data/processed/eval_masks.parquet
 ```
 
-- **`load`:** the first run downloads about 2.4 GB into `data/hf_cache/`. After that, a load takes about 15 s and 4.5 GB of memory. It must print `50000 series x 97 days (2024-03-28 to 2024-07-02) passed validation`. It also writes `data/raw/DATA_VERSION.json`.
+- **`load`:** the first run downloads about 2.4 GB into `data/hf_cache/`. After that, a load takes about 15 s and 4.5 GB of memory. It must print `50000 series x 97 days (2024-03-28 to 2024-07-02) passed validation`. It also checks both raw files against the SHA-256 hashes in `configs/data.yaml`, stops if either differs, and writes `data/raw/DATA_VERSION.json`.
 - **`splits`:** prints the fold and final windows.
 - **`masks`:** writes the in-stock hours hidden for imputation scoring.
 - **Same results on every machine:** outputs depend only on the pinned data and the committed configs. Don't pass `--seed`, or your masks will differ from everyone else's.
 
-Every output gets a `.manifest.json` (config, seed, dataset revision, counts) for the run log.
+Every output gets a `.manifest.json` (the file's SHA-256, config, seed, dataset revision, counts) for the run log.
 
 ## Step 3. Imputation models (PyPOTS: DLinear, TimesNet)
 
@@ -155,9 +155,18 @@ imputed = fake_imputed_hourly(cube, date(2024, 3, 28), date(2024, 6, 25))
 demand, _ = build_demand_daily(cube, imputed, "fixture-stand-in", cfg["splits"])
 ```
 
+## Data version
+
+- **Raw data:** Hugging Face `Dingdong-Inc/FreshRetailNet-50K` at revision `c374e85975c82816c495acfa904cc55ab14a47d3`. `configs/data.yaml` holds the SHA-256 of both files, every load checks them, and `data/raw/DATA_VERSION.json` records them on your machine.
+- **Splits:** the fold and final dates, the cut-off seed (6170) and the mask seed (1024) are all in `configs/splits.yaml`.
+- **Our outputs:** each `.manifest.json` has its file's SHA-256. A `demand_daily` manifest also has the SHA-256 of the `imputed_hourly` file it was built from. Log the `demand_daily` hash next to the commit and config of every model run.
+- **Check by hand:** the hashes printed below must equal the ones in `configs/data.yaml` (on macOS, use `shasum -a 256`).
+
+```bash
+sha256sum ~/.cache/huggingface/hub/datasets--Dingdong-Inc--FreshRetailNet-50K/snapshots/c374e85975c82816c495acfa904cc55ab14a47d3/data/*.parquet
+```
 ## Things the team should know
 
-- **Data length:** training is 90 days (2024-03-28..06-25) and the official test is 06-26..07-02. It is not "14 weeks".
 - **Input lengths:** each fold window holds one 21-day input plus a 7-day forecast, so each series gives **one training sample per fold**. The final run uses a 70-day input (the authors' TFT; their DLinear used 62). Both are set in `splits.yaml`, and the team has to agree on one shared value.
 - **Masking:** imputation covers all 24 hours, as the Feature Cards say. Masks only hit fully in-stock days, which is 40.0% of training days over 24 hours, versus 55.7% over hours 6–21.
 - **Discount cleaning:** `discount` 0.0 (17,339 rows) and values above 1 (34 rows) become 1.0. Nothing else is changed.
