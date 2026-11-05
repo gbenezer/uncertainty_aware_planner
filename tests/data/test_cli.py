@@ -10,6 +10,7 @@ import yaml
 from tests.data.helpers import fake_imputed_hourly
 from uncertainty_aware_planner.data.__main__ import main
 from uncertainty_aware_planner.data.config import REPO_ROOT
+from uncertainty_aware_planner.data.outputs import file_sha256
 
 
 @pytest.fixture
@@ -54,6 +55,9 @@ def test_stages_run_end_to_end(config_path, tmp_path, cube, capsys):
     assert isinstance(demand["date"].iloc[0], date)
     manifest = json.loads(output.with_name(output.name + ".manifest.json").read_text())
     assert manifest["rows"] == 6 * 97 and manifest["edit_ids"] == []
+    # The manifest names the exact data: its own file and the imputation run it was built from.
+    assert manifest["sha256"] == file_sha256(output)
+    assert manifest["imputed_hourly_sha256"] == file_sha256(imputed_path)
     with pytest.raises(
         FileExistsError
     ):  # versioned demand_daily files are never overwritten

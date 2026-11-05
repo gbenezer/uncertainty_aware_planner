@@ -17,7 +17,7 @@ from .clean import (
     validate_calendar,
     validate_split,
 )
-from .load import open_dataset, to_arrow, write_version_record
+from .load import check_raw_files, open_dataset, to_arrow, write_version_record
 
 HIERARCHY = [
     "city_id",
@@ -134,10 +134,10 @@ def build_cube(train: pa.Table, test: pa.Table, cfg: dict) -> Cube:
 
 
 def load_cube(cfg: dict) -> Cube:
-    """Load with HF `datasets` (recording the version for Hub downloads), validate, and clean."""
+    """Load with HF `datasets` (checking and recording the version for Hub downloads), validate, and clean."""
     dataset_dict = open_dataset(cfg)
     if cfg["source"]["kind"] == "hub":
-        write_version_record(cfg, dataset_dict)
+        write_version_record(cfg, dataset_dict, check_raw_files(cfg))
     return build_cube(
         to_arrow(dataset_dict["train"]), to_arrow(dataset_dict["eval"]), cfg
     )

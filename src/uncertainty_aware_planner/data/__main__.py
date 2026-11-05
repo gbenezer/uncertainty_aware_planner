@@ -20,7 +20,7 @@ from .config import load_config, resolve
 from .cube import Cube, load_cube
 from .daily import build_demand_daily
 from .masks import make_eval_masks
-from .outputs import write_manifest, write_parquet
+from .outputs import file_sha256, write_manifest, write_parquet
 from .splits import splits_table, validate_splits
 
 
@@ -76,6 +76,7 @@ def run_daily(cfg: dict, args: argparse.Namespace, processed: Path) -> None:
     write_parquet(demand, output, overwrite=False)
     details = {
         "imputed_hourly": args.imputed,
+        "imputed_hourly_sha256": file_sha256(resolve(args.imputed)),
         "rows": len(demand),
         "edit_ids": edit_ids,
     }
