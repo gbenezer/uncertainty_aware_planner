@@ -24,7 +24,7 @@ DLINEAR_CONFIG_FILE = Path("configs/imputation_models/dlinear_imputation_baselin
 PUBLIC_DATA_CONFIG_FILE = Path("configs/data.yaml")
 SPLIT_CONFIG_FILE = Path("configs/splits.yaml")
 EXPERIMENT_DATA_DIRECTORY = Path("experiments/gil/data")
-RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "initial_dlinear_baseline_experiment.csv"
+RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "second_dlinear_baseline_experiment.csv"
 REPO_DIR = Path(__file__).resolve().parent
 
 # other variables
