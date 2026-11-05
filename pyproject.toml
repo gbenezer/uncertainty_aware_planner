@@ -3,7 +3,12 @@ name = "uncertainty_aware_planner"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
+
+# python 3.12.3 is pinned, this requirement is because pypots has an issue with 
+# the tokenizers package installation under uv due to a Rust linting change
 requires-python = ">=3.12,<=3.13"
+
+
 dependencies = [
     "dash>=4.4.1",
     "datasets<5",
@@ -15,6 +20,10 @@ dependencies = [
     "pypots>=1.5",
     "pytorch-forecasting>=1.8.0",
     "pyyaml>=6.0",
+    
+    # torch 2.15+ doesn't support the cluster's CUDA 12.8
+    # and torch 2.9 to 2.11 doesn't have the compiled kernels to
+    # run on the V100 chips that the cluster has
     "torch>=2.8,<2.9.0",
     "transformers>=4.57",
     "tsdb>=0.8",
