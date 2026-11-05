@@ -24,13 +24,13 @@ DLINEAR_CONFIG_FILE = Path("configs/imputation_models/dlinear_imputation_baselin
 PUBLIC_DATA_CONFIG_FILE = Path("configs/data.yaml")
 SPLIT_CONFIG_FILE = Path("configs/splits.yaml")
 EXPERIMENT_DATA_DIRECTORY = Path("experiments/gil/data")
-RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "third_dlinear_baseline_experiment.csv"
+RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "fourth_dlinear_baseline_experiment.csv"
 REPO_DIR = Path(__file__).resolve().parent
 
 # other variables
 DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-# SEEDS = [42, 2048, 1]
-SEEDS = [86400, 12, 214, 8, 73, 4]
+SEEDS = [42, 2048, 1]
+# SEEDS = [86400, 12, 214, 8, 73, 4]
 
 
 # temporary helper function to get to a working imputation baseline experiment log
