@@ -25,5 +25,9 @@ def to_imputed_hourly(dataset, index, imputation):
             "actual_demand": truth[
                 sample, step
             ],  # NaN at real stockouts, true sales at masked hours
+            # true censoring: a real stockout hour, no ground truth
+            "is_stockout": np.isnan(truth[sample, step]),
+            # artificial censoring: an in-stock hour hidden by the eval masks
+            "is_masked": ~np.isnan(truth[sample, step]),
         }
     )
