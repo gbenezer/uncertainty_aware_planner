@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import pandas as pd
@@ -16,6 +15,7 @@ st.caption("FreshRetailNet-50K | Historical Sales")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = PROJECT_ROOT / "data" / "data" / "train.parquet"
 
+
 @st.cache_data
 def load_data():
     return pd.read_parquet(
@@ -28,6 +28,7 @@ def load_data():
             "stock_hour6_22_cnt",
         ],
     )
+
 
 df = load_data()
 
@@ -51,9 +52,7 @@ with col2:
     )
 
 # Filter complete history of selected product
-filtered = store_df[
-    store_df["product_id"] == product_id
-].copy()
+filtered = store_df[store_df["product_id"] == product_id].copy()
 
 filtered["dt"] = pd.to_datetime(filtered["dt"])
 filtered = filtered.sort_values("dt")
@@ -69,8 +68,6 @@ st.line_chart(
 st.subheader("Sales Records")
 
 st.dataframe(
-    filtered[
-        ["dt", "sale_amount", "stock_hour6_22_cnt"]
-    ],
+    filtered[["dt", "sale_amount", "stock_hour6_22_cnt"]],
     use_container_width=True,
 )

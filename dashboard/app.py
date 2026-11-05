@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 import pandas as pd
@@ -17,12 +16,9 @@ st.caption("FreshRetailNet-50K | Processed Daily Demand")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 DATA_PATH = (
-    PROJECT_ROOT
-    / "data"
-    / "processed"
-    / "demand_daily"
-    / "imp-none-censored.parquet"
+    PROJECT_ROOT / "data" / "processed" / "demand_daily" / "imp-none-censored.parquet"
 )
+
 
 # Load processed daily data
 @st.cache_data(show_spinner="Loading processed demand data...")
@@ -73,9 +69,7 @@ with col2:
     )
 
 # Filter selected product
-filtered = store_df[
-    store_df["product_id"] == product_id
-].copy()
+filtered = store_df[store_df["product_id"] == product_id].copy()
 
 filtered = filtered.sort_values("date")
 
@@ -110,17 +104,13 @@ with col3:
     )
 
 # Dashboard tabs
-tab1, tab2, tab3 = st.tabs(
-    ["Demand Chart", "Data Overrides", "Covariates"]
-)
+tab1, tab2, tab3 = st.tabs(["Demand Chart", "Data Overrides", "Covariates"])
 
 # Demand chart
 with tab1:
     st.subheader("Historical Daily Demand")
 
-    chart_data = filtered[
-        ["date", "demand_observed", "demand_total"]
-    ].rename(
+    chart_data = filtered[["date", "demand_observed", "demand_total"]].rename(
         columns={
             "demand_observed": "Observed Demand",
             "demand_total": "No-Recovery Baseline",
