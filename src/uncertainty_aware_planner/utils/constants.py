@@ -24,6 +24,8 @@ PRIMARY_KEYS = ["store_id", "product_id", "dt"]
 
 # number of hours the store is open
 NUMBER_OPEN_HOURS = 16
+OPEN_HOURS = slice(6, 22)
+
 # number of hours in a day in general
 NUMBER_HOURS_IN_DAY = 24
 
