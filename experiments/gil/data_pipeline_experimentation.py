@@ -47,6 +47,28 @@ def get_git_state(repo_dir: Path = REPO_DIR) -> str:
         return "unknown"
     return sha + ("-dirty" if status else "")
 
+# temporary code prototype derived from authors' repository copy-pasted
+def evaluation_mnar(X, imputation):
+    dataset = load_dataset("Dingdong-Inc/FreshRetailNet-50K")
+    data = dataset['train'].to_pandas()
+    data = data.sort_values(by=['store_id', 'product_id', 'dt'])
+    horizon=90
+    series_num = data.shape[0]//horizon
+    hours_sale = np.array(data['hours_sale'].tolist())
+    hours_stock_status = np.array(data['hours_stock_status'].tolist())
+
+    hours_sale_origin = hours_sale.reshape(series_num*3, 30, 24)
+
+    stock_hour_X = np.isnan(X[...,0].reshape(-1,30,16)).sum(axis=-1).reshape(-1,90).reshape(-1)
+    stock_hour_origin = hours_stock_status[:,6:22].sum(axis=1)
+    hours_sale_impute = hours_sale_origin.copy()
+    hours_sale_impute[...,6:22] = imputation.reshape(-1, 30, 16)
+    sale_amount_pred = hours_sale_impute.sum(axis=-1).reshape(-1, 90).reshape(-1)
+    valid_idx = (stock_hour_X>0)&(stock_hour_origin==0) #&(data['mu']>=1)
+    sale_amount = data['sale_amount'].values
+    print('wape', (np.abs(sale_amount_pred-sale_amount)*valid_idx).sum()/(sale_amount*valid_idx).sum())
+    print('wpe', ((sale_amount_pred-sale_amount)*valid_idx).sum()/(sale_amount*valid_idx).sum())
+
 SHA = get_git_state()
 
 # resume: figure out which runs are already done
