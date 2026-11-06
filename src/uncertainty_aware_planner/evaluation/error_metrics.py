@@ -1,70 +1,61 @@
 import numpy as np
 import pandas as pd
 
-# def calculate_imputation_percent_errors(
-#     to_imputed_hourly_df: pd.DataFrame,
-#     indicators_included: bool = False,
-#     daily_pool: bool = True
-# ):
+def evaluation_mnar(eval_pypots, model_output, daily_pool: bool = True):
+    
+    # initialize the proper shape for resizing
+    n_series = eval_pypots["X"].shape[0]
+    shape = (n_series, IMPUTATION_WINDOW_DURATION, NUMBER_HOURS_IN_DAY)
 
-#     # assumes at least the columns "store_id", "product_id", "datetime",
-#     # "estimated_demand", "actual_demand" exist (as per the `to_imputed_hourly` function)
+    # create a helper function that takes the defined shape,
+    # reshapes the array, and takes the open hours from the day
+    # (this is to avoid censoring NaN in X_ori)
+    def open_hours(a):
+        return a.reshape(shape)[..., OPEN_HOURS]
 
-#     # drop any rows where there is no actual demand, as those cannot be evaluated
-#     df = to_imputed_hourly_df.dropna(subset=["actual_demand"]).copy()
+    # extract the components that matter from the censored and masked,
+    # censored, and imputed NumPy arrays with NaN
+    X       = open_hours(eval_pypots["X"][..., 0])
+    X_ori   = open_hours(eval_pypots["X_ori"][..., 0])
+    imputed = open_hours(model_output["imputation"][..., 0])
 
-#     # get the residual
-#     df["demand_difference"] = df["estimated_demand"] - df["actual_demand"]
+    # separately assess masked-ness and true stockout
+    masked   = np.isnan(X) & ~np.isnan(X_ori)
+    stockout = np.isnan(X_ori)
 
-#     # if it is a pandas Timestamp, extract the date
-#     if pd.api.types.is_datetime64_any_dtype(df["datetime"]):
-#         df["date"] = df["datetime"].date
+    # calculate the difference between imputed and ground truth hours
+    hourly_diff = np.where(masked, imputed - X_ori, 0.0)
 
-#     # otherwise it's a string, split by the whitespace, and take the date portion
-#     else:
-#         df["date"] = df["datetime"].map(lambda dt: dt.split()[0])
+    # if the values are to be pooled by day then calculated
+    if daily_pool:
 
-#     # if pooling by day is requested (as performed by the authors of the dataset)
-#     # then group by the date and indices
+        # create an indicator variable that denotes days with masking but
+        # no stockout
+        day_valid = (masked.sum(axis=2) > 0) & (stockout.sum(axis=2) == 0)
 
-#     if daily_pool:
+        # sum hour values across the days for residuals
+        daily_diff   = hourly_diff.sum(axis=2)
 
-#         # if there are indicator variables (0/1 or True/False), only take days with masked values
-#         # but no true stockouts
-#         if indicators_included:
-#             summary_df = df.groupby(["store_id", "product_id", "date"])[["actual_demand", "demand_difference", "is_stockout", "is_masked"]].sum()
+        # fill the true censor data with zeros, and sum together true values
+        # across all open hours
+        daily_actual = np.nan_to_num(X_ori).sum(axis=2)   # open-hour sales for the day
 
-#             # extract proper days
-#             day_has_stockout = summary_df["is_stockout"] > 0
-#             day_has_masked_values = summary_df["is_masked"] > 0
-#             boolean_series = day_has_masked_values & ~day_has_stockout
-#             summary_df = summary_df[boolean_series]
+        # take the totals only across the valid days
+        total_diff     = daily_diff[day_valid].sum()
+        total_abs_diff = np.abs(daily_diff)[day_valid].sum()
+        total_actual   = daily_actual[day_valid].sum()
+    else:
 
-#             # calculate metrics
-#             wape = summary_df["demand_difference"].abs().sum() / summary_df["actual_demand"].sum()
-#             wpe = summary_df["demand_difference"].sum() / summary_df["actual_demand"].sum()
+        # sum across all the possible hours
+        total_diff     = hourly_diff.sum()
+        total_abs_diff = np.abs(hourly_diff).sum()
+        total_actual   = np.where(masked, X_ori, 0.0).sum()
 
-#         # otherwise assume all elements have no true stockouts and all actual/estimated pairs correspond to
-#         # evaluation data
-#         else:
-#             summary_df = df.groupby(["store_id", "product_id", "date"])[["actual_demand", "demand_difference"]].sum()
+    if total_actual == 0:
+        return {"wape": np.nan, "wpe": np.nan}
 
-#             # calculate metrics
-#             wape = summary_df["demand_difference"].abs().sum() / summary_df["actual_demand"].sum()
-#             wpe = summary_df["demand_difference"].sum() / summary_df["actual_demand"].sum()
-
-#     # otherwise do the calculation on a more granular hourly basis
-#     else:
-
-#         # calculate metrics
-#         wape = df["demand_difference"].abs().sum() / df["actual_demand"].sum()
-#         wpe = df["demand_difference"].sum() / df["actual_demand"].sum()
-
-#     return {
-#         "wape": wape,
-#         "wpe" : wpe
-#     }
-
+    return {"wape": total_abs_diff / total_actual,
+            "wpe":  total_diff / total_actual}
 
 def calculate_imputation_percent_errors(
     to_imputed_hourly_df: pd.DataFrame,
@@ -156,64 +147,3 @@ def calculate_imputation_percent_errors(
 
     # otherwise return the proper calculated values
     return {"wape": err.abs().sum() / total, "wpe": err.sum() / total}
-
-
-def calculate_imputation_mase():
-    pass
-
-
-# def imputation_metric_calculation(
-#     imputed_hourly_dataframe: pd.DataFrame,
-#     calculate_mase: bool = False,
-#     time_col: str = "datetime",
-# ):
-#     keys = ["store_id", "product_id"]
-
-#     # reference only; the original dataframe is never modified
-#     df = imputed_hourly_dataframe
-
-#     # select only those entries with actual demand, which are the only ones
-#     # that can be used to calculate evaluation metrics
-#     evaluation_dataframe = df[df["actual_demand"].notna()].copy()
-
-#     # if the estimated demand doesn't exist, breaking the function contract,
-#     # raise a ValueError
-#     if evaluation_dataframe["estimated_demand"].isna().any():
-#         raise ValueError("estimated_demand contains NaN values")
-
-#     # calculate demand residual
-#     evaluation_dataframe["demand_difference"] = (
-#         evaluation_dataframe["estimated_demand"] - evaluation_dataframe["actual_demand"]
-#     )
-
-#     # total demand across all store-product time series present
-#     actual_sum = evaluation_dataframe["actual_demand"].sum()
-
-#     # metrics that are valid for series with gaps
-#     wpe = evaluation_dataframe["demand_difference"].sum() / actual_sum if actual_sum else np.nan
-#     wape = evaluation_dataframe["demand_difference"].abs().sum() / actual_sum if actual_sum else np.nan
-
-#     results = {"wape": wape, "wpe": wpe}
-
-#     if calculate_mase:
-#         # Reindex each store-product series onto a complete hourly grid
-#         # (spanning that series' own first to last timestamp). Absent hours
-#         # become NaN rows, so diff() only yields a value where two
-#         # consecutive hours both have actual demand, i.e. a true one-step
-#         # naive error. Requires datetime-typed, hour-aligned, unique
-#         # timestamps within each series.
-#         full_actual = (
-#             df.set_index(time_col)
-#               .groupby(keys)["actual_demand"]
-#               .resample("h")
-#               .asfreq()
-#         )
-#         naive_error = full_actual.groupby(level=keys).diff()
-
-#         # NaN entries (series starts and anything touching a gap) are
-#         # skipped by mean(), so only genuine one-step differences count
-#         naive_mae = naive_error.abs().mean()
-#         mae = evaluation_dataframe["demand_difference"].abs().mean()
-#         results["mase"] = mae / naive_mae if naive_mae else np.nan
-
-#     return results
