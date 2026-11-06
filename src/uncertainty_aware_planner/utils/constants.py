@@ -29,8 +29,8 @@ NUMBER_OPEN_HOURS = 16
 # needs to evenly divide HORIZON, number of folds/splits, cannot be both random and uncorrelated
 WINDOW_NUMBER = 6
 
-# derived constant; number of days per window, needs to be an integer
-WINDOW_DURATION = HORIZON // WINDOW_NUMBER
+# Imputation window duration is 28 days training and validation
+IMPUTATION_WINDOW_DURATION = 28
 
 # train-test splits for imputation by window index, with last window reserved for calibration
 IMPUTATION_SPLITS = [
