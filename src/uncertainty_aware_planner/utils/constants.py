@@ -32,7 +32,3 @@ WINDOW_NUMBER = 6
 # Imputation window duration is 28 days training and validation
 IMPUTATION_WINDOW_DURATION = 28
 
-# train-test splits for imputation by window index, with last window reserved for calibration
-IMPUTATION_SPLITS = [
-    combination for combination in combinations(range(WINDOW_NUMBER - 1), 2)
-]
