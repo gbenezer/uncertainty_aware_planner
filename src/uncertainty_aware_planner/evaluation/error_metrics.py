@@ -6,11 +6,8 @@ from uncertainty_aware_planner.utils.constants import IMPUTATION_WINDOW_DURATION
 def evaluation_mnar(
     eval_pypots, 
     model_output, 
-    daily_pool: bool = True, 
-    hour_scope="aligned"
-    ):
-    
-    assert hour_scope in ("aligned", "every")
+    daily_pool: bool = True,
+):
 
     # initialize the proper shape for resizing
     # as these series have hours outside of the open hours
@@ -58,17 +55,8 @@ def evaluation_mnar(
 
     else:
 
-        # for an apples-to-apples comparison of raw hourly errors
-        # restrict the hours under consideration to only those on
-        # valid days
-        if hour_scope == "aligned":
-
-            # same population of days as the pooled metric
-            hours = np.broadcast_to(day_valid[..., None], shape)
-        else:
-
-            # every hour with ground truth, regardless of the rest of its day
-            hours = ~stockout
+        # same population of days as the pooled metric
+        hours = np.broadcast_to(day_valid[..., None], shape)
         
         # sum across all the relevant hours
         total_diff   = hourly_diff[hours].sum()
