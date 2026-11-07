@@ -3,15 +3,22 @@ import pandas as pd
 
 from uncertainty_aware_planner.utils.constants import IMPUTATION_WINDOW_DURATION, NUMBER_HOURS_IN_DAY, OPEN_HOURS
 
-def evaluation_mnar(eval_pypots, model_output, daily_pool: bool = True):
+def evaluation_mnar(
+    eval_pypots, 
+    model_output, 
+    daily_pool: bool = True, 
+    hour_scope="aligned"
+    ):
     
+    assert hour_scope in ("aligned", "every")
+
     # initialize the proper shape for resizing
+    # as these series have hours outside of the open hours
     n_series = eval_pypots["X"].shape[0]
     shape = (n_series, IMPUTATION_WINDOW_DURATION, NUMBER_HOURS_IN_DAY)
 
     # create a helper function that takes the defined shape,
     # reshapes the array, and takes the open hours from the day
-    # (this is to avoid censoring NaN in X_ori)
     def open_hours(a):
         return a.reshape(shape)[..., OPEN_HOURS]
 
@@ -25,33 +32,52 @@ def evaluation_mnar(eval_pypots, model_output, daily_pool: bool = True):
     masked   = np.isnan(X) & ~np.isnan(X_ori)
     stockout = np.isnan(X_ori)
 
-    # calculate the difference between imputed and ground truth hours
-    hourly_diff = np.where(masked, imputed - X_ori, 0.0)
+    # get the indices of the valid days
+    day_valid = (masked.sum(axis=2) > 0) & (stockout.sum(axis=2) == 0)
+
+    # convert original stockout back from NaN to 0.0 
+    # to get all hourly differences
+    truth = np.nan_to_num(X_ori)
+    hourly_diff = imputed - truth
 
     # if the values are to be pooled by day then calculated
     if daily_pool:
 
-        # create an indicator variable that denotes days with masking but
-        # no stockout
-        day_valid = (masked.sum(axis=2) > 0) & (stockout.sum(axis=2) == 0)
-
         # sum hour values across the days for residuals
         daily_diff   = hourly_diff.sum(axis=2)
 
-        # fill the true censor data with zeros, and sum together true values
-        # across all open hours
-        daily_actual = np.nan_to_num(X_ori).sum(axis=2)   # open-hour sales for the day
+        # only take the days that are valid (has masking but no stockout)
+        # when getting the signed difference
+        total_diff   = daily_diff[day_valid].sum()
 
-        # take the totals only across the valid days
-        total_diff     = daily_diff[day_valid].sum()
-        total_abs_diff = np.abs(daily_diff)[day_valid].sum()
-        total_actual   = daily_actual[day_valid].sum()
+        # get the sum of absolute values of daily differences
+        total_abs_diff    = np.abs(daily_diff)[day_valid].sum()
+
+        # get the total sales over all the relevant days
+        total_actual = truth.sum(axis=2)[day_valid].sum()
+
     else:
 
-        # sum across all the possible hours
-        total_diff     = hourly_diff.sum()
-        total_abs_diff = np.abs(hourly_diff).sum()
-        total_actual   = np.where(masked, X_ori, 0.0).sum()
+        # for an apples-to-apples comparison of raw hourly errors
+        # restrict the hours under consideration to only those on
+        # valid days
+        if hour_scope == "aligned":
+
+            # same population of days as the pooled metric
+            hours = np.broadcast_to(day_valid[..., None], shape)
+        else:
+
+            # every hour with ground truth, regardless of the rest of its day
+            hours = ~stockout
+        
+        # sum across all the relevant hours
+        total_diff   = hourly_diff[hours].sum()
+
+        # sum absolute values across all relevant hours
+        total_abs_diff    = np.abs(hourly_diff)[hours].sum()
+
+        # sum all sales over relevant hours
+        total_actual = truth[hours].sum()
 
     if total_actual == 0:
         return {"wape": np.nan, "wpe": np.nan}
