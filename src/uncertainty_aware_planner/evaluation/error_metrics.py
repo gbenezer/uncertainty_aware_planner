@@ -5,7 +5,7 @@ from uncertainty_aware_planner.utils.constants import IMPUTATION_WINDOW_DURATION
 
 def evaluation_mnar(
     eval_pypots, 
-    model_output, 
+    imputation, 
     daily_pool: bool = True,
 ):
 
@@ -23,7 +23,7 @@ def evaluation_mnar(
     # censored, and imputed NumPy arrays with NaN
     X       = open_hours(eval_pypots["X"][..., 0])
     X_ori   = open_hours(eval_pypots["X_ori"][..., 0])
-    imputed = open_hours(model_output["imputation"][..., 0])
+    imputed = open_hours(imputation[..., 0])
 
     # separately assess masked-ness and true stockout
     masked   = np.isnan(X) & ~np.isnan(X_ori)
