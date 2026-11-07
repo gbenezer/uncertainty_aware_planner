@@ -56,7 +56,7 @@ def evaluation_mnar(
     else:
 
         # same population of days as the pooled metric
-        hours = np.broadcast_to(day_valid[..., None], shape)
+        hours = np.broadcast_to(day_valid[..., None], hourly_diff.shape)
         
         # sum across all the relevant hours
         total_diff   = hourly_diff[hours].sum()
