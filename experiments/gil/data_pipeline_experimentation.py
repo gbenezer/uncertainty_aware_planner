@@ -25,7 +25,7 @@ DLINEAR_CONFIG_FILE = Path("configs/imputation_models/dlinear_imputation_baselin
 PUBLIC_DATA_CONFIG_FILE = Path("configs/data.yaml")
 SPLIT_CONFIG_FILE = Path("configs/splits.yaml")
 EXPERIMENT_DATA_DIRECTORY = Path("experiments/gil/data")
-RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "fourth_dlinear_baseline_experiment.csv"
+RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "fifth_dlinear_baseline_experiment.csv"
 REPO_DIR = Path(__file__).resolve().parent
 
 # other variables
@@ -47,67 +47,6 @@ def get_git_state(repo_dir: Path = REPO_DIR) -> str:
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "unknown"
     return sha + ("-dirty" if status else "")
-
-# # temporary code prototype derived from authors' repository copy-pasted
-# def evaluation_mnar_old(X, imputation):
-
-#     # download the full dataset
-#     dataset = load_dataset("Dingdong-Inc/FreshRetailNet-50K")
-
-#     # change the training set to a Pandas dataframe in-memory
-#     data = dataset['train'].to_pandas()
-
-#     # sort by store-product-day
-#     data = data.sort_values(by=['store_id', 'product_id', 'dt'])
-
-#     # get the number of series in the data
-#     series_num = data.shape[0]//HORIZON
-
-#     # get the actual scaled sales every hour as well as the stockout status
-#     hours_sale = np.array(data['hours_sale'].tolist())
-#     hours_stock_status = np.array(data['hours_stock_status'].tolist())
-
-#     # reshape the original hours into the same shape as expected by the input,
-#     # which includes off hours
-#     hours_sale_origin = hours_sale.reshape(series_num*WINDOW_NUMBER, IMPUTATION_WINDOW_DURATION, NUMBER_HOURS_IN_DAY)
-
-#     # get the masking hours
-#     stock_hour_X = (
-#         np.isnan(X[...,0] # boolean to denote where sales in evaluation data are NaN
-#         .reshape(-1,IMPUTATION_WINDOW_DURATION, NUMBER_OPEN_HOURS)) # reshape to something x days x open hours
-#         .sum(axis=-1) # sum across hours
-#         .reshape(-1, HORIZON) # reshape to something x Horizon (90 days)
-#         .reshape(-1) # flatten
-#         )
-
-#     # variable where number of out of stock hours is summed across days during work hours
-#     stock_hour_origin = hours_stock_status[:,6:22].sum(axis=1)
-
-#     # copy the original unmasked data
-#     hours_sale_impute = hours_sale_origin.copy()
-
-#     # fill in the working hours with the imputation
-#     hours_sale_impute[...,6:22] = imputation.reshape(-1, IMPUTATION_WINDOW_DURATION, NUMBER_OPEN_HOURS)
-
-#     # sum the aggregate sales amounts across hours and reshape
-#     sale_amount_pred = (
-#         hours_sale_impute
-#         .sum(axis=-1) # sum across the hours
-#         .reshape(-1, HORIZON) # reshape to something x Horizon length (90 days)
-#         .reshape(-1) # flatten
-#         )
-    
-#     # valid indicies are where there are some masked hours in the day,
-#     # but no true stockout
-#     valid_idx = (stock_hour_X>0)&(stock_hour_origin==0)
-
-#     # get the daily sales amount on a per day basis directly from the dataset
-#     sale_amount = data['sale_amount'].values
-
-#     return {
-#         'wape': (np.abs(sale_amount_pred-sale_amount)*valid_idx).sum()/(sale_amount*valid_idx).sum(),
-#         'wpe': ((sale_amount_pred-sale_amount)*valid_idx).sum()/(sale_amount*valid_idx).sum()
-#     }
 
 SHA = get_git_state()
 
@@ -184,40 +123,19 @@ for seed in SEEDS:
         # fit the model and impute
         model.fit(train_set)
         model_output = model.predict(val_set)
-        imputation = model_output["imputation"][..., 0]
-
-        # construct the proper dataframe for evaluation
-        rows = to_imputed_hourly(val_set, val_index, imputation)
 
         # calculate errors with both daily pooling and hourly,
         # as well as for both considering all hours of the day and only
         # hours where the store is open
         run_results = []
-        for indicators_included, daily_pool, include_outside in [(False, True, True), (False, True, False), (False, False, True), (False, False, False), (True, True, True), (True, True, False), (True, False, True), (True, False, False)]:
-            result = calculate_imputation_percent_errors(
-                to_imputed_hourly_df=rows,
-                indicators_included=indicators_included,
-                daily_pool=daily_pool,
-                window=(6, 22),
-                include_outside_window=include_outside,
-            )
-            result["indicators_included"] = indicators_included
-            result["daily_pool"] = daily_pool
-            result["include_outside"] = include_outside
-            result["raw_PyPOTS"] = False
-            result.update({**experiment_dict, **run_dict})
-            run_results.append(result)
 
         for daily_pool in [True, False]:
             result = evaluation_mnar(
                 eval_pypots = val_set,
-                model_output=model_output,
+                imputation=model_output["imputation"],
                 daily_pool=daily_pool,
             )
-            result["indicators_included"] = True
             result["daily_pool"] = daily_pool
-            result["include_outside"] = False
-            result["raw_PyPOTS"] = True
             result.update({**experiment_dict, **run_dict})
             run_results.append(result)
 
