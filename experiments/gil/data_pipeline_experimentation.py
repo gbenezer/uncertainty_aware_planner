@@ -25,7 +25,7 @@ DLINEAR_CONFIG_FILE = Path("configs/imputation_models/dlinear_imputation_baselin
 PUBLIC_DATA_CONFIG_FILE = Path("configs/data.yaml")
 SPLIT_CONFIG_FILE = Path("configs/splits.yaml")
 EXPERIMENT_DATA_DIRECTORY = Path("experiments/gil/data")
-RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "fifth_dlinear_baseline_experiment.csv"
+RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "seventh_dlinear_baseline_experiment.csv"
 REPO_DIR = Path(__file__).resolve().parent
 
 # other variables
@@ -75,8 +75,29 @@ experiment_dict["split_config_file"] = SPLIT_CONFIG_FILE
 experiment_dict["device"] = DEVICE
 experiment_dict.update({f"hyperparameter_{k}": v for k, v in dlinear_config.items()})
 
-# initialize an empty list to hold results
-result_dict_list = []
+# helper function to construct a DLinear model according to the appropriate
+# configuration file
+def make_dlinear():
+    return DLinear(
+        n_steps = dlinear_config["n_steps"],
+        n_features = dlinear_config["n_features"],
+        moving_avg_window_size = dlinear_config["moving_avg_window_size"],
+        individual=False,
+        d_model=dlinear_config["d_model"],
+        ORT_weight=dlinear_config["ORT_weight"],
+        MIT_weight=dlinear_config["MIT_weight"],
+        batch_size=dlinear_config["batch_size"],
+        epochs=dlinear_config["epochs"],
+        patience=dlinear_config["patience"],
+        # training_loss=<class 'pypots.nn.modules.loss.MAE'>, # unclear what authors used as they had an older version of PyPOTS
+        # validation_metric=<class 'pypots.nn.modules.loss.MSE'>, # unclear what authors used as they had an older version of PyPOTS
+        optimizer=Adam(**dlinear_config["optimizer_parameters"]),
+        num_workers=0,
+        device=DEVICE,
+        saving_path=None,
+        model_saving_strategy='best',
+        verbose=True
+    )
 
 for seed in SEEDS:
     for fold in range(1, 7):
@@ -91,51 +112,41 @@ for seed in SEEDS:
         run_dict["seed"] = seed
         run_dict["fold"] = fold
 
-        # set the seed
-        set_seed(seed)
-
         # retrieve the correct imputation train and validation data
         train_set, _ = build_pypots_set(cube, cfg, "train", fold=fold)
         val_set, val_index = build_pypots_set(cube, cfg, "val", fold=fold, masks=masks)
 
-        # initialize the baseline model with the correct hyperparameters
-        model = DLinear(
-            n_steps = dlinear_config["n_steps"],
-            n_features = dlinear_config["n_features"],
-            moving_avg_window_size = dlinear_config["moving_avg_window_size"],
-            individual=False,
-            d_model=dlinear_config["d_model"],
-            ORT_weight=dlinear_config["ORT_weight"],
-            MIT_weight=dlinear_config["MIT_weight"],
-            batch_size=dlinear_config["batch_size"],
-            epochs=dlinear_config["epochs"],
-            patience=dlinear_config["patience"],
-            # training_loss=<class 'pypots.nn.modules.loss.MAE'>, # unclear what authors used as they had an older version of PyPOTS
-            # validation_metric=<class 'pypots.nn.modules.loss.MSE'>, # unclear what authors used as they had an older version of PyPOTS
-            optimizer=Adam(**dlinear_config["optimizer_parameters"]),
-            num_workers=0,
-            device=DEVICE,
-            saving_path=None,
-            model_saving_strategy='best',
-            verbose=True
-        )
-
-        # fit the model and impute
-        model.fit(train_set)
-        model_output = model.predict(val_set)
-
-        # calculate errors with both daily pooling and hourly,
-        # as well as for both considering all hours of the day and only
-        # hours where the store is open
+        # initialize the run results list
         run_results = []
 
-        for daily_pool in [True, False]:
+        # evaluate on both train set and test set
+        for daily_pool, label, fit_set in [(True, False, train_set), (True, True, {"X": val_set["X"]}), (False, False, train_set), (False, True, {"X": val_set["X"]})]:
+
+            # set the seed
+            set_seed(seed)
+
+            # construct the network
+            m = make_dlinear()
+
+            # fit on the appropriate dataset
+            # (either true train or validation set)
+            m.fit(fit_set)
+
+            # predict on the validation set
+            out = m.predict(val_set)
+
+            # evaluate on the validation set
             result = evaluation_mnar(
-                eval_pypots = val_set,
-                imputation=model_output["imputation"],
-                daily_pool=daily_pool,
-            )
+                eval_pypots=val_set,
+                imputation=out["imputation"],
+                daily_pool=daily_pool
+                )
+
+            # label whether or not the result is from leaked data or not
+            result["leaked"] = label
             result["daily_pool"] = daily_pool
+
+            # update with metadata and add to the run results
             result.update({**experiment_dict, **run_dict})
             run_results.append(result)
 
