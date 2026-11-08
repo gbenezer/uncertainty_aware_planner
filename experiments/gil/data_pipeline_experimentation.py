@@ -15,8 +15,7 @@ from uncertainty_aware_planner.data.pypots_arrays import build_pypots_set
 from uncertainty_aware_planner.data.helper_functions import to_imputed_hourly
 from uncertainty_aware_planner.data.config import load_yaml
 from uncertainty_aware_planner.evaluation.error_metrics import (
-    calculate_imputation_percent_errors,
-    evaluation_mnar
+    calculate_imputation_percent_errors
 )
 from uncertainty_aware_planner.utils.util_functions import set_seed
 
@@ -136,7 +135,7 @@ for seed in SEEDS:
             out = m.predict(val_set)
 
             # evaluate on the validation set
-            result = evaluation_mnar(
+            result = calculate_imputation_percent_errors(
                 eval_pypots=val_set,
                 imputation=out["imputation"],
                 daily_pool=daily_pool
