@@ -9,12 +9,12 @@ author_run_df = pd.read_csv(ORIGINAL_DATASET_PATH)
 fifth_experiment_df = pd.read_csv(FIFTH_EXPERIMENT_PATH)
 fifth_experiment_df = fifth_experiment_df[fifth_experiment_df["daily_pool"]]
 
-summary_author_wape_df = author_run_df.groupby(["environment","new_fn","n_covar"]).agg(
+summary_author_wape_df = author_run_df.groupby(["environment","new_fn","n_covar", "pooled"]).agg(
     {
         "wape": ["min", "max", "median", "mean", "std", "count"]
     }
 )
-summary_author_wpe_df = author_run_df.groupby(["environment","new_fn","n_covar"]).agg(
+summary_author_wpe_df = author_run_df.groupby(["environment","new_fn","n_covar", "pooled"]).agg(
     {
         "wpe": ["min", "max", "median", "mean", "std", "count"]
     }
