@@ -3,7 +3,7 @@ import pandas as pd
 
 from uncertainty_aware_planner.utils.constants import IMPUTATION_WINDOW_DURATION, NUMBER_HOURS_IN_DAY, OPEN_HOURS
 
-def evaluation_mnar(
+def calculate_imputation_percent_errors(
     eval_pypots, 
     imputation, 
     daily_pool: bool = True,
@@ -72,94 +72,3 @@ def evaluation_mnar(
 
     return {"wape": total_abs_diff / total_actual,
             "wpe":  total_diff / total_actual}
-
-def calculate_imputation_percent_errors(
-    to_imputed_hourly_df: pd.DataFrame,
-    indicators_included: bool = False,
-    daily_pool: bool = True,
-    window: tuple = (6, 22),  # hours [6, 22), as in the authors' code
-    include_outside_window: bool = True,  # True: authors' behavior
-):
-
-    # copy the dataframe to prevent mutation
-    df = to_imputed_hourly_df.copy()
-
-    # before anything, if there are issues with the imputed values,
-    # raise an error
-    if df["estimated_demand"].isna().any():
-        raise ValueError("estimated_demand contains NaN values")
-
-    # define the groupby keys
-    keys = ["store_id", "product_id", "date"]
-
-    # construct datetime if necessary, extract the date,
-    # and assess if the hour is in store hours
-    dt = pd.to_datetime(df["datetime"])
-    df["date"] = dt.dt.date
-    df["_in_window"] = dt.dt.hour.between(window[0], window[1] - 1)
-
-    # day-level validity, computed BEFORE dropping rows
-    valid_days = None
-
-    # if pooling of the residuals is requested and there are also indicator
-    # variables of true and artificial censoring, filter out the hours that
-    # the authors of the dataset do
-    if daily_pool and indicators_included:
-        # adding 0/1 flags to the DataFrame by hour
-        # and calculating the total hours for each store-product-day
-        flags = (
-            df.assign(
-                # 0/1 indicator of stockouts during open hours
-                stockout_w=(df["is_stockout"].astype(bool) & df["_in_window"]).astype(
-                    int
-                ),
-                # 0/1 indicator of artificial masking during open hours
-                masked_w=(df["is_masked"].astype(bool) & df["_in_window"]).astype(int),
-            )
-            .groupby(keys)[["stockout_w", "masked_w"]]
-            .sum()
-        )
-
-        # getting the indices of the grouped dataframe where there is masking during
-        # the work day but no stockout
-        valid_days = flags.index[(flags["masked_w"] > 0) & (flags["stockout_w"] == 0)]
-
-    # dropping the NA values the actual_demand column after assessing the valid days
-    # if necessary
-    df = df.dropna(subset=["actual_demand"])
-
-    # if we want a more stringent calculation of imputation error
-    # only include evaluation of hours within the workday
-    if not include_outside_window:
-        # score only the window: outside hours leave both numerator and denominator
-        df = df[df["_in_window"]].copy()
-
-    # when outside hours are kept, the prediction equals the original there,
-    # so they contribute zero error but still count toward actual demand
-    df["demand_difference"] = np.where(
-        df["_in_window"], df["estimated_demand"] - df["actual_demand"], 0.0
-    )
-
-    # if pooling is requested, calculate across store-product-day
-    if daily_pool:
-        daily = df.groupby(keys)[["actual_demand", "demand_difference"]].sum()
-
-        # if not all groups are valid, only select the valid days
-        if valid_days is not None:
-            daily = daily.loc[daily.index.intersection(valid_days)]
-
-        err, actual = daily["demand_difference"], daily["actual_demand"]
-
-    # otherwise calculate on a per-hour basis
-    else:
-        err, actual = df["demand_difference"], df["actual_demand"]
-
-    # calculate total actual demand for the denominator
-    total = actual.sum()
-
-    # if there's some weird shit going on, return NaN
-    if total == 0:
-        return {"wape": np.nan, "wpe": np.nan}
-
-    # otherwise return the proper calculated values
-    return {"wape": err.abs().sum() / total, "wpe": err.sum() / total}
