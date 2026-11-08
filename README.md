@@ -110,23 +110,32 @@ Job scripts and environment setup live in `slurm/`. Use a laptop for tests and s
 
 ## Running the pipeline
 
-Each stage reads the previous stage's output and writes to `data/` (gitignored). Every stage accepts `CONFIG=<path>` and `SEED=<int>`.
+Each stage reads the previous stage's output and writes to `data/` (gitignored). Settings live in `configs/`; models that train take `--seed`. Run these on a laptop for small checks and on Explorer for full runs (`slurm/README.md`).
 
 ```bash
-make data        # download FreshRetailNet-50K, record version/date, build series, mask stockouts, make splits
-make impute      # Feature 1: train and run imputation models (quantile outputs)
-make forecast    # Feature 2: train and run forecasting models on observed + imputed demand
-make conformal   # calibrate intervals on the held-out calibration week
-make eval        # metrics, low-sales slice, fairness report, error analysis
-make serve       # start API and dashboard on the selected model
-make clean-data  # delete raw data, checkpoints, and intermediates (see end-of-project handling)
+# Data (once per machine), see src/uncertainty_aware_planner/data/README.md
+uv run python -m uncertainty_aware_planner.data load      # download + validate the pinned dataset revision
+uv run python -m uncertainty_aware_planner.data splits    # fold and final windows
+uv run python -m uncertainty_aware_planner.data masks     # in-stock hours hidden for imputation scoring
+
+# Imputation (Feature 1): each owner's PyPOTS model writes data/processed/imputed_hourly/<run-id>.parquet
+# (data README Step 3). Until one exists, the "no recovery" baseline stands in for it:
+uv run python -m uncertainty_aware_planner.pipeline.censored    # writes imputed_hourly/imp-none-censored.parquet
+
+# Daily demand from one imputation run
+uv run python -m uncertainty_aware_planner.data daily \
+    --imputed data/processed/imputed_hourly/<run-id>.parquet --run-id <run-id>
+
+# Forecasting (Feature 2): one seed and one fold per run; omit --fold for the final model, add --smoke for a tiny CPU check
+uv run python -m uncertainty_aware_planner.pipeline.forecast \
+    --config configs/forecasting_models/temporal_fusion_transformer.yaml \
+    --demand-daily data/processed/demand_daily/<run-id>.parquet --seed 2025 --fold 1
+
+# Dashboard (reads demand_daily)
+uv run streamlit run dashboard/app.py
 ```
 
-Quick check on fixtures, without downloading anything:
-
-```bash
-make serve FIXTURES=1
-```
+Conformal calibration, evaluation and end-of-project data cleanup do not have a command yet; they are in progress.
 
 Every run writes a run-log record (data version, git commit, config, seed) so any result can be reproduced.
 

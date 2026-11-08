@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -11,6 +12,15 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 DATE_COLUMNS = ("date", "start_date", "end_date")
+
+
+def file_sha256(path: Path) -> str:
+    """Content hash of a file: the same hash means the same data."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def write_parquet(df: pd.DataFrame, path: Path, overwrite: bool = True) -> None:
@@ -34,6 +44,7 @@ def write_manifest(
     """Write <output>.manifest.json: what produced this output, for pipeline/'s run log."""
     manifest = {
         "output": str(output),
+        "sha256": file_sha256(output),
         "created_at_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "config": config_path,
         "seed": seed,

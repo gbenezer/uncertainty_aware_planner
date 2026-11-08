@@ -8,8 +8,10 @@ from pathlib import Path
 
 import datasets
 import pyarrow as pa
+from huggingface_hub import hf_hub_download
 
 from .config import resolve
+from .outputs import file_sha256
 
 
 def open_dataset(cfg: dict) -> datasets.DatasetDict:
@@ -32,7 +34,29 @@ def to_arrow(dataset: datasets.Dataset) -> pa.Table:
     return dataset.with_format("arrow")[:]
 
 
-def write_version_record(cfg: dict, dataset_dict: datasets.DatasetDict) -> Path:
+def check_raw_files(cfg: dict) -> dict[str, dict]:
+    """Hash the downloaded Hub files and stop unless they match `source.files` in configs/data.yaml.
+
+    The files come from the Hugging Face cache, where `load_dataset` put them; with a pinned revision
+    this needs no network. A different hash means different data, so results would not be comparable.
+    """
+    source = cfg["source"]
+    pinned = {"repo_type": "dataset", "revision": source["revision"]}
+    found = {}
+    for name, expected in source["files"].items():
+        path = Path(hf_hub_download(source["repo_id"], name, **pinned))
+        found[name] = {"sha256": file_sha256(path), "bytes": path.stat().st_size}
+        if found[name] != expected:
+            raise ValueError(
+                f"{name} at revision {source['revision']} is {found[name]}, but configs/data.yaml "
+                f"expects {expected}"
+            )
+    return found
+
+
+def write_version_record(
+    cfg: dict, dataset_dict: datasets.DatasetDict, files: dict[str, dict]
+) -> Path:
     """Write data/raw/DATA_VERSION.json. The first download time is kept across re-runs."""
     path = resolve(cfg["paths"]["raw_dir"]) / "DATA_VERSION.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -49,6 +73,7 @@ def write_version_record(cfg: dict, dataset_dict: datasets.DatasetDict) -> Path:
         "downloaded_at_utc": previous.get("downloaded_at_utc", now),
         "last_loaded_at_utc": now,
         "num_rows": {split: ds.num_rows for split, ds in dataset_dict.items()},
+        "files": files,
     }
     path.write_text(json.dumps(record, indent=2) + "\n")
     return path
