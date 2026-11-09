@@ -1,6 +1,6 @@
 # Anticipated architecture support
 ARCHITECTURES = {
-    "TimesNet_Quantile": None,
-    "DLinear_Baseline": None,
-    "DLinear_Quantile": None,
+    "TimesNet_Imputation_Quantile": None,
+    "DLinear_Imputation_Baseline": None,
+    "DLinear_Imputation_Quantile": None,
 }
