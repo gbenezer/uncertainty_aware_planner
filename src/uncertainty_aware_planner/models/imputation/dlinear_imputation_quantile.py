@@ -13,12 +13,12 @@ from uncertainty_aware_planner.models.imputation.pypots_quantile_loss import (
 )
 
 
-class DLinear_Quantile:
+class DLinear_Imputation_Quantile:
     def __init__(self, cfg: Dict, saving_path: Optional[Union[Path, str]] = None):
         model_name = cfg["name"]
-        if model_name != "DLinear_Quantile":
+        if model_name != "DLinear_Imputation_Quantile":
             raise ValueError(
-                f"Wrong Configuration: expected DLinear_Quantile, got {model_name}"
+                f"Wrong Configuration: expected DLinear_Imputation_Quantile, got {model_name}"
             )
 
         self.quantiles = tuple(sorted(cfg["quantiles"]))
