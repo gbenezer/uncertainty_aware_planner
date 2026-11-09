@@ -16,13 +16,14 @@ A research prototype that recovers demand hidden by stockouts, forecasts store-p
 1. [What this builds](#what-this-builds)
 2. [Repository layout](#repository-layout)
 3. [Quick start](#quick-start)
-4. [Running the pipeline](#running-the-pipeline)
-5. [Data](#data)
-6. [Experiment design](#experiment-design)
-7. [Ownership](#ownership)
-8. [Working agreements](#working-agreements)
-9. [Out of scope](#out-of-scope)
-10. [Attribution](#attribution)
+4. [Reproducing the baseline](#reproducing-the-baseline)
+5. [Running the pipeline](#running-the-pipeline)
+6. [Data](#data)
+7. [Experiment design](#experiment-design)
+8. [Ownership](#ownership)
+9. [Working agreements](#working-agreements)
+10. [Out of scope](#out-of-scope)
+11. [Attribution](#attribution)
 
 ---
 
@@ -62,12 +63,12 @@ demand_imputation_and_forecasting_with_uncertainty/
 │   └── flags/        review flag, "demand has changed" warning
 ├── api/              FastAPI service + planner edit log
 ├── dashboard/        SKU search and tabs
-├── fixtures/         small SYNTHETIC tables that match contracts/schemas.py
+├── fixtures/         small SYNTHETIC tables that match contracts/CONTRACTS.md
 ├── experiments/      per-person scratch space (gil/ jeena/ tarakaram/ vishnu/)
 ├── results/          small committed summaries only (CSV/JSON, figures)
 ├── slurm/            Explorer cluster job scripts and environment setup
 ├── tests/            mirrors src/; schema tests run against fixtures
-└── docs/             experiment cards, datasheet, governance plan, architecture figure
+└── docs/             proposal, dev contract, feature cards, storyboard, architecture slides, dataset license
 ```
 
 The repository is `demand_imputation_and_forecasting_with_uncertainty`; the importable Python package is `uncertainty_aware_planner` (underscores, since hyphens cannot appear in imports).
@@ -88,6 +89,7 @@ git clone https://github.com/gbenezer/uncertainty_aware_planner
 cd uncertainty_aware_planner
 uv sync --all-groups     # .venv with the project, ruff and pytest
 uv run pytest            # tests on fixtures; pass with no data downloaded
+uv run python -m uncertainty_aware_planner.pipeline.baseline_smoke   # baseline smoke run, CPU, ~10 s
 ```
 
 Windows (PowerShell):
@@ -98,6 +100,7 @@ git clone https://github.com/gbenezer/uncertainty_aware_planner
 cd uncertainty_aware_planner
 uv sync --all-groups
 uv run pytest
+uv run python -m uncertainty_aware_planner.pipeline.baseline_smoke
 ```
 
 `uv run <cmd>` runs inside `.venv` without activating it. To activate: `source .venv/bin/activate` (macOS / Linux) or `.venv\Scripts\activate` (Windows). Linux and Windows get the CUDA 12.8 build of torch (it also runs on CPU-only machines); macOS gets the standard PyPI build (CPU / Apple MPS).
@@ -105,6 +108,72 @@ uv run pytest
 ### Running on the Explorer cluster
 
 Job scripts and environment setup live in `slurm/`. Use a laptop for tests and small samples; use Explorer for full runs. See `slurm/README.md` for module loads and submission examples.
+
+---
+
+## Reproducing the baseline
+
+**Baseline.** The baseline is the non-quantile DLinear imputation model, with the loss and architecture from the dataset paper repository (Feature Cards 1.1). It uses the same split and metric as the planned quantile models:
+- **Split:** the six rolling folds in `configs/splits.yaml`.
+- **Metric:** daily-pooled WAPE, with WPE for bias.
+
+### Smoke test: one command, laptop CPU, no GPU, no credentials
+
+```bash
+uv run python -m uncertainty_aware_planner.pipeline.baseline_smoke
+```
+
+It uses the committed SYNTHETIC fixtures, so nothing is downloaded, and takes about 10 seconds. Settings are in `configs/baseline_smoke.yaml`. The run:
+
+1. **Checks the environment, data and split** before training:
+   - the Python version against `.python-version`,
+   - the fixture SHA-256 hashes against `configs/baseline_smoke.yaml`,
+   - `configs/splits.yaml` against the data calendar.
+
+   It stops at the first failure.
+2. **Trains the baseline** for 3 seeds × 6 folds, using the same model config, masks and metric as the full-data run.
+3. **Compares the result with the log.** Mean WAPE and WPE are checked against the smoke reference rows in `results/imputation/baseline_log.csv`. It prints `MATCH` or `MISMATCH`, and exits with status 1 on a mismatch.
+
+The output ends with:
+
+```
+variant     runs  WAPE mean ± sd   WPE mean ± sd     reference WAPE             status
+not_leaked    18  0.3076 ± 0.0274  -0.2436 ± 0.0608  0.3076 (commit cfe9d50)    MATCH
+leaked        18  0.3202 ± 0.0628  -0.2722 ± 0.0852  0.3202 (commit cfe9d50)    MATCH
+```
+
+Run it twice and the numbers are identical: seeds are set before every model build, and torch runs in deterministic mode. Each run writes a run log to `data/runs/baseline_smoke/` with the commit, environment, hashes and per-run results. These are synthetic-data numbers that check the pipeline; they are not the official baseline.
+
+### Official baseline number (full FreshRetailNet-50K)
+
+| Variant | WAPE, mean ± sd | WPE, mean ± sd | Runs | Commit |
+|---|---|---|---|---|
+| **not_leaked** (official): fit on the fold's train window | **45.69% ± 6.97** | −34.02% ± 12.56 | 9 seeds × 6 folds | `5709f5b` |
+| leaked (reference only): fit on the val window's visible hours | 42.07% ± 8.05 | −26.01% ± 17.95 | 9 seeds × 6 folds | `5709f5b` |
+
+Each row of `results/imputation/baseline_log.csv` records the commit, the model config and its SHA-256, the data revision and file SHA-256s, the split config SHA-256, the seeds, the hardware, and the source CSV (`experiments/gil/data/seventh_dlinear_baseline_experiment.csv`).
+
+To regenerate the official number, run this on Explorer (one GPU, about 6 hours) from the repository root:
+
+```bash
+uv run python -m uncertainty_aware_planner.data load    # downloads the pinned revision and checks its SHA-256
+uv run python -m uncertainty_aware_planner.data masks   # writes data/processed/eval_masks.parquet
+mkdir -p experiments/gil/job_logs
+# the script skips (seed, fold) pairs already in its results CSV, so move the logged one aside first
+mv experiments/gil/data/seventh_dlinear_baseline_experiment.csv experiments/gil/data/seventh_dlinear_baseline_experiment.logged.csv
+sbatch experiments/gil/submission_script.sh
+```
+
+Reruns of the same seed on Explorer have given identical numbers: seed 86400, fold 1 is 0.51325065 in each of `first_` to `fourth_dlinear_baseline_experiment.csv`.
+
+Other hardware takes a different training path. We re-ran seed 86400, fold 1 on a laptop CPU:
+
+| Variant | Laptop CPU | Logged on GPU |
+|---|---|---|
+| not_leaked | 42.93% | 42.31% |
+| leaked | 49.83% | 43.25% |
+
+Both differences are within the spread across seeds on that fold: 34.6% to 67.4% for not_leaked. Compare full-data numbers on Explorer GPUs only. The smoke test is the exact run-twice check.
 
 ---
 
@@ -155,7 +224,16 @@ Every run writes a run-log record (data version, git commit, config, seed) so an
 
 **Known gaps:** no prices or costs, no stock on hand, no lead times, no product names, no launch dates. Low-selling products have many zeros and more error.
 
-Raw data is never committed. `data.yaml` records the download date and dataset version.
+**Data version.** Raw data is never committed. `configs/data.yaml` records:
+- the source,
+- the pinned Hub revision,
+- the license,
+- the first download date,
+- the SHA-256 and size of both raw files.
+
+`load` stops if a download does not match those hashes. Each machine also writes its own record to `data/raw/DATA_VERSION.json`, which is gitignored.
+
+If you delete `data/`, run `uv run python -m uncertainty_aware_planner.data load` again to get the same data back. It re-downloads the pinned revision and checks the hashes; the dataset is public, so no credentials are needed. License terms, attribution and our changes to the data are in `docs/DATASET_LICENSE.md`.
 
 ---
 
@@ -183,6 +261,22 @@ All architectures are compared under identical conditions. These settings live i
 
 **Slice:** the low-sales slice is store-product pairs with mean scaled demand below 1, defined as in the dataset authors' repository.
 
+### Leakage checks
+
+The table lists where test information could reach training, and what the code does about each case.
+
+| Risk | What the code does |
+|---|---|
+| A fold's val window inside its own training data | **Split by date.** Train is the 28 days before the cut-off; val is the 28 days from it (`data/splits.py`, `fold_windows`). `validate_splits` stops if splits overlap, leave the data range, or let a fold touch the calibration or test week. |
+| Calibration or test week in imputation training | **Held out.** The last fold ends 2024-06-09. The final imputation model trains on 03-28..06-18, before the calibration week 06-19..06-25 and the test week 06-26..07-02. |
+| Fitting on the val window's visible hours (the `leaked` variant) | **Kept apart.** It is logged separately and never used as the official number. The model then sees the evaluation period's sales pattern, though not the hidden hours, and WAPE drops by 3.6 points (42.07% vs 45.69%). |
+| True values of hidden hours | **Never passed to `fit`.** Only in-stock hours on fully observed days are hidden, with a fixed seed (`data/masks.py`). Their true values stay in `X_ori`, which PyPOTS `fit` and `predict` do not read. Scoring counts only open-hour days that have hidden hours and no real stockout (`evaluation/error_metrics.py`). |
+| Preprocessing fitted across splits | **Nothing is fitted.** Discount cleaning uses fixed constants. Covariates are scaled within each window by that window's own maximum. Sales are not scaled. |
+| Duplicate rows | **Rejected.** `validate_calendar` stops on duplicate (store, product, date) rows. |
+| Features that encode the label | **Not used.** Stockout flags are not model inputs; stockout hours enter only as missing sales. |
+| Overlapping folds | **Open caveat, not leakage.** The six cut-offs fall within 14 days, so folds share days. The ± across folds therefore understates the true uncertainty. |
+| Forecasting: observed weather as a "known future" input | **Open risk.** `configs/data.yaml` gives the models the actual weather of the 7 forecast days, as the dataset authors do. A deployed model would only have a weather forecast, so forecast errors are optimistic. |
+
 ---
 
 ## Ownership
@@ -195,13 +289,13 @@ All architectures are compared under identical conditions. These settings live i
 | `pipeline/`, `slurm/` (repo root), TFT forecasting, final runs, security check | Vishnu |
 | `contracts/` (repo root) | All four; changes need every lead's approval |
 
-Ownership is enforced through `CODEOWNERS`. Each lead also writes one section of the final report.
+Ownership is agreed in this table. There is no `CODEOWNERS` file yet, so reviewers are requested by hand. Each lead also writes one section of the final report.
 
 ---
 
 ## Working agreements
 
-- **Contracts are frozen in week 7.** Shared tables are defined in `contracts/schemas.py` and described in `contracts/CONTRACTS.md`. Changing one is a PR that all four leads approve.
+- **Contracts are frozen in week 7.** Shared tables are defined in `contracts/CONTRACTS.md`. Changing one is a PR that all four leads approve.
 - **Code to the interface, test on fixtures.** Use `fixtures/` until real outputs exist. Do not import another person's model code.
 - **Branches:** `main` is protected. Open PRs from `feat/<name>-<topic>`; one review from a different lead and passing CI are required.
 - **Configs define experiments.** Do not hard-code cut-offs, seeds, or quantile levels.
@@ -235,7 +329,7 @@ Ownership is enforced through `CODEOWNERS`. Each lead also writes one section of
 
 ## Attribution
 
-Data: FreshRetailNet-50K by Dingdong Ltd. and collaborators, CC BY 4.0. Any changes we made are described in `docs/datasheet.md`.
+Data: FreshRetailNet-50K by Dingdong Ltd. and collaborators, CC BY 4.0. License terms and the changes we make are in `docs/DATASET_LICENSE.md`.
 
 Baselines and model implementations follow the dataset paper (Wang et al., arXiv:2505.16319) and its [baseline repository](https://github.com/Dingdong-Inc/frn-50k-baseline).
 

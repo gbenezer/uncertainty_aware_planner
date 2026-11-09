@@ -35,4 +35,3 @@ WINDOW_NUMBER = 6
 
 # Imputation window duration is 28 days training and validation
 IMPUTATION_WINDOW_DURATION = 28
-
