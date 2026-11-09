@@ -69,4 +69,5 @@ class DLinear_Quantile:
 
     def load(self, directory: Union[Path, str]):
         directory = Path(directory)
-        for q, m in
+        for q, m in self.models.items():
+            m.load(str(directory / f"{self._tag(q)}.pypots"))
