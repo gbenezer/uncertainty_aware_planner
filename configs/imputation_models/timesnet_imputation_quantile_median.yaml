@@ -1,0 +1,17 @@
+name: "TimesNet_Imputation_Quantile"
+n_steps: 672
+n_features: 9
+n_layers: 2
+top_k: 7
+d_model: 64
+d_ffn: 32
+n_kernels: 5
+dropout: 0.0
+apply_nonstationary_norm: True
+batch_size: 128
+epochs: 5
+patience: 5
+optimizer_parameters:
+  lr: 0.001
+  weight_decay: 0.00001
+quantiles: [0.025, 0.500, 0.975]
