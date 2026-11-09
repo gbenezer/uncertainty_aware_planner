@@ -1,4 +1,4 @@
-name: "TimesNet_Quantile"
+name: "TimesNet_Imputation_Quantile"
 n_steps: 672
 n_features: 9
 n_layers: 2
