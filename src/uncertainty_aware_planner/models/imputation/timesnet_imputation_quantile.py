@@ -13,12 +13,12 @@ from uncertainty_aware_planner.models.imputation.pypots_quantile_loss import (
 )
 
 
-class TimesNet_Quantile:
+class TimesNet_Imputation_Quantile:
     def __init__(self, cfg: Dict, saving_path: Optional[Union[Path, str]] = None):
         model_name = cfg["name"]
-        if model_name != "TimesNet_Quantile":
+        if model_name != "TimesNet_Imputation_Quantile":
             raise ValueError(
-                f"Wrong Configuration: expected TimesNet_Quantile, got {model_name}"
+                f"Wrong Configuration: expected TimesNet_Imputation_Quantile, got {model_name}"
             )
 
         self.quantiles = tuple(sorted(cfg["quantiles"]))
