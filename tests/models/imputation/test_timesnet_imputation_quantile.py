@@ -99,14 +99,14 @@ class TestTag:
     @pytest.mark.parametrize(
         "q, expected",
         [
-            (0.1, "q100"),
-            (0.5, "q500"),
-            (0.9, "q900"),
-            (0.05, "q050"),
-            (0.01, "q010"),
-            (0.025, "q025"),
-            (0.975, "q975"),
-            (0.999, "q999"),
+            (0.1, "q010"),
+            (0.5, "q050"),
+            (0.9, "q090"),
+            (0.05, "q005"),
+            (0.01, "q001"),
+            (0.25, "q025"),
+            (0.75, "q075"),
+            (0.95, "q095"),
         ],
     )
     def test_tag_format(self, q, expected):
@@ -118,10 +118,14 @@ class TestTag:
         assert len(set(tags)) == len(tags)
 
     def test_tag_is_float_rounding_safe(self):
-        # 0.1 * 1000 == 100.00000000000001 in floating point
-        assert TimesNet_Imputation_Quantile._tag(0.1) == "q100"
-        assert TimesNet_Imputation_Quantile._tag(0.3) == "q300"
-        assert TimesNet_Imputation_Quantile._tag(0.7) == "q700"
+        # 0.1 * 100 == 10.000000000000002 and 0.29 * 100 == 28.999999999999996
+        assert TimesNet_Imputation_Quantile._tag(0.1) == "q010"
+        assert TimesNet_Imputation_Quantile._tag(0.29) == "q029"
+        assert TimesNet_Imputation_Quantile._tag(0.7) == "q070"
+
+    def test_tag_is_zero_padded_to_three_digits(self):
+        assert TimesNet_Imputation_Quantile._tag(0.01) == "q001"
+        assert all(len(TimesNet_Imputation_Quantile._tag(q)) == 4 for q in (0.01, 0.1, 0.5, 0.99))
 
 
 # --------------------------------------------------------------------------- #
@@ -308,9 +312,9 @@ class TestSavingPath:
     def test_per_quantile_subdirectories(self, cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path):
         m = TimesNet_Imputation_Quantile(cfg, saving_path=tmp_path)
         by_q = timesnet_kwargs_by_quantile(mock_timesnet, m.quantiles)
-        assert by_q[0.1]["saving_path"] == str(tmp_path / "q100")
-        assert by_q[0.5]["saving_path"] == str(tmp_path / "q500")
-        assert by_q[0.9]["saving_path"] == str(tmp_path / "q900")
+        assert by_q[0.1]["saving_path"] == str(tmp_path / "q010")
+        assert by_q[0.5]["saving_path"] == str(tmp_path / "q050")
+        assert by_q[0.9]["saving_path"] == str(tmp_path / "q090")
 
     def test_saving_paths_are_strings_and_unique(self, cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path):
         TimesNet_Imputation_Quantile(cfg, saving_path=tmp_path)
@@ -487,9 +491,9 @@ class TestImpute:
 class TestSave:
     def test_each_model_saved_to_tagged_file(self, model, tmp_path):
         model.save(tmp_path)
-        model.models[0.1].save.assert_called_once_with(str(tmp_path / "q100.pypots"), overwrite=False)
-        model.models[0.5].save.assert_called_once_with(str(tmp_path / "q500.pypots"), overwrite=False)
-        model.models[0.9].save.assert_called_once_with(str(tmp_path / "q900.pypots"), overwrite=False)
+        model.models[0.1].save.assert_called_once_with(str(tmp_path / "q010.pypots"), overwrite=False)
+        model.models[0.5].save.assert_called_once_with(str(tmp_path / "q050.pypots"), overwrite=False)
+        model.models[0.9].save.assert_called_once_with(str(tmp_path / "q090.pypots"), overwrite=False)
 
     def test_overwrite_forwarded_to_all(self, model, tmp_path):
         model.save(tmp_path, overwrite=True)
@@ -514,7 +518,7 @@ class TestSave:
 
     def test_accepts_str_directory(self, model, tmp_path):
         model.save(str(tmp_path))
-        model.models[0.5].save.assert_called_once_with(str(tmp_path / "q500.pypots"), overwrite=False)
+        model.models[0.5].save.assert_called_once_with(str(tmp_path / "q050.pypots"), overwrite=False)
 
     def test_paths_passed_to_models_are_strings_and_unique(self, model, tmp_path):
         model.save(tmp_path)
@@ -534,13 +538,13 @@ class TestSave:
 class TestLoad:
     def test_each_model_loaded_from_tagged_file(self, model, tmp_path):
         model.load(tmp_path)
-        model.models[0.1].load.assert_called_once_with(str(tmp_path / "q100.pypots"))
-        model.models[0.5].load.assert_called_once_with(str(tmp_path / "q500.pypots"))
-        model.models[0.9].load.assert_called_once_with(str(tmp_path / "q900.pypots"))
+        model.models[0.1].load.assert_called_once_with(str(tmp_path / "q010.pypots"))
+        model.models[0.5].load.assert_called_once_with(str(tmp_path / "q050.pypots"))
+        model.models[0.9].load.assert_called_once_with(str(tmp_path / "q090.pypots"))
 
     def test_accepts_str_directory(self, model, tmp_path):
         model.load(str(tmp_path))
-        model.models[0.9].load.assert_called_once_with(str(tmp_path / "q900.pypots"))
+        model.models[0.9].load.assert_called_once_with(str(tmp_path / "q090.pypots"))
 
     def test_does_not_create_directory(self, model, tmp_path):
         target = tmp_path / "missing"
