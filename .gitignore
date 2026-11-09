@@ -227,3 +227,6 @@ experiments/*/models/*
 # SLURM job logs (keep the folder so --output paths work)
 slurm/job_logs/*
 !slurm/job_logs/.gitkeep
+
+# macOS Finder metadata
+.DS_Store
