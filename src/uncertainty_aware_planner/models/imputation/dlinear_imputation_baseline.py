@@ -21,7 +21,7 @@ class DLinear_Baseline:
             n_steps=cfg["n_steps"],
             n_features=cfg["n_features"],
             moving_avg_window_size=cfg["moving_avg_window_size"],
-            individual=cfg.get("individual", False),
+            individual=cfg["individual"],
             d_model=cfg["d_model"],
             ORT_weight=cfg["ORT_weight"],
             MIT_weight=cfg["MIT_weight"],
