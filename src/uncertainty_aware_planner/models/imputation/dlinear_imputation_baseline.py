@@ -9,12 +9,12 @@ from pypots.imputation.dlinear import DLinear
 from pypots.optim.adam import Adam
 
 
-class DLinear_Baseline:
+class DLinear_Imputation_Baseline:
     def __init__(self, cfg: Dict, saving_path: Optional[Union[Path, str]] = None):
         model_name = cfg["name"]
-        if model_name != "DLinear_Baseline":
+        if model_name != "DLinear_Imputation_Baseline":
             raise ValueError(
-                f"Wrong Configuration: expected DLinear_Baseline, got {model_name}"
+                f"Wrong Configuration: expected DLinear_Imputation_Baseline, got {model_name}"
             )
 
         self.saving_path = Path(saving_path) if saving_path is not None else None
@@ -51,8 +51,8 @@ class DLinear_Baseline:
     def save(self, directory: Union[Path, str], overwrite: bool = False):
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
-        self.model.save(str(directory / "dlinear_baseline.pypots"), overwrite=overwrite)
+        self.model.save(str(directory / "dlinear_imputation_baseline.pypots"), overwrite=overwrite)
 
     def load(self, directory: Union[Path, str]):
         directory = Path(directory)
-        self.model.load(str(directory / "dlinear_baseline.pypots"))
+        self.model.load(str(directory / "dlinear_imputation_baseline.pypots"))
