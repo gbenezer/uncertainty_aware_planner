@@ -54,8 +54,8 @@ class DLinear_Imputation_Quantile:
 
     @staticmethod
     def _tag(q: float) -> str:
-        # consistent filenames: 0.1 -> q100, 0.5 -> q500, 0.9 -> q900
-        return f"q{int(round(q * 1000)):03d}"
+        # consistent filenames: 0.1 -> q010, 0.5 -> q050, 0.9 -> q090
+        return f"q{int(round(q * 100)):03d}"
 
     def fit(
         self, train_set: Union[Dict, str], val_set: Optional[Union[Dict, str]] = None
