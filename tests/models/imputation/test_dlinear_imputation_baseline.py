@@ -4,7 +4,6 @@ PyPOTS' DLinear and Adam are replaced with mocks, so these tests are fast and
 check only the wrapper's own logic (config validation, argument forwarding,
 path handling, return values).
 
-Adjust the import below to match the module name of the file under test.
 Generated with Claude
 """
 import copy
