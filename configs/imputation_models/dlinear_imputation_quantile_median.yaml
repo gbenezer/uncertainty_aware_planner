@@ -1,0 +1,14 @@
+n_steps: 672
+n_features: 9
+moving_avg_window_size: 17
+individual: False
+d_model: 64
+ORT_weight: 1
+MIT_weight: 1
+batch_size: 128
+epochs: 5
+optimizer_parameters:
+  lr: 0.001
+  weight_decay: 0.00001
+patience: 5
+quantiles: [0.025, 0.500, 0.975]
