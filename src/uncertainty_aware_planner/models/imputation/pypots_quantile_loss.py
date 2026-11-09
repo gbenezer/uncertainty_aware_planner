@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 from pypots.nn.modules.loss import Criterion
 # from pypots.nn.functional.error import _check_inputs
 
+
 # directly from PyPOTS
 def _check_inputs(
     predictions: Union[np.ndarray, torch.Tensor, list],
@@ -27,8 +28,12 @@ def _check_inputs(
             f"shape of `predictions` and `targets` must match, but got {prediction_shape} and {target_shape}"
         )
     # check NaN
-    assert not lib.isnan(predictions).any(), "`predictions` mustn't contain NaN values, but detected NaN in it"
-    assert not lib.isnan(targets).any(), "`targets` mustn't contain NaN values, but detected NaN in it"
+    assert not lib.isnan(predictions).any(), (
+        "`predictions` mustn't contain NaN values, but detected NaN in it"
+    )
+    assert not lib.isnan(targets).any(), (
+        "`targets` mustn't contain NaN values, but detected NaN in it"
+    )
 
     if masks is not None:
         # check type
@@ -43,9 +48,12 @@ def _check_inputs(
             f"but got `mask`: {mask_shape} that is different from `targets`: {target_shape}"
         )
         # check NaN
-        assert not lib.isnan(masks).any(), "`masks` mustn't contain NaN values, but detected NaN in it"
+        assert not lib.isnan(masks).any(), (
+            "`masks` mustn't contain NaN values, but detected NaN in it"
+        )
 
     return lib
+
 
 def calc_quantile_loss(
     predictions: Union[NDArray, torch.Tensor],
@@ -73,6 +81,7 @@ def calc_quantile_loss(
     if masks is not None:
         return lib.sum(loss * masks) / (lib.sum(masks) + 1e-12)
     return lib.mean(loss)
+
 
 class QuantileLoss(Criterion):
     def __init__(self, quantile: float = 0.5):

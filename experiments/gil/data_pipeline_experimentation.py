@@ -15,7 +15,7 @@ from uncertainty_aware_planner.data.pypots_arrays import build_pypots_set
 from uncertainty_aware_planner.data.helper_functions import to_imputed_hourly
 from uncertainty_aware_planner.data.config import load_yaml
 from uncertainty_aware_planner.evaluation.error_metrics import (
-    calculate_imputation_percent_errors
+    calculate_imputation_percent_errors,
 )
 from uncertainty_aware_planner.utils.util_functions import set_seed
 
@@ -36,16 +36,26 @@ SEEDS = [86400, 12, 214, 8, 73, 4, 42, 2048, 1]
 # commit file
 def get_git_state(repo_dir: Path = REPO_DIR) -> str:
     try:
-        sha = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=repo_dir, stderr=subprocess.DEVNULL
-        ).decode().strip()
-        status = subprocess.check_output(
-            ["git", "status", "--porcelain", "--untracked-files=no"],
-            cwd=repo_dir, stderr=subprocess.DEVNULL,
-        ).decode().strip()
+        sha = (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=repo_dir, stderr=subprocess.DEVNULL
+            )
+            .decode()
+            .strip()
+        )
+        status = (
+            subprocess.check_output(
+                ["git", "status", "--porcelain", "--untracked-files=no"],
+                cwd=repo_dir,
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "unknown"
     return sha + ("-dirty" if status else "")
+
 
 SHA = get_git_state()
 
@@ -74,13 +84,14 @@ experiment_dict["split_config_file"] = SPLIT_CONFIG_FILE
 experiment_dict["device"] = DEVICE
 experiment_dict.update({f"hyperparameter_{k}": v for k, v in dlinear_config.items()})
 
+
 # helper function to construct a DLinear model according to the appropriate
 # configuration file
 def make_dlinear():
     return DLinear(
-        n_steps = dlinear_config["n_steps"],
-        n_features = dlinear_config["n_features"],
-        moving_avg_window_size = dlinear_config["moving_avg_window_size"],
+        n_steps=dlinear_config["n_steps"],
+        n_features=dlinear_config["n_features"],
+        moving_avg_window_size=dlinear_config["moving_avg_window_size"],
         individual=False,
         d_model=dlinear_config["d_model"],
         ORT_weight=dlinear_config["ORT_weight"],
@@ -94,13 +105,13 @@ def make_dlinear():
         num_workers=0,
         device=DEVICE,
         saving_path=None,
-        model_saving_strategy='best',
-        verbose=True
+        model_saving_strategy="best",
+        verbose=True,
     )
+
 
 for seed in SEEDS:
     for fold in range(1, 7):
-
         if (seed, fold) in completed:
             print(f"Skipping seed={seed}, fold={fold} (already done)")
             continue
@@ -119,8 +130,12 @@ for seed in SEEDS:
         run_results = []
 
         # evaluate on both train set and test set
-        for daily_pool, label, fit_set in [(True, False, train_set), (True, True, {"X": val_set["X"]}), (False, False, train_set), (False, True, {"X": val_set["X"]})]:
-
+        for daily_pool, label, fit_set in [
+            (True, False, train_set),
+            (True, True, {"X": val_set["X"]}),
+            (False, False, train_set),
+            (False, True, {"X": val_set["X"]}),
+        ]:
             # set the seed
             set_seed(seed)
 
@@ -136,10 +151,8 @@ for seed in SEEDS:
 
             # evaluate on the validation set
             result = calculate_imputation_percent_errors(
-                eval_pypots=val_set,
-                imputation=out["imputation"],
-                daily_pool=daily_pool
-                )
+                eval_pypots=val_set, imputation=out["imputation"], daily_pool=daily_pool
+            )
 
             # label whether or not the result is from leaked data or not
             result["leaked"] = label

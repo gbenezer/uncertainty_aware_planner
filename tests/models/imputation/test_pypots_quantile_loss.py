@@ -3,11 +3,16 @@
 Adjust the import below to match the module name of the file under test.
 Generated with Claude
 """
+
 import numpy as np
 import pytest
 import torch
 
-from uncertainty_aware_planner.models.imputation.pypots_quantile_loss import QuantileLoss, _check_inputs, calc_quantile_loss
+from uncertainty_aware_planner.models.imputation.pypots_quantile_loss import (
+    QuantileLoss,
+    _check_inputs,
+    calc_quantile_loss,
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -42,11 +47,15 @@ class TestCheckInputs:
         assert lib is torch
 
     def test_type_mismatch_raises(self):
-        with pytest.raises(AssertionError, match="types of `predictions` and `targets`"):
+        with pytest.raises(
+            AssertionError, match="types of `predictions` and `targets`"
+        ):
             _check_inputs(_np([1, 2]), _t([1, 2]))
 
     def test_shape_mismatch_raises(self):
-        with pytest.raises(AssertionError, match="shape of `predictions` and `targets`"):
+        with pytest.raises(
+            AssertionError, match="shape of `predictions` and `targets`"
+        ):
             _check_inputs(_np([1, 2, 3]), _np([1, 2]))
 
     def test_shape_mismatch_allowed_when_check_shape_false(self):
@@ -158,27 +167,35 @@ class TestCalcQuantileLossValues:
     def test_symmetry_between_q_and_one_minus_q(self):
         rng = np.random.default_rng(2)
         p, t = rng.normal(size=50), rng.normal(size=50)
-        assert calc_quantile_loss(p, t, 0.2) == pytest.approx(calc_quantile_loss(t, p, 0.8))
+        assert calc_quantile_loss(p, t, 0.2) == pytest.approx(
+            calc_quantile_loss(t, p, 0.8)
+        )
 
     def test_numpy_and_torch_agree(self):
         rng = np.random.default_rng(3)
         p, t = rng.normal(size=(3, 4, 2)), rng.normal(size=(3, 4, 2))
         m = (rng.random(size=(3, 4, 2)) > 0.4).astype(np.float64)
         np_out = calc_quantile_loss(p, t, 0.7, m)
-        torch_out = calc_quantile_loss(torch.from_numpy(p), torch.from_numpy(t), 0.7, torch.from_numpy(m))
+        torch_out = calc_quantile_loss(
+            torch.from_numpy(p), torch.from_numpy(t), 0.7, torch.from_numpy(m)
+        )
         assert float(torch_out) == pytest.approx(float(np_out))
 
     @pytest.mark.parametrize("make", [_np, _t])
     def test_all_ones_mask_equals_unmasked(self, make, simple_case):
         preds, targets = simple_case
         unmasked = calc_quantile_loss(make(preds), make(targets), 0.25)
-        masked = calc_quantile_loss(make(preds), make(targets), 0.25, make([1.0, 1.0, 1.0]))
+        masked = calc_quantile_loss(
+            make(preds), make(targets), 0.25, make([1.0, 1.0, 1.0])
+        )
         assert float(masked) == pytest.approx(float(unmasked))
 
     @pytest.mark.parametrize("make", [_np, _t])
     def test_all_zero_mask_returns_zero_not_nan(self, make, simple_case):
         preds, targets = simple_case
-        out = float(calc_quantile_loss(make(preds), make(targets), 0.9, make([0.0, 0.0, 0.0])))
+        out = float(
+            calc_quantile_loss(make(preds), make(targets), 0.9, make([0.0, 0.0, 0.0]))
+        )
         assert out == pytest.approx(0.0)
         assert not np.isnan(out)
 
@@ -187,7 +204,9 @@ class TestCalcQuantileLossValues:
         m = _np([1.0, 1.0, 0.0])
         t1 = _np([2.0, 2.0, 100.0])
         t2 = _np([2.0, 2.0, -100.0])
-        assert calc_quantile_loss(p, t1, 0.6, m) == pytest.approx(calc_quantile_loss(p, t2, 0.6, m))
+        assert calc_quantile_loss(p, t1, 0.6, m) == pytest.approx(
+            calc_quantile_loss(p, t2, 0.6, m)
+        )
 
     def test_multidimensional_inputs(self):
         p = np.zeros((2, 3, 4))
@@ -285,7 +304,9 @@ class TestQuantileLossModule:
         t = _t([1.0, 1.0])
         QuantileLoss(0.75)(p, t).backward()
         assert p.grad is not None
-        assert torch.allclose(p.grad, torch.tensor([-0.75, 0.25], dtype=torch.float64) / 2)
+        assert torch.allclose(
+            p.grad, torch.tensor([-0.75, 0.25], dtype=torch.float64) / 2
+        )
 
     def test_forward_rejects_numpy_inputs_with_mismatched_types(self):
         with pytest.raises(AssertionError):

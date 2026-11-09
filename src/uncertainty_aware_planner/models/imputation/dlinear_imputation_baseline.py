@@ -13,7 +13,9 @@ class DLinear_Baseline:
     def __init__(self, cfg: Dict, saving_path: Optional[Union[Path, str]] = None):
         model_name = cfg["name"]
         if model_name != "DLinear_Baseline":
-            raise ValueError(f"Wrong Configuration: expected DLinear_Baseline, got {model_name}")
+            raise ValueError(
+                f"Wrong Configuration: expected DLinear_Baseline, got {model_name}"
+            )
 
         self.saving_path = Path(saving_path) if saving_path is not None else None
 
@@ -36,7 +38,9 @@ class DLinear_Baseline:
             verbose=True,
         )
 
-    def fit(self, train_set: Union[Dict, str], val_set: Optional[Union[Dict, str]] = None):
+    def fit(
+        self, train_set: Union[Dict, str], val_set: Optional[Union[Dict, str]] = None
+    ):
         self.model.fit(train_set, val_set)
         return self
 

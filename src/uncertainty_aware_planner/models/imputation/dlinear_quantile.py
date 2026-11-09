@@ -8,14 +8,18 @@ import numpy as np
 from pypots.imputation.dlinear import DLinear
 from pypots.optim.adamw import AdamW
 
-from uncertainty_aware_planner.models.imputation.pypots_quantile_loss import QuantileLoss
+from uncertainty_aware_planner.models.imputation.pypots_quantile_loss import (
+    QuantileLoss,
+)
 
 
 class DLinear_Quantile:
     def __init__(self, cfg: Dict, saving_path: Optional[Union[Path, str]] = None):
         model_name = cfg["name"]
         if model_name != "DLinear_Quantile":
-            raise ValueError(f"Wrong Configuration: expected DLinear_Quantile, got {model_name}")
+            raise ValueError(
+                f"Wrong Configuration: expected DLinear_Quantile, got {model_name}"
+            )
 
         self.quantiles = tuple(sorted(cfg["quantiles"]))
         self.saving_path = Path(saving_path) if saving_path is not None else None
@@ -23,7 +27,9 @@ class DLinear_Quantile:
 
         for q in self.quantiles:
             model_path = (
-                str(self.saving_path / self._tag(q)) if self.saving_path is not None else None
+                str(self.saving_path / self._tag(q))
+                if self.saving_path is not None
+                else None
             )
             self.models[q] = DLinear(
                 n_steps=cfg["n_steps"],
@@ -38,7 +44,9 @@ class DLinear_Quantile:
                 patience=cfg["patience"],
                 training_loss=QuantileLoss(quantile=q),
                 validation_metric=QuantileLoss(quantile=q),
-                optimizer=AdamW(**cfg["optimizer_parameters"]),  # fresh instance per model
+                optimizer=AdamW(
+                    **cfg["optimizer_parameters"]
+                ),  # fresh instance per model
                 saving_path=model_path,
                 model_saving_strategy="best",
                 verbose=True,
@@ -49,7 +57,9 @@ class DLinear_Quantile:
         # consistent filenames: 0.1 -> q100, 0.5 -> q500, 0.9 -> q900
         return f"q{int(round(q * 1000)):03d}"
 
-    def fit(self, train_set: Union[Dict, str], val_set: Optional[Union[Dict, str]] = None):
+    def fit(
+        self, train_set: Union[Dict, str], val_set: Optional[Union[Dict, str]] = None
+    ):
         for m in self.models.values():
             m.fit(train_set, val_set)
         return self
