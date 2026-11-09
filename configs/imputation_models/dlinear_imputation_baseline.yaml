@@ -1,3 +1,4 @@
+name: "DLinear_Baseline"
 n_steps: 672
 n_features: 9
 moving_avg_window_size: 17
