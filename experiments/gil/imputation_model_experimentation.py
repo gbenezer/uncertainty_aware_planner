@@ -134,7 +134,7 @@ for seed in SEEDS:
 
             # evaluate on the validation set
             result = calculate_imputation_percent_errors(
-                eval_pypots=val_set, imputation=out, daily_pool=False
+                eval_pypots=val_set, imputation_point_estimate=out, daily_pool=False
             )
 
             # label whether or not the result is from leaked data or not
