@@ -10,4 +10,4 @@
 #SBATCH --error=experiments/gil/job_logs/dlinear_imputation_evaluation_1.%j.err
 
 source .venv/bin/activate
-python experiments/gil/imputation_model_experimentation.py
+python experiments/gil/dlinear_model_experimentation.py
