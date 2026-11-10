@@ -7,6 +7,7 @@ import torch
 from pathlib import Path
 import subprocess
 
+
 def set_seed(seed_value=1024):
     np.random.seed(seed_value)
     random.seed(seed_value)
@@ -15,6 +16,7 @@ def set_seed(seed_value=1024):
     torch.cuda.manual_seed_all(seed_value)
     torch.backends.cudnn.deterministic = True
     return
+
 
 def get_git_state(repo_dir: Path) -> str:
     try:

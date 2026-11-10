@@ -6,6 +6,7 @@ path handling, return values).
 
 Generated with Claude
 """
+
 import copy
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -14,7 +15,9 @@ import numpy as np
 import pytest
 
 import uncertainty_aware_planner.models.imputation.dlinear_imputation_baseline as mod
-from uncertainty_aware_planner.models.imputation.dlinear_imputation_baseline import DLinear_Imputation_Baseline
+from uncertainty_aware_planner.models.imputation.dlinear_imputation_baseline import (
+    DLinear_Imputation_Baseline,
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -71,7 +74,9 @@ def inner(baseline):
 class TestInitValidation:
     def test_wrong_name_raises_value_error(self, cfg, mock_dlinear, mock_adam):
         cfg["name"] = "SomethingElse"
-        with pytest.raises(ValueError, match="expected DLinear_Imputation_Baseline, got SomethingElse"):
+        with pytest.raises(
+            ValueError, match="expected DLinear_Imputation_Baseline, got SomethingElse"
+        ):
             DLinear_Imputation_Baseline(cfg)
 
     def test_wrong_name_does_not_build_model(self, cfg, mock_dlinear, mock_adam):
@@ -102,7 +107,9 @@ class TestInitValidation:
             "optimizer_parameters",
         ],
     )
-    def test_missing_required_key_raises_key_error(self, cfg, mock_dlinear, mock_adam, key):
+    def test_missing_required_key_raises_key_error(
+        self, cfg, mock_dlinear, mock_adam, key
+    ):
         del cfg[key]
         with pytest.raises(KeyError, match=key):
             DLinear_Imputation_Baseline(cfg)
@@ -145,12 +152,16 @@ class TestInitConstruction:
         assert kwargs["model_saving_strategy"] == "best"
         assert kwargs["verbose"] is True
 
-    def test_training_loss_and_validation_metric_left_at_defaults(self, baseline, mock_dlinear):
+    def test_training_loss_and_validation_metric_left_at_defaults(
+        self, baseline, mock_dlinear
+    ):
         kwargs = mock_dlinear.call_args.kwargs
         assert "training_loss" not in kwargs
         assert "validation_metric" not in kwargs
 
-    def test_optimizer_built_from_optimizer_parameters(self, cfg, baseline, mock_adam, mock_dlinear):
+    def test_optimizer_built_from_optimizer_parameters(
+        self, cfg, baseline, mock_adam, mock_dlinear
+    ):
         mock_adam.assert_called_once_with(**cfg["optimizer_parameters"])
         assert mock_dlinear.call_args.kwargs["optimizer"] is mock_adam.return_value
 
@@ -169,7 +180,9 @@ class TestSavingPath:
         assert b.saving_path is None
         assert mock_dlinear.call_args.kwargs["saving_path"] is None
 
-    def test_str_saving_path_converted_to_path(self, cfg, mock_dlinear, mock_adam, tmp_path):
+    def test_str_saving_path_converted_to_path(
+        self, cfg, mock_dlinear, mock_adam, tmp_path
+    ):
         b = DLinear_Imputation_Baseline(cfg, saving_path=str(tmp_path))
         assert isinstance(b.saving_path, Path)
         assert b.saving_path == tmp_path
@@ -178,13 +191,17 @@ class TestSavingPath:
         b = DLinear_Imputation_Baseline(cfg, saving_path=tmp_path)
         assert b.saving_path == tmp_path
 
-    def test_saving_path_passed_to_dlinear_as_str(self, cfg, mock_dlinear, mock_adam, tmp_path):
+    def test_saving_path_passed_to_dlinear_as_str(
+        self, cfg, mock_dlinear, mock_adam, tmp_path
+    ):
         DLinear_Imputation_Baseline(cfg, saving_path=tmp_path)
         passed = mock_dlinear.call_args.kwargs["saving_path"]
         assert isinstance(passed, str)
         assert passed == str(tmp_path)
 
-    def test_init_does_not_create_saving_path(self, cfg, mock_dlinear, mock_adam, tmp_path):
+    def test_init_does_not_create_saving_path(
+        self, cfg, mock_dlinear, mock_adam, tmp_path
+    ):
         target = tmp_path / "not_created_yet"
         DLinear_Imputation_Baseline(cfg, saving_path=target)
         assert not target.exists()
@@ -248,7 +265,9 @@ class TestImpute:
 class TestSave:
     def test_calls_model_save_with_expected_file(self, baseline, inner, tmp_path):
         baseline.save(tmp_path)
-        inner.save.assert_called_once_with(str(tmp_path / "dlinear_imputation_baseline.pypots"), overwrite=False)
+        inner.save.assert_called_once_with(
+            str(tmp_path / "dlinear_imputation_baseline.pypots"), overwrite=False
+        )
 
     def test_overwrite_flag_forwarded(self, baseline, inner, tmp_path):
         baseline.save(tmp_path, overwrite=True)
@@ -271,7 +290,9 @@ class TestSave:
 
     def test_accepts_str_directory(self, baseline, inner, tmp_path):
         baseline.save(str(tmp_path))
-        inner.save.assert_called_once_with(str(tmp_path / "dlinear_imputation_baseline.pypots"), overwrite=False)
+        inner.save.assert_called_once_with(
+            str(tmp_path / "dlinear_imputation_baseline.pypots"), overwrite=False
+        )
 
     def test_path_passed_to_model_is_str(self, baseline, inner, tmp_path):
         baseline.save(tmp_path)
@@ -293,11 +314,15 @@ def inner_calls(baseline):
 class TestLoad:
     def test_calls_model_load_with_expected_file(self, baseline, inner, tmp_path):
         baseline.load(tmp_path)
-        inner.load.assert_called_once_with(str(tmp_path / "dlinear_imputation_baseline.pypots"))
+        inner.load.assert_called_once_with(
+            str(tmp_path / "dlinear_imputation_baseline.pypots")
+        )
 
     def test_accepts_str_directory(self, baseline, inner, tmp_path):
         baseline.load(str(tmp_path))
-        inner.load.assert_called_once_with(str(tmp_path / "dlinear_imputation_baseline.pypots"))
+        inner.load.assert_called_once_with(
+            str(tmp_path / "dlinear_imputation_baseline.pypots")
+        )
 
     def test_does_not_create_directory(self, baseline, tmp_path):
         target = tmp_path / "missing"

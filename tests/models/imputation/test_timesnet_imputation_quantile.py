@@ -7,6 +7,7 @@ argument forwarding, quantile stacking/sorting, and save/load paths.
 
 Generated with Claude
 """
+
 import copy
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -15,7 +16,9 @@ import numpy as np
 import pytest
 
 import uncertainty_aware_planner.models.imputation.timesnet_imputation_quantile as mod
-from uncertainty_aware_planner.models.imputation.timesnet_imputation_quantile import TimesNet_Imputation_Quantile
+from uncertainty_aware_planner.models.imputation.timesnet_imputation_quantile import (
+    TimesNet_Imputation_Quantile,
+)
 
 N, T, F = 4, 24, 5  # samples, steps, features used for impute tests
 
@@ -47,7 +50,9 @@ def cfg():
 @pytest.fixture
 def mock_timesnet(monkeypatch):
     """TimesNet class mock that returns a *distinct* MagicMock per call."""
-    m = MagicMock(name="TimesNet", side_effect=lambda **kw: MagicMock(name="TimesNet_instance"))
+    m = MagicMock(
+        name="TimesNet", side_effect=lambda **kw: MagicMock(name="TimesNet_instance")
+    )
     monkeypatch.setattr(mod, "TimesNet", m)
     return m
 
@@ -125,19 +130,29 @@ class TestTag:
 
     def test_tag_is_zero_padded_to_three_digits(self):
         assert TimesNet_Imputation_Quantile._tag(0.01) == "q001"
-        assert all(len(TimesNet_Imputation_Quantile._tag(q)) == 4 for q in (0.01, 0.1, 0.5, 0.99))
+        assert all(
+            len(TimesNet_Imputation_Quantile._tag(q)) == 4
+            for q in (0.01, 0.1, 0.5, 0.99)
+        )
 
 
 # --------------------------------------------------------------------------- #
 # __init__: config validation
 # --------------------------------------------------------------------------- #
 class TestInitValidation:
-    def test_wrong_name_raises_value_error(self, cfg, mock_timesnet, mock_adamw, mock_qloss):
+    def test_wrong_name_raises_value_error(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss
+    ):
         cfg["name"] = "TimesNet_Baseline"
-        with pytest.raises(ValueError, match="expected TimesNet_Imputation_Quantile, got TimesNet_Baseline"):
+        with pytest.raises(
+            ValueError,
+            match="expected TimesNet_Imputation_Quantile, got TimesNet_Baseline",
+        ):
             TimesNet_Imputation_Quantile(cfg)
 
-    def test_wrong_name_builds_nothing(self, cfg, mock_timesnet, mock_adamw, mock_qloss):
+    def test_wrong_name_builds_nothing(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss
+    ):
         cfg["name"] = "nope"
         with pytest.raises(ValueError):
             TimesNet_Imputation_Quantile(cfg)
@@ -145,7 +160,9 @@ class TestInitValidation:
         mock_adamw.assert_not_called()
         mock_qloss.assert_not_called()
 
-    def test_missing_name_raises_key_error(self, cfg, mock_timesnet, mock_adamw, mock_qloss):
+    def test_missing_name_raises_key_error(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss
+    ):
         del cfg["name"]
         with pytest.raises(KeyError):
             TimesNet_Imputation_Quantile(cfg)
@@ -169,7 +186,9 @@ class TestInitValidation:
             "optimizer_parameters",
         ],
     )
-    def test_missing_required_key_raises_key_error(self, cfg, mock_timesnet, mock_adamw, mock_qloss, key):
+    def test_missing_required_key_raises_key_error(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss, key
+    ):
         del cfg[key]
         with pytest.raises(KeyError, match=key):
             TimesNet_Imputation_Quantile(cfg)
@@ -205,13 +224,17 @@ class TestQuantileModels:
         assert m.quantiles == (0.5,)
         assert mock_timesnet.call_count == 1
 
-    def test_empty_quantiles_builds_no_models(self, cfg, mock_timesnet, mock_adamw, mock_qloss):
+    def test_empty_quantiles_builds_no_models(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss
+    ):
         cfg["quantiles"] = []
         m = TimesNet_Imputation_Quantile(cfg)
         assert m.models == {}
         mock_timesnet.assert_not_called()
 
-    def test_accepts_tuple_of_quantiles(self, cfg, mock_timesnet, mock_adamw, mock_qloss):
+    def test_accepts_tuple_of_quantiles(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss
+    ):
         cfg["quantiles"] = (0.75, 0.25)
         assert TimesNet_Imputation_Quantile(cfg).quantiles == (0.25, 0.75)
 
@@ -261,7 +284,9 @@ class TestTimesNetKwargs:
         called_with = sorted(c.kwargs["quantile"] for c in mock_qloss.call_args_list)
         assert called_with == sorted(list(model.quantiles) * 2)
 
-    def test_training_and_validation_losses_are_separate_instances(self, model, mock_timesnet):
+    def test_training_and_validation_losses_are_separate_instances(
+        self, model, mock_timesnet
+    ):
         for call in mock_timesnet.call_args_list:
             assert call.kwargs["training_loss"] is not call.kwargs["validation_metric"]
 
@@ -287,7 +312,9 @@ class TestOptimizer:
         passed = [c.kwargs["optimizer"] for c in mock_timesnet.call_args_list]
         assert passed == mock_adamw.created  # same objects, same order
 
-    def test_empty_optimizer_parameters_allowed(self, cfg, mock_timesnet, mock_adamw, mock_qloss):
+    def test_empty_optimizer_parameters_allowed(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss
+    ):
         cfg["optimizer_parameters"] = {}
         TimesNet_Imputation_Quantile(cfg)
         for call in mock_adamw.call_args_list:
@@ -304,25 +331,33 @@ class TestSavingPath:
         for call in mock_timesnet.call_args_list:
             assert call.kwargs["saving_path"] is None
 
-    def test_str_saving_path_converted_to_path(self, cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path):
+    def test_str_saving_path_converted_to_path(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path
+    ):
         m = TimesNet_Imputation_Quantile(cfg, saving_path=str(tmp_path))
         assert isinstance(m.saving_path, Path)
         assert m.saving_path == tmp_path
 
-    def test_per_quantile_subdirectories(self, cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path):
+    def test_per_quantile_subdirectories(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path
+    ):
         m = TimesNet_Imputation_Quantile(cfg, saving_path=tmp_path)
         by_q = timesnet_kwargs_by_quantile(mock_timesnet, m.quantiles)
         assert by_q[0.1]["saving_path"] == str(tmp_path / "q010")
         assert by_q[0.5]["saving_path"] == str(tmp_path / "q050")
         assert by_q[0.9]["saving_path"] == str(tmp_path / "q090")
 
-    def test_saving_paths_are_strings_and_unique(self, cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path):
+    def test_saving_paths_are_strings_and_unique(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path
+    ):
         TimesNet_Imputation_Quantile(cfg, saving_path=tmp_path)
         paths = [c.kwargs["saving_path"] for c in mock_timesnet.call_args_list]
         assert all(isinstance(p, str) for p in paths)
         assert len(set(paths)) == len(paths)
 
-    def test_init_does_not_create_directories(self, cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path):
+    def test_init_does_not_create_directories(
+        self, cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path
+    ):
         target = tmp_path / "not_created"
         TimesNet_Imputation_Quantile(cfg, saving_path=target)
         assert not target.exists()
@@ -434,17 +469,38 @@ class TestImpute:
 
     def test_sort_defaults_to_true(self, model):
         # make the 0.1 model predict *higher* than the 0.9 model everywhere
-        _set_outputs(model, {0.1: np.full((N, T, F), 3.0), 0.5: np.full((N, T, F), 2.0), 0.9: np.full((N, T, F), 1.0)})
+        _set_outputs(
+            model,
+            {
+                0.1: np.full((N, T, F), 3.0),
+                0.5: np.full((N, T, F), 2.0),
+                0.9: np.full((N, T, F), 1.0),
+            },
+        )
         out = model.impute({"X": None})
         assert np.all(np.diff(out, axis=-1) >= 0)
 
     def test_sort_true_fixes_crossing_quantiles(self, model):
-        _set_outputs(model, {0.1: np.full((N, T, F), 3.0), 0.5: np.full((N, T, F), 2.0), 0.9: np.full((N, T, F), 1.0)})
+        _set_outputs(
+            model,
+            {
+                0.1: np.full((N, T, F), 3.0),
+                0.5: np.full((N, T, F), 2.0),
+                0.9: np.full((N, T, F), 1.0),
+            },
+        )
         out = model.impute({"X": None}, sort=True)
         np.testing.assert_array_equal(out[0, 0, 0], [1.0, 2.0, 3.0])
 
     def test_sort_false_preserves_crossing(self, model):
-        _set_outputs(model, {0.1: np.full((N, T, F), 3.0), 0.5: np.full((N, T, F), 2.0), 0.9: np.full((N, T, F), 1.0)})
+        _set_outputs(
+            model,
+            {
+                0.1: np.full((N, T, F), 3.0),
+                0.5: np.full((N, T, F), 2.0),
+                0.9: np.full((N, T, F), 1.0),
+            },
+        )
         out = model.impute({"X": None}, sort=False)
         np.testing.assert_array_equal(out[0, 0, 0], [3.0, 2.0, 1.0])
 
@@ -491,9 +547,15 @@ class TestImpute:
 class TestSave:
     def test_each_model_saved_to_tagged_file(self, model, tmp_path):
         model.save(tmp_path)
-        model.models[0.1].save.assert_called_once_with(str(tmp_path / "q010.pypots"), overwrite=False)
-        model.models[0.5].save.assert_called_once_with(str(tmp_path / "q050.pypots"), overwrite=False)
-        model.models[0.9].save.assert_called_once_with(str(tmp_path / "q090.pypots"), overwrite=False)
+        model.models[0.1].save.assert_called_once_with(
+            str(tmp_path / "q010.pypots"), overwrite=False
+        )
+        model.models[0.5].save.assert_called_once_with(
+            str(tmp_path / "q050.pypots"), overwrite=False
+        )
+        model.models[0.9].save.assert_called_once_with(
+            str(tmp_path / "q090.pypots"), overwrite=False
+        )
 
     def test_overwrite_forwarded_to_all(self, model, tmp_path):
         model.save(tmp_path, overwrite=True)
@@ -518,7 +580,9 @@ class TestSave:
 
     def test_accepts_str_directory(self, model, tmp_path):
         model.save(str(tmp_path))
-        model.models[0.5].save.assert_called_once_with(str(tmp_path / "q050.pypots"), overwrite=False)
+        model.models[0.5].save.assert_called_once_with(
+            str(tmp_path / "q050.pypots"), overwrite=False
+        )
 
     def test_paths_passed_to_models_are_strings_and_unique(self, model, tmp_path):
         model.save(tmp_path)
@@ -570,7 +634,9 @@ def test_save_and_load_use_same_filenames_per_quantile(model, tmp_path):
         assert m.save.call_args.args[0] == m.load.call_args.args[0]
 
 
-def test_saving_path_subdir_names_match_checkpoint_stems(cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path):
+def test_saving_path_subdir_names_match_checkpoint_stems(
+    cfg, mock_timesnet, mock_adamw, mock_qloss, tmp_path
+):
     """Per-model `saving_path` dirs and explicit save files share the same tag."""
     m = TimesNet_Imputation_Quantile(cfg, saving_path=tmp_path)
     m.save(tmp_path)

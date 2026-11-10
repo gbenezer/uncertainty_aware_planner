@@ -51,7 +51,9 @@ class DLinear_Imputation_Baseline:
     def save(self, directory: Union[Path, str], overwrite: bool = False):
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
-        self.model.save(str(directory / "dlinear_imputation_baseline.pypots"), overwrite=overwrite)
+        self.model.save(
+            str(directory / "dlinear_imputation_baseline.pypots"), overwrite=overwrite
+        )
 
     def load(self, directory: Union[Path, str]):
         directory = Path(directory)
