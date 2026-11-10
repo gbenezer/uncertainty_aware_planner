@@ -28,7 +28,7 @@ def calculate_imputation_percent_errors(
     # censored, and imputed NumPy arrays with NaN
     X = open_hours(eval_pypots["X"][..., 0])
     X_ori = open_hours(eval_pypots["X_ori"][..., 0])
-    imputed = open_hours(imputation_point_estimate)
+    imputed = open_hours(imputation_point_estimate[..., 0])
 
     # separately assess masked-ness and true stockout
     masked = np.isnan(X) & ~np.isnan(X_ori)
