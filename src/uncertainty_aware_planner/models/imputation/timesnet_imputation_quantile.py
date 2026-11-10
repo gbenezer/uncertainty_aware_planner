@@ -73,6 +73,18 @@ class TimesNet_Imputation_Quantile:
             preds = np.sort(preds, axis=-1)
         return preds
 
+    def impute_point(self, test_set: Union[Dict, str]) -> np.ndarray:
+        # median (q=0.5) is the point estimate
+        # returns [n_samples, n_steps, n_features]
+        for q, m in self.models.items():
+            if np.isclose(q, 0.5):
+                # only run the median model, skipping the other quantile models
+                return m.impute(test_set)
+
+        # no 0.5 quantile was trained: fall back to the median of the quantile predictions
+        preds = self.impute(test_set)
+        return np.median(preds, axis=-1)
+
     def save(self, directory: Union[Path, str], overwrite: bool = False):
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)

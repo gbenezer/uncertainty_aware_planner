@@ -48,6 +48,10 @@ class DLinear_Imputation_Baseline:
         # returns [n_samples, n_steps, n_features]
         return self.model.impute(test_set)
 
+    def impute_point(self, test_set: Union[Dict, str]) -> np.ndarray:
+        # alias for impute
+        return self.impute(test_set)
+
     def save(self, directory: Union[Path, str], overwrite: bool = False):
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
