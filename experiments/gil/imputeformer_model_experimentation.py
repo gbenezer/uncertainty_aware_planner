@@ -55,7 +55,9 @@ else:
 
 # loading config files for models
 imputeformer_quantile_config = load_yaml(IMPUTEFORMER_QUANTILE_CONFIG_FILE)
-imputeformer_quantile_median_config = load_yaml(IMPUTEFORMER_QUANTILE_MEDIAN_CONFIG_FILE)
+imputeformer_quantile_median_config = load_yaml(
+    IMPUTEFORMER_QUANTILE_MEDIAN_CONFIG_FILE
+)
 
 # load necessary data pipeline elements
 cfg = load_config()
@@ -91,7 +93,7 @@ for seed in SEEDS:
         # evaluate on all models
         for imputeformer_model_config in [
             imputeformer_quantile_config,
-            imputeformer_quantile_median_config
+            imputeformer_quantile_median_config,
         ]:
             # set the seed
             set_seed(seed)
@@ -99,7 +101,6 @@ for seed in SEEDS:
             # construct the model
             m = ImputeFormer_Imputation_Quantile(imputeformer_model_config)
             num_quantiles = len(imputeformer_model_config["quantiles"])
-
 
             # fit on the training dataset
             m.fit(train_set)

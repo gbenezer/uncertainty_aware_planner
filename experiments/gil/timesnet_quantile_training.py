@@ -50,10 +50,9 @@ cube = load_cube(cfg)
 masks = pd.read_parquet("data/processed/eval_masks.parquet")
 
 for seed in SEEDS:
-
     # retrieve the correct imputation train and validation data
     train_set, _ = build_pypots_set(cube, cfg, "train")
-        
+
     # set the seed
     set_seed(seed)
 

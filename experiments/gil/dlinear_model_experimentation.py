@@ -39,7 +39,9 @@ SPLIT_CONFIG_FILE = Path("configs/splits.yaml")
 
 # output dirs
 EXPERIMENT_DATA_DIRECTORY = Path("experiments/gil/data")
-RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "dlinear_comparison_experiment_2_4x_epochs.csv"
+RESULTS_FILE = (
+    EXPERIMENT_DATA_DIRECTORY / "dlinear_comparison_experiment_2_4x_epochs.csv"
+)
 REPO_DIR = Path(__file__).resolve().parent
 
 # other variables
@@ -97,7 +99,7 @@ for seed in SEEDS:
         for dlinear_model_config in [
             dlinear_baseline_config,
             dlinear_quantile_config,
-            dlinear_quantile_median_config
+            dlinear_quantile_median_config,
         ]:
             # set the seed
             set_seed(seed)
@@ -111,7 +113,6 @@ for seed in SEEDS:
                 m = DLinear_Imputation_Quantile(dlinear_model_config)
                 model_type = "quantile"
                 num_quantiles = len(dlinear_model_config["quantiles"])
-
 
             # fit on the training dataset
             m.fit(train_set)

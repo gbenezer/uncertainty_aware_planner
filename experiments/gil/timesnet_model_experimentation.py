@@ -91,7 +91,7 @@ for seed in SEEDS:
         # evaluate on all models
         for timesnet_model_config in [
             timesnet_quantile_config,
-            timesnet_quantile_median_config
+            timesnet_quantile_median_config,
         ]:
             # set the seed
             set_seed(seed)
@@ -99,7 +99,6 @@ for seed in SEEDS:
             # construct the model
             m = TimesNet_Imputation_Quantile(timesnet_model_config)
             num_quantiles = len(timesnet_model_config["quantiles"])
-
 
             # fit on the training dataset
             m.fit(train_set)
