@@ -51,7 +51,7 @@ REPO_DIR = Path(__file__).resolve().parent
 
 # other variables
 DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-SEEDS = [86400, 12, 214, 8, 73, 4, 42, 2048, 1]
+SEEDS = [86400, 4, 42]
 
 # Get a working imputation baseline experiment log commit file hash
 SHA = get_git_state(REPO_DIR)
@@ -82,10 +82,6 @@ experiment_dict["commit"] = SHA
 experiment_dict["public_data_config_file"] = PUBLIC_DATA_CONFIG_FILE
 experiment_dict["split_config_file"] = SPLIT_CONFIG_FILE
 experiment_dict["device"] = DEVICE
-
-# model instantiation
-# timesnet_quantile = TimesNet_Imputation_Quantile(timesnet_quantile_config)
-# timesnet_quantile_median = TimesNet_Imputation_Quantile(timesnet_quantile_median_config)
 
 for seed in SEEDS:
     for fold in range(1, 7):

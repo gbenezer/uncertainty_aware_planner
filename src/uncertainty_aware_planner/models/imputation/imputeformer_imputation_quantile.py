@@ -55,6 +55,7 @@ class ImputeFormer_Imputation_Quantile:
                 model_saving_strategy='best', 
                 verbose=True
             )
+            self.models[q] = model
 
     @staticmethod
     def _tag(q: float) -> str:

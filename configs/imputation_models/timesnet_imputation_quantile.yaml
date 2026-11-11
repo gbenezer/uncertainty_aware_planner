@@ -12,6 +12,4 @@ batch_size: 128
 epochs: 5
 patience: 5
 optimizer_parameters:
-  lr: 0.001
-  weight_decay: 0.00001
 quantiles: [0.025, 0.975]

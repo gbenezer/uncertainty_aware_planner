@@ -9,7 +9,5 @@ MIT_weight: 1
 batch_size: 128
 epochs: 5
 optimizer_parameters:
-  lr: 0.001
-  weight_decay: 0.00001
-patience: 5
+patience: 20
 quantiles: [0.025, 0.975]
