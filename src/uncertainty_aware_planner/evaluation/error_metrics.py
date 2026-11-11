@@ -10,7 +10,7 @@ from uncertainty_aware_planner.utils.constants import (
 
 def calculate_imputation_percent_errors(
     eval_pypots,
-    imputation,
+    imputation_point_estimate,
     daily_pool: bool = True,
 ):
 
@@ -28,7 +28,7 @@ def calculate_imputation_percent_errors(
     # censored, and imputed NumPy arrays with NaN
     X = open_hours(eval_pypots["X"][..., 0])
     X_ori = open_hours(eval_pypots["X_ori"][..., 0])
-    imputed = open_hours(imputation[..., 0])
+    imputed = open_hours(imputation_point_estimate[..., 0])
 
     # separately assess masked-ness and true stockout
     masked = np.isnan(X) & ~np.isnan(X_ori)
