@@ -39,7 +39,7 @@ SPLIT_CONFIG_FILE = Path("configs/splits.yaml")
 
 # output dirs
 EXPERIMENT_DATA_DIRECTORY = Path("experiments/gil/data")
-RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "dlinear_comparison_experiment_1.csv"
+RESULTS_FILE = EXPERIMENT_DATA_DIRECTORY / "dlinear_comparison_experiment_2_4x_epochs.csv"
 REPO_DIR = Path(__file__).resolve().parent
 
 # other variables
@@ -73,22 +73,6 @@ experiment_dict["commit"] = SHA
 experiment_dict["public_data_config_file"] = PUBLIC_DATA_CONFIG_FILE
 experiment_dict["split_config_file"] = SPLIT_CONFIG_FILE
 experiment_dict["device"] = DEVICE
-
-# print("loading data")
-# # retrieve the correct imputation train and validation data
-# train_set, _ = build_pypots_set(cube, cfg, "train", fold=1)
-# val_set, val_index = build_pypots_set(cube, cfg, "val", fold=1, masks=masks)
-# print("loading done")
-
-# # initialize the models
-# dlinear_quantile = DLinear_Imputation_Quantile(dlinear_quantile_config)
-# dlinear_quantile_median = DLinear_Imputation_Quantile(dlinear_quantile_median_config)
-
-# # test the output shapes
-# print(dlinear_quantile.impute(train_set).shape)
-# print(dlinear_quantile_median.impute(train_set).shape)
-# print(dlinear_quantile.impute_point(train_set).shape)
-# print(dlinear_quantile_median.impute_point(train_set).shape)
 
 for seed in SEEDS:
     for fold in range(1, 7):
