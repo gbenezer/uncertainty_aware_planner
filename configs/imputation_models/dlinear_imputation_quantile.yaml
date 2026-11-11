@@ -7,7 +7,7 @@ d_model: 64
 ORT_weight: 1
 MIT_weight: 1
 batch_size: 128
-epochs: 5
+epochs: 20
 optimizer_parameters:
-patience: 20
+patience: 5
 quantiles: [0.025, 0.975]
