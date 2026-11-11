@@ -83,10 +83,6 @@ experiment_dict["public_data_config_file"] = PUBLIC_DATA_CONFIG_FILE
 experiment_dict["split_config_file"] = SPLIT_CONFIG_FILE
 experiment_dict["device"] = DEVICE
 
-# model instantiation
-# timesnet_quantile = TimesNet_Imputation_Quantile(timesnet_quantile_config)
-# timesnet_quantile_median = TimesNet_Imputation_Quantile(timesnet_quantile_median_config)
-
 for seed in SEEDS:
     for fold in range(1, 7):
         if (seed, fold) in completed:
