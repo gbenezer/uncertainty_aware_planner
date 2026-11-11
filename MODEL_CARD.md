@@ -33,10 +33,15 @@
 ## 4.4 Metrics
 
 - Weighted Absolute Percent Error (WAPE)
-- Weighted Percent Error
+  - $\frac{\sum_{i=1}^{N} |A_i - F_i|}{\sum_{i=1}^{N} A_i}$
+- Weighted Percent Error (WPE)
+  - $\frac{\sum_{i=1}^{N} A_i - F_i}{\sum_{i=1}^{N} A_i}$
 - Mean Absolute Scaled Error (MASE)
+  - $\frac{\sum_{i=1}^{N} |A_i - F_i|}{\sum_{i=2}^{N} |A_i - A_{i-1}|}$
 - Prediction Interval Coverage Percent (PICP)
+  - $\frac{1}{N} \sum_{i=1}^{N} \mathbb{1}[\hat{l}_i \leq y_i \leq \hat{u}_i]$
 - Mean Prediction Interval Width (MPIW)
+  - $\frac{1}{N} \sum_{i=1}^{N} \hat{u}_i - \hat{l}_i$
 
 ## 4.5 Evaluation and Training Data
 
