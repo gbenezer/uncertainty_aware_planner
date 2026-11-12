@@ -113,11 +113,11 @@ elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
 
 print("dlinear: ")
-for key, value in dlinear_result.item():
+for key, value in dlinear_result.items():
     print(key)
     print(value)
 
 print("timesnet: ")
-for key, value in timesnet_result.item():
+for key, value in timesnet_result.items():
     print(key)
     print(value)
