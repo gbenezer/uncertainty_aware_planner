@@ -57,6 +57,9 @@ def calculate_imputation_percent_errors(
         # get the total sales over all the relevant days
         total_actual = truth.sum(axis=2)[day_valid].sum()
 
+        # sample size is the number of valid days
+        n = int(day_valid.sum())
+
     else:
         # same population of days as the pooled metric
         hours = np.broadcast_to(day_valid[..., None], hourly_diff.shape)
@@ -70,7 +73,14 @@ def calculate_imputation_percent_errors(
         # sum all sales over relevant hours
         total_actual = truth[hours].sum()
 
-    if total_actual == 0:
-        return {"wape": np.nan, "wpe": np.nan}
+        # sample size is the number of valid hours
+        n = int(hours.sum())
 
-    return {"wape": total_abs_diff / total_actual, "wpe": total_diff / total_actual}
+    if total_actual == 0:
+        return {"wape": np.nan, "wpe": np.nan, "n": n}
+
+    return {
+        "wape": float(total_abs_diff / total_actual),
+        "wpe": float(total_diff / total_actual),
+        "n": n,
+    }
