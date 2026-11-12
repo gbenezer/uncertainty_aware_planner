@@ -1,5 +1,13 @@
+from typing import TypedDict
+
 import numpy as np
 import pandas as pd
+
+
+class MetricResult(TypedDict):
+    value: float
+    n: int  # number of rows the metric was computed over
+
 
 def _require_columns(df: pd.DataFrame, required: list[str]) -> None:
     """helper function to check if the input DataFrame has the required
@@ -11,10 +19,11 @@ def _require_columns(df: pd.DataFrame, required: list[str]) -> None:
             f"Available columns: {list(df.columns)}"
         )
 
+
 def prediction_interval_coverage_fraction(
     actual_and_interval_df: pd.DataFrame,
     conformal_intervals: bool = False,
-) -> float:
+) -> MetricResult:
     # assumes CONTRACTS.md imputed_hourly columns exist
     lo, hi = ("q025_cal", "q975_cal") if conformal_intervals else ("q025", "q975")
 
@@ -25,17 +34,17 @@ def prediction_interval_coverage_fraction(
     df = df[~np.isclose(df[lo], df[hi])]
 
     if df.empty:
-        return float("nan")  # nothing to evaluate
+        return {"value": float("nan"), "n": 0}  # nothing to evaluate
 
     covered = df["actual_demand"].between(df[lo], df[hi])  # inclusive on both ends
-    return float(covered.mean())
+    return {"value": float(covered.mean()), "n": len(df)}
 
 
 def mean_prediction_interval_width(
     interval_df: pd.DataFrame,
     include_stockout: bool = False,
     conformal_intervals: bool = False,
-) -> float:
+) -> MetricResult:
     # assumes CONTRACTS.md imputed_hourly columns exist
     lo, hi = ("q025_cal", "q975_cal") if conformal_intervals else ("q025", "q975")
 
@@ -52,6 +61,6 @@ def mean_prediction_interval_width(
     df = df[~np.isclose(df[lo], df[hi])]
 
     if df.empty:
-        return float("nan")  # nothing to evaluate
+        return {"value": float("nan"), "n": 0}  # nothing to evaluate
 
-    return float((df[hi] - df[lo]).mean())
+    return {"value": float((df[hi] - df[lo]).mean()), "n": len(df)}
