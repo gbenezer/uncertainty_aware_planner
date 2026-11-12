@@ -49,7 +49,9 @@ class DLinear_Imputation_Quantile:
         if not quantiles:
             raise ValueError("cfg['quantiles'] must contain at least one quantile")
         if any(not (0.0 < q < 1.0) for q in quantiles):
-            raise ValueError(f"Quantiles must be strictly between 0 and 1, got {quantiles}")
+            raise ValueError(
+                f"Quantiles must be strictly between 0 and 1, got {quantiles}"
+            )
         tags = [self._tag(q) for q in quantiles]
         if len(set(tags)) != len(tags):
             raise ValueError(
