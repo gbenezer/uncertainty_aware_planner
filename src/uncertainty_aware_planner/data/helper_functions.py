@@ -9,7 +9,9 @@ from datasets import load_dataset, concatenate_datasets
 
 def _hidden_hours(dataset, index):
     """Positions and ground-truth columns for every hidden hour a sample owns."""
-    # get the sales that are neither masked nor censored
+    
+    # model input: NaN wherever an hour is hidden, either by a real stockout
+    # (censored) or by the eval masks (masked)
     x = dataset["X"][..., 0]
 
     # get the sales that are censored and not masked, if given,
@@ -26,8 +28,8 @@ def _hidden_hours(dataset, index):
     # are censored or masked
     sample, step = np.nonzero(np.isnan(x))
 
-    # construct the timestamps by taking the initial datetime in hours for the
-    # window and adding the number of hours using the step index value as
+    # window start (in hours) plus the step offset gives each hour's 
+    # absolute timestamp
     stamp = hours("start_date")[sample] + step.astype("timedelta64[h]")
     
     # not sure, something about removing possible duplicates
@@ -43,6 +45,14 @@ def _hidden_hours(dataset, index):
         "is_stockout": np.isnan(actual),   # true censoring: real stockout hour
         "is_masked": ~np.isnan(actual),    # artificial censoring: hidden by eval masks
     })
+    # add date metadata to all tables deriving from this function
+    dt = base["datetime"].dt
+    base = base.assign(
+        date=dt.date,
+        hour=dt.time,
+        day_of_week=dt.day_of_week,
+        weekday=dt.day_of_week < 5,  # Saturday is 5, Sunday is 6
+    )
     return base, sample, step
 
 
@@ -71,26 +81,11 @@ def to_imputed_hourly_interval_median(dataset, index, imputation, clip_demand: b
     # and the indices of valid hours
     base, sample, step = _hidden_hours(dataset, index)
 
-    # create an anonymous function to get the other quantiles, 
-    # without clipping, given the quantiles should be allowed to go negative
-    q = lambda k: _estimate(imputation[..., 0, k], sample, step, clip_demand = False)
-    
-    # get the actual median, following the request for clipping
-    median = _estimate(imputation[..., 0, 1], sample, step, clip_demand)
+    # create an anonymous function to get the other quantiles
+    q = lambda k: _estimate(imputation[..., 0, k], sample, step, clip_demand)
 
-    # assign the proper values to the proper column names
-    out = base.assign(q025=q(0), estimated_demand=median, q975=q(2))
-
-    # extract the datetime as a Series independently
-    dt = out["datetime"].dt
-
-    # add the metadata and return
-    return out.assign(
-        date=dt.date,
-        hour=dt.time,
-        day_of_week=dt.day_of_week,
-        weekday=dt.day_of_week < 5,  # Saturday is 5, Sunday is 6
-    )
+    # assign the proper values to the proper column names and return
+    return base.assign(q025=q(0), estimated_demand=q(1), q975=q(2))
 
 def get_series_hourly(cache_dir: Optional[Union[str, Path]] = "data/hf_cache") -> pd.DataFrame:
     """Circumvents the majority of the data pipeline machinery to get the required `series_hourly`
