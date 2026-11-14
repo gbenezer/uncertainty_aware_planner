@@ -9,15 +9,41 @@ from uncertainty_aware_planner.utils.constants import (
     OPEN_HOURS,
 )
 from uncertainty_aware_planner.data.helper_functions import get_series_hourly
+from uncertainty_aware_planner.evaluation.uncertainty_metrics import _require_columns
 
 # function constants
-SERIES_KEYS = ("store_id", "product_id")
+SERIES_KEYS = ["store_id", "product_id"]
+DAY_KEYS = ["store_id", "product_id", "date"]
+
+# helper function to filter hours from the input dataframe 
+# that are not from valid imputation days
+def _valid_day_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Rows from days that have at least one masked hour and no true stockout."""
+    # if the input dataframe has appropriate columns, then use them
+    # otherwise fall back to assumptions
+    masked = df["is_masked"] if "is_masked" in df.columns else df["actual_demand"].notna()
+
+    # assumption is the df includes only stockout and masked hours, and those statuses
+    # are mutually exclusive
+    stockout = df["is_stockout"] if "is_stockout" in df.columns else ~masked
+    
+    # create a summary df that counts stockout hours and masked hours on a daily basis
+    counts = (
+        pd.DataFrame({**{k: df[k] for k in DAY_KEYS}, "masked": masked, "stockout": stockout})
+        .groupby(DAY_KEYS)[["masked", "stockout"]]
+        .sum()
+    )
+    # get the day indices for valid days
+    valid_days = counts.index[(counts["masked"] > 0) & (counts["stockout"] == 0)]
+
+    # filter based on the valid multi-index data (store-product-days)
+    keys = pd.MultiIndex.from_frame(df[DAY_KEYS])
+    return df[keys.isin(valid_days)]
 
 
 def calculate_imputation_percent_errors(
     eval_pypots,
     imputation_point_estimate,
-    daily_pool: bool = True,
 ):
 
     # initialize the proper shape for resizing
@@ -48,39 +74,20 @@ def calculate_imputation_percent_errors(
     truth = np.nan_to_num(X_ori)
     hourly_diff = imputed - truth
 
-    # if the values are to be pooled by day then calculated
-    if daily_pool:
-        # sum hour values across the days for residuals
-        daily_diff = hourly_diff.sum(axis=2)
+    # select the appropriate days
+    hours = np.broadcast_to(day_valid[..., None], hourly_diff.shape)
 
-        # only take the days that are valid (has masking but no stockout)
-        # when getting the signed difference
-        total_diff = daily_diff[day_valid].sum()
+    # sum across all the relevant hours
+    total_diff = hourly_diff[hours].sum()
 
-        # get the sum of absolute values of daily differences
-        total_abs_diff = np.abs(daily_diff)[day_valid].sum()
+    # sum absolute values across all relevant hours
+    total_abs_diff = np.abs(hourly_diff)[hours].sum()
 
-        # get the total sales over all the relevant days
-        total_actual = truth.sum(axis=2)[day_valid].sum()
+    # sum all sales over relevant hours
+    total_actual = truth[hours].sum()
 
-        # sample size is the number of valid days
-        n = int(day_valid.sum())
-
-    else:
-        # same population of days as the pooled metric
-        hours = np.broadcast_to(day_valid[..., None], hourly_diff.shape)
-
-        # sum across all the relevant hours
-        total_diff = hourly_diff[hours].sum()
-
-        # sum absolute values across all relevant hours
-        total_abs_diff = np.abs(hourly_diff)[hours].sum()
-
-        # sum all sales over relevant hours
-        total_actual = truth[hours].sum()
-
-        # sample size is the number of valid hours
-        n = int(hours.sum())
+    # sample size is the number of valid hours
+    n = int(hours.sum())
 
     if total_actual == 0:
         return {"wape": np.nan, "wpe": np.nan, "n": n}
@@ -88,6 +95,35 @@ def calculate_imputation_percent_errors(
     return {
         "wape": float(total_abs_diff / total_actual),
         "wpe": float(total_diff / total_actual),
+        "n": n,
+    }
+
+
+def calculate_imputation_percent_errors(
+    imputed_hourly: pd.DataFrame,
+    estimate_col: str = "estimated_demand",
+) -> dict:
+    """Hourly WAPE / WPE of imputed demand on masked in-stock hours.
+
+    imputed_hourly: the `imputed_hourly` table for a single run
+        (one model / seed / fold / split).
+    estimate_col: "estimated_demand" or a calibrated point estimate.
+    """
+    # keep only open hours
+    in_open_hours = pd.to_datetime(imputed_hourly["datetime"]).dt.hour.isin(OPEN_HOURS)
+    df = _valid_day_rows(imputed_hourly[in_open_hours])
+
+    # on valid days every row is a masked hour with ground truth
+    diff = df[estimate_col] - df["actual_demand"]
+    total_actual = df["actual_demand"].sum()
+    n = len(df)
+
+    if total_actual == 0:
+        return {"wape": np.nan, "wpe": np.nan, "n": n}
+
+    return {
+        "wape": float(diff.abs().sum() / total_actual),
+        "wpe": float(diff.sum() / total_actual),
         "n": n,
     }
 
