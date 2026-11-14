@@ -7,39 +7,90 @@ import numpy as np
 import pandas as pd
 from datasets import load_dataset, concatenate_datasets
 
+def _hidden_hours(dataset, index):
+    """Positions and ground-truth columns for every hidden hour a sample owns."""
+    # get the sales that are neither masked nor censored
+    x = dataset["X"][..., 0]
+
+    # get the sales that are censored and not masked, if given,
+    # otherwise default to the base dataset
+    truth = dataset.get("X_ori", dataset["X"])[..., 0]
+
+    # define an anonymous function to move from an input column name
+    # to the column in the index dataframe, to a numpy element, and
+    # finally convert it to a datetime in terms of hours
+    hours = lambda col: pd.to_datetime(index[col]).to_numpy().astype("datetime64[h]")
+
+    # in the numpy array, the store-product series is the row
+    # and the hour is the column, so this gets the entries that
+    # are censored or masked
+    sample, step = np.nonzero(np.isnan(x))
+
+    # construct the timestamps by taking the initial datetime in hours for the
+    # window and adding the number of hours using the step index value as
+    stamp = hours("start_date")[sample] + step.astype("timedelta64[h]")
+    
+    # not sure, something about removing possible duplicates
+    own = stamp >= hours("keep_start")[sample]
+    sample, step, stamp = sample[own], step[own], stamp[own]
+
+    actual = truth[sample, step]  # NaN at real stockouts, true sales at masked hours
+    base = pd.DataFrame({
+        "store_id": index["store_id"].to_numpy()[sample],
+        "product_id": index["product_id"].to_numpy()[sample],
+        "datetime": stamp.astype("datetime64[s]"),
+        "actual_demand": actual,
+        "is_stockout": np.isnan(actual),   # true censoring: real stockout hour
+        "is_masked": ~np.isnan(actual),    # artificial censoring: hidden by eval masks
+    })
+    return base, sample, step
+
+
+def _estimate(imputation, sample, step, clip_demand):
+    # extract the imputation data 
+    # at the censored and masked times across relevant series
+    est = imputation[sample, step]
+
+    # if requested, clip the values to zero 
+    # given negative demand is meaningless
+    return np.clip(est, 0, None) if clip_demand else est
+
 
 def to_imputed_hourly(dataset, index, imputation, clip_demand: bool = True):
-    """imputed_hourly rows (the columns `daily` reads) for every hidden hour a sample owns."""
-    x = dataset["X"][..., 0]
-    truth = dataset.get("X_ori", dataset["X"])[..., 0]
-    sample, step = np.nonzero(np.isnan(x))
-    start = pd.to_datetime(index["start_date"]).to_numpy().astype("datetime64[h]")
-    keep = pd.to_datetime(index["keep_start"]).to_numpy().astype("datetime64[h]")
-    stamp = start[sample] + step.astype("timedelta64[h]")
-    own = stamp >= keep[sample]
-    sample, step, stamp = sample[own], step[own], stamp[own]
-    estimated_demand = np.clip(imputation[sample, step], 0, None) if clip_demand else imputation[sample, step]
-    output_df = pd.DataFrame(
-        {
-            "store_id": index["store_id"].to_numpy()[sample],
-            "product_id": index["product_id"].to_numpy()[sample],
-            "datetime": stamp.astype("datetime64[s]"),
-            "estimated_demand": estimated_demand,
-            "actual_demand": truth[
-                sample, step
-            ],  # NaN at real stockouts, true sales at masked hours
-            # true censoring: a real stockout hour, no ground truth
-            "is_stockout": np.isnan(truth[sample, step]),
-            # artificial censoring: an in-stock hour hidden by the eval masks
-            "is_masked": ~np.isnan(truth[sample, step]),
-        }
+    # get the base dataframe, the indices of valid series,
+    # and the indices of valid hours
+    base, sample, step = _hidden_hours(dataset, index)
+
+    # add the estimated demand to the base dataframe
+    return base.assign(estimated_demand=_estimate(imputation, sample, step, clip_demand))
+
+
+def to_imputed_hourly_interval_median(dataset, index, imputation, clip_demand: bool = True):
+    
+    # get the base dataframe, the indices of valid series,
+    # and the indices of valid hours
+    base, sample, step = _hidden_hours(dataset, index)
+
+    # create an anonymous function to get the other quantiles, 
+    # without clipping, given the quantiles should be allowed to go negative
+    q = lambda k: _estimate(imputation[..., 0, k], sample, step, clip_demand = False)
+    
+    # get the actual median, following the request for clipping
+    median = _estimate(imputation[..., 0, 1], sample, step, clip_demand)
+
+    # assign the proper values to the proper column names
+    out = base.assign(q025=q(0), estimated_demand=median, q975=q(2))
+
+    # extract the datetime as a Series independently
+    dt = out["datetime"].dt
+
+    # add the metadata and return
+    return out.assign(
+        date=dt.date,
+        hour=dt.time,
+        day_of_week=dt.day_of_week,
+        weekday=dt.day_of_week < 5,  # Saturday is 5, Sunday is 6
     )
-    # derive some necessary information from the datetime column
-    output_df["date"] = output_df["datetime"].apply(lambda dt: dt.date())
-    output_df["hour"] = output_df["datetime"].apply(lambda dt: dt.time())
-    output_df["day_of_week"] = output_df["datetime"].apply(lambda dt: dt.day_of_week)
-    output_df["weekday"] = output_df["day_of_week"] < 5 # saturday is 5 and sunday is 6
-    return output_df
 
 def get_series_hourly(cache_dir: Optional[Union[str, Path]] = "data/hf_cache") -> pd.DataFrame:
     """Circumvents the majority of the data pipeline machinery to get the required `series_hourly`
@@ -81,6 +132,8 @@ def get_series_hourly(cache_dir: Optional[Union[str, Path]] = "data/hf_cache") -
         out["date"] = pd.to_datetime(out["dt"])
         out["datetime"] = out["date"] + pd.to_timedelta(out["hour_idx"], unit="h")
         out["time"] = out["datetime"].dt.time
+        out["day_of_week"] = out["datetime"].dt.day_of_week
+        out["weekday"] = out["day_of_week"] < 5
 
         frames.append(out)
 
