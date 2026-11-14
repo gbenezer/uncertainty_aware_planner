@@ -35,8 +35,10 @@ def to_imputed_hourly(dataset, index, imputation, clip_demand: bool = True):
         }
     )
     # derive some necessary information from the datetime column
-    output_df["date"] = output_df["datetime"].date()
-    output_df["hour"] = output_df["datetime"].hour()
+    output_df["date"] = output_df["datetime"].apply(lambda dt: dt.date())
+    output_df["hour"] = output_df["datetime"].apply(lambda dt: dt.time())
+    output_df["day_of_week"] = output_df["datetime"].apply(lambda dt: dt.day_of_week)
+    output_df["weekday"] = output_df["day_of_week"] < 5 # saturday is 5 and sunday is 6
     return output_df
 
 def get_series_hourly(cache_dir: Optional[Union[str, Path]] = "data/hf_cache") -> pd.DataFrame:
