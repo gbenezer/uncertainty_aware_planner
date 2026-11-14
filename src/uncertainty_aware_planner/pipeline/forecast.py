@@ -29,7 +29,7 @@ import torch
 from uncertainty_aware_planner.data.config import load_config, load_yaml, resolve
 from uncertainty_aware_planner.data.splits import final_windows
 from uncertainty_aware_planner.data.timeseries_dataset import build_timeseries_datasets
-from uncertainty_aware_planner.models.forecasting import tft
+from uncertainty_aware_planner.models.forecasting import tft, dlinear_quantile
 from uncertainty_aware_planner.models.forecasting.forecast_table import (
     long_quantiles,
     run_id,
@@ -39,7 +39,9 @@ from uncertainty_aware_planner.utils.util_functions import set_seed
 
 # Each architecture module provides build_model(train_ds, cfg), fit(model, train_ds, cfg, run_dir) -> ckpt
 # and predict_quantiles(ckpt, eval_ds, cfg) -> (quantiles, index, decoder_lengths).
-ARCHITECTURES = {"tft": tft}
+ARCHITECTURES = {
+                "tft": tft,
+                "dlinear_quantile": dlinear_quantile,}
 
 
 def _merge(base: dict, override: dict) -> dict:
