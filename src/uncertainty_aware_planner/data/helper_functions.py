@@ -8,7 +8,7 @@ import pandas as pd
 from datasets import load_dataset, concatenate_datasets
 
 
-def to_imputed_hourly(dataset, index, imputation):
+def to_imputed_hourly(dataset, index, imputation, clip_demand: bool = True):
     """imputed_hourly rows (the columns `daily` reads) for every hidden hour a sample owns."""
     x = dataset["X"][..., 0]
     truth = dataset.get("X_ori", dataset["X"])[..., 0]
@@ -18,12 +18,13 @@ def to_imputed_hourly(dataset, index, imputation):
     stamp = start[sample] + step.astype("timedelta64[h]")
     own = stamp >= keep[sample]
     sample, step, stamp = sample[own], step[own], stamp[own]
-    return pd.DataFrame(
+    estimated_demand = np.clip(imputation[sample, step], 0, None) if clip_demand else imputation[sample, step]
+    output_df = pd.DataFrame(
         {
             "store_id": index["store_id"].to_numpy()[sample],
             "product_id": index["product_id"].to_numpy()[sample],
             "datetime": stamp.astype("datetime64[s]"),
-            "estimated_demand": np.clip(imputation[sample, step], 0, None),
+            "estimated_demand": estimated_demand,
             "actual_demand": truth[
                 sample, step
             ],  # NaN at real stockouts, true sales at masked hours
@@ -33,6 +34,10 @@ def to_imputed_hourly(dataset, index, imputation):
             "is_masked": ~np.isnan(truth[sample, step]),
         }
     )
+    # derive some necessary information from the datetime column
+    output_df["date"] = output_df["datetime"].date()
+    output_df["hour"] = output_df["datetime"].hour()
+    return output_df
 
 def get_series_hourly(cache_dir: Optional[Union[str, Path]] = "data/hf_cache") -> pd.DataFrame:
     """Circumvents the majority of the data pipeline machinery to get the required `series_hourly`
