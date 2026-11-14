@@ -85,7 +85,9 @@ def calculate_imputation_errors_df(
     estimate_col: "estimated_demand" or a calibrated point estimate.
     """
     # keep only open hours
-    in_open_hours = pd.to_datetime(imputed_hourly["datetime"]).dt.hour.isin(OPEN_HOURS)
+    hour = pd.to_datetime(imputed_hourly["datetime"]).dt.hour
+    in_open_hours = hour.between(OPEN_HOURS.start, OPEN_HOURS.stop, inclusive="left")
+
     df = _valid_day_rows(imputed_hourly[in_open_hours])
 
     # on valid days every row is a masked hour with ground truth
