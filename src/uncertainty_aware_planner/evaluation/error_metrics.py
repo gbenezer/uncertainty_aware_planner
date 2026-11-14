@@ -9,11 +9,8 @@ from uncertainty_aware_planner.utils.constants import (
     OPEN_HOURS,
 )
 from uncertainty_aware_planner.data.helper_functions import get_series_hourly
+from uncertainty_aware_planner.utils.constants import SERIES_KEYS
 from uncertainty_aware_planner.utils.util_functions import _require_columns, _valid_day_rows
-
-# function constants
-SERIES_KEYS = ["store_id", "product_id"]
-DAY_KEYS = ["store_id", "product_id", "date"]
 
 
 def calculate_imputation_percent_errors(
