@@ -3,21 +3,11 @@ from typing import TypedDict
 import numpy as np
 import pandas as pd
 
+from uncertainty_aware_planner.utils.util_functions import _require_columns
 
 class MetricResult(TypedDict):
     value: float
     n: int  # number of rows the metric was computed over
-
-
-def _require_columns(df: pd.DataFrame, required: list[str]) -> None:
-    """helper function to check if the input DataFrame has the required
-    columns."""
-    missing = [c for c in required if c not in df.columns]
-    if missing:
-        raise KeyError(
-            f"DataFrame is missing required column(s): {missing}. "
-            f"Available columns: {list(df.columns)}"
-        )
 
 
 def prediction_interval_coverage_fraction(

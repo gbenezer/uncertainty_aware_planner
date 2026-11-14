@@ -9,36 +9,11 @@ from uncertainty_aware_planner.utils.constants import (
     OPEN_HOURS,
 )
 from uncertainty_aware_planner.data.helper_functions import get_series_hourly
-from uncertainty_aware_planner.evaluation.uncertainty_metrics import _require_columns
+from uncertainty_aware_planner.utils.util_functions import _require_columns, _valid_day_rows
 
 # function constants
 SERIES_KEYS = ["store_id", "product_id"]
 DAY_KEYS = ["store_id", "product_id", "date"]
-
-# helper function to filter hours from the input dataframe 
-# that are not from valid imputation days
-def _valid_day_rows(df: pd.DataFrame) -> pd.DataFrame:
-    """Rows from days that have at least one masked hour and no true stockout."""
-    # if the input dataframe has appropriate columns, then use them
-    # otherwise fall back to assumptions
-    masked = df["is_masked"] if "is_masked" in df.columns else df["actual_demand"].notna()
-
-    # assumption is the df includes only stockout and masked hours, and those statuses
-    # are mutually exclusive
-    stockout = df["is_stockout"] if "is_stockout" in df.columns else ~masked
-    
-    # create a summary df that counts stockout hours and masked hours on a daily basis
-    counts = (
-        pd.DataFrame({**{k: df[k] for k in DAY_KEYS}, "masked": masked, "stockout": stockout})
-        .groupby(DAY_KEYS)[["masked", "stockout"]]
-        .sum()
-    )
-    # get the day indices for valid days
-    valid_days = counts.index[(counts["masked"] > 0) & (counts["stockout"] == 0)]
-
-    # filter based on the valid multi-index data (store-product-days)
-    keys = pd.MultiIndex.from_frame(df[DAY_KEYS])
-    return df[keys.isin(valid_days)]
 
 
 def calculate_imputation_percent_errors(
@@ -99,7 +74,7 @@ def calculate_imputation_percent_errors(
     }
 
 
-def calculate_imputation_percent_errors(
+def calculate_imputation_errors_df(
     imputed_hourly: pd.DataFrame,
     estimate_col: str = "estimated_demand",
 ) -> dict:
