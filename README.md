@@ -144,6 +144,8 @@ leaked        18  0.3202 ± 0.0628  -0.2722 ± 0.0852  0.3202 (commit cfe9d50)  
 
 Run it twice and the numbers are identical: seeds are set before every model build, and torch runs in deterministic mode. Each run writes a run log to `data/runs/baseline_smoke/` with the commit, environment, hashes and per-run results. These are synthetic-data numbers that check the pipeline; they are not the official baseline.
 
+#### NOTE: this does not use the appropriate metrics that we actually use in production; daily pooling artificially deflates WAPE. We take the absolute value of all residuals then sum. Authors sum residuals across each day, take absolute values of the daily pooled WAPE, then sum.
+
 ### Official baseline number (full FreshRetailNet-50K)
 
 | Variant | WAPE, mean ± sd | WPE, mean ± sd | Runs | Commit |
@@ -174,6 +176,8 @@ Other hardware takes a different training path. We re-ran seed 86400, fold 1 on 
 | leaked | 49.83% | 43.25% |
 
 Both differences are within the spread across seeds on that fold: 34.6% to 67.4% for not_leaked. Compare full-data numbers on Explorer GPUs only. The smoke test is the exact run-twice check.
+
+#### NOTE: These results are from ad-hoc experimental scripts that are liable to break. These numbers are also from an older version of WAPE evaluation that pooled across days prior to taking absolute values.
 
 ---
 
