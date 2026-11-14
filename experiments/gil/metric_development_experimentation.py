@@ -10,7 +10,7 @@ import datetime
 from uncertainty_aware_planner.data.config import load_config
 from uncertainty_aware_planner.data.cube import load_cube
 from uncertainty_aware_planner.data.pypots_arrays import build_pypots_set
-from uncertainty_aware_planner.data.helper_functions import to_imputed_hourly, get_series_hourly
+from uncertainty_aware_planner.data.helper_functions import to_imputed_hourly, to_imputed_hourly_interval_median, get_series_hourly
 from uncertainty_aware_planner.data.config import load_yaml
 from uncertainty_aware_planner.utils.util_functions import set_seed, get_git_state
 from uncertainty_aware_planner.models.imputation import (
@@ -60,7 +60,6 @@ print("building calibration set")
 calib_set, calib_index = build_pypots_set(cube, cfg, "calib", masks=masks)
 calibration_df = to_imputed_hourly(calib_set, calib_index, calib_set["X_ori"][..., 0])
 
-
 def timed(fn, *args, **kwargs):
     """Run fn and return (result, elapsed_ms),
     using CUDA events on GPU and perf_counter on CPU."""
@@ -82,22 +81,15 @@ print("imputing all three quantiles")
 imputation, ms = timed(dlinear_model.impute, calib_set)
 print(f"{ms:.2f} ms")
 
-point_estimate = imputation[..., 1]
+# extracting the appropriate point estimate
+point_estimate = imputation[..., 0, 1]
 
-print("constructing output")
-lower_quantile_df = to_imputed_hourly(calib_set, calib_index, imputation[..., 0, 0])
-median_df = to_imputed_hourly(calib_set, calib_index, imputation[..., 0, 1])
-upper_quantile_df = to_imputed_hourly(calib_set, calib_index, imputation[..., 0, 2])
+print("constructing dfs")
 
-output_df = median_df[
-    ["store_id", "product_id", "datetime", "actual_demand", "is_stockout", "is_masked"]
-].copy()
-output_df["q025"] = lower_quantile_df["estimated_demand"].copy()
-output_df["estimated_demand"] = median_df["estimated_demand"].copy()
-output_df["q975"] = upper_quantile_df["estimated_demand"].copy()
-# output_df.to_parquet(
-#     path=(DATA_DIR / "dlinear_calibration_set_imputation.parquet"), index=False
-# )
+df_point = to_imputed_hourly(calib_set, calib_index, point_estimate)
+df_point_raw = to_imputed_hourly(calib_set, calib_index, point_estimate, clip_demand = False)
+df_interval = to_imputed_hourly_interval_median(calib_set, calib_index, imputation)
+df_interval_raw = to_imputed_hourly_interval_median(calib_set, calib_index, imputation, clip_demand = False)
 
 # get the WAPE/WPE
 print("calculating dlinear WAPE and WPE with old function")
@@ -110,19 +102,37 @@ elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
 print("Old function, dlinear: ", dlinear_result)
 
-print("calculating dlinear WAPE and WPE with new function")
+print("calculating dlinear WAPE and WPE with new function and clipping demand")
 start = time.perf_counter()
 dlinear_result_new = calculate_imputation_errors_df(
-    imputed_hourly = output_df
+    imputed_hourly = df_point
 )
 elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
-print("New function, dlinear: ", dlinear_result_new)
+print("New function, dlinear, with clipping: ", dlinear_result_new)
 
-empirical_coverage = prediction_interval_coverage_fraction(output_df)
+print("calculating dlinear WAPE and WPE with new function, no clipping")
+start = time.perf_counter()
+dlinear_result_new_raw = calculate_imputation_errors_df(
+    imputed_hourly = df_interval_raw
+)
+elapsed = time.perf_counter() - start
+print(f"{elapsed:.4f} s")
+print("New function, dlinear, no clipping: ", dlinear_result_new_raw)
+
+print("with clipping")
+empirical_coverage = prediction_interval_coverage_fraction(df_interval)
 print("empirical coverage: ", empirical_coverage)
-mean_width_actuals = mean_prediction_interval_width(output_df)
-mean_width_all = mean_prediction_interval_width(output_df, include_stockout=True)
+mean_width_actuals = mean_prediction_interval_width(df_interval)
+mean_width_all = mean_prediction_interval_width(df_interval, include_stockout=True)
+print("mean interval width, masked only: ", mean_width_actuals)
+print("mean interval width, all intervals: ", mean_width_all)
+
+print("without clipping")
+empirical_coverage = prediction_interval_coverage_fraction(df_interval_raw)
+print("empirical coverage: ", empirical_coverage)
+mean_width_actuals = mean_prediction_interval_width(df_interval_raw)
+mean_width_all = mean_prediction_interval_width(df_interval_raw, include_stockout=True)
 print("mean interval width, masked only: ", mean_width_actuals)
 print("mean interval width, all intervals: ", mean_width_all)
 
@@ -131,12 +141,23 @@ start = time.perf_counter()
 series_hourly = get_series_hourly()
 elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
-print("calculating MASE, 24 hour lag")
-mase_result = mean_absolute_scaled_error(imputed_df = output_df, series_hourly=series_hourly)
+print("calculating MASE, 24 hour lag, clipped")
+mase_result = mean_absolute_scaled_error(imputed_df = df_interval, series_hourly=series_hourly)
 print(mase_result)
-print("calculating MASE, 1 hour lag")
-mase_result = mean_absolute_scaled_error(imputed_df = output_df, series_hourly=series_hourly, lag_hours=1)
+print("calculating MASE, 1 hour lag, clipped")
+mase_result = mean_absolute_scaled_error(imputed_df = df_interval, series_hourly=series_hourly, lag_hours=1)
 print(mase_result)
-print("calculating MASE, 1 week lag")
-mase_result = mean_absolute_scaled_error(imputed_df = output_df, series_hourly=series_hourly, lag_hours=168)
+print("calculating MASE, 1 week lag, clipped")
+mase_result = mean_absolute_scaled_error(imputed_df = df_interval, series_hourly=series_hourly, lag_hours=168)
+print(mase_result)
+
+
+print("calculating MASE, 24 hour lag, raw")
+mase_result = mean_absolute_scaled_error(imputed_df = df_interval_raw, series_hourly=series_hourly)
+print(mase_result)
+print("calculating MASE, 1 hour lag, raw")
+mase_result = mean_absolute_scaled_error(imputed_df = df_interval_raw, series_hourly=series_hourly, lag_hours=1)
+print(mase_result)
+print("calculating MASE, 1 week lag, raw")
+mase_result = mean_absolute_scaled_error(imputed_df = df_interval_raw, series_hourly=series_hourly, lag_hours=168)
 print(mase_result)
