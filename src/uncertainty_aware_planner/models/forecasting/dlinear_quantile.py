@@ -58,8 +58,16 @@ class DLinearQuantile(nn.Module):
             + self.trend_linear(trend)
         )
 
-        return output.reshape(
+        raw = output.reshape(
             -1, self.horizon_days, len(self.quantiles)
+        )
+
+        lower = raw[..., :1]
+        increments = F.softplus(raw[..., 1:])
+
+        return torch.cat(
+            [lower, lower + torch.cumsum(increments, dim=-1)],
+            dim=-1,
         )
 
 

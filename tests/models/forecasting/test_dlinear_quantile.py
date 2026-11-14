@@ -124,3 +124,29 @@ def test_predict_quantiles(tmp_path):
     assert len(index) == 4
     assert lengths.tolist() == [7, 7, 7, 7]
     assert np.isfinite(q).all()
+
+
+def test_quantile_crossing_rate():
+    """Measure how often quantile predictions cross."""
+
+    model = DLinearQuantile(
+        encoder_days=21,
+        horizon_days=7,
+        quantiles=(0.025, 0.5, 0.975),
+    )
+
+    x = torch.rand(8, 21)
+    predictions = model(x)
+
+    # Check whether lower > median or median > upper
+    crossing = (
+        (predictions[:, :, 0] > predictions[:, :, 1])
+        | (predictions[:, :, 1] > predictions[:, :, 2])
+    )
+
+    crossing_rate = crossing.float().mean().item()
+
+    print(f"Quantile crossing rate: {crossing_rate:.2%}")
+
+    # Verify that the measurement is valid
+    assert crossing_rate == 0.0
