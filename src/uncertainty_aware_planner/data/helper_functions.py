@@ -6,6 +6,11 @@ import datetime
 import numpy as np
 import pandas as pd
 from datasets import load_dataset, concatenate_datasets
+from uncertainty_aware_planner.utils.constants import (
+    DAILY_METADATA_COLS,
+    DAY_KEYS,
+    SERIES_KEYS,
+)
 
 
 def _hidden_hours(dataset, index):
@@ -197,3 +202,91 @@ def get_series_hourly(
     )
 
     return output_df
+
+
+def add_series_metadata(
+    imputed: pd.DataFrame,
+    series_hourly: pd.DataFrame,
+    columns: Optional[list[str]] = None,
+) -> pd.DataFrame:
+    """Left-join day-level metadata from `series_hourly` onto an imputed hourly frame.
+
+    Joins on (store_id, product_id, date). Row order and count of `imputed` are
+    preserved, and the merge raises if any row finds no match or if the lookup
+    table has duplicate keys.
+    """
+    columns = list(DAILY_METADATA_COLS if columns is None else columns)
+
+    missing = [c for c in columns if c not in series_hourly.columns]
+    if missing:
+        raise KeyError(f"columns not in series_hourly: {missing}")
+
+    clash = [c for c in columns if c in imputed.columns]
+    if clash:
+        raise ValueError(f"columns already in imputed frame: {clash}")
+
+    # every metadata column is constant within a day, so keeping hour 0
+    # gives exactly one row per store-product-day without a drop_duplicates
+    # pass over the full hourly table
+    meta = series_hourly.loc[series_hourly["hour_idx"] == 0, DAY_KEYS + columns]
+
+    out = imputed.merge(
+        meta,
+        on=DAY_KEYS,
+        how="left",
+        validate="many_to_one",
+        indicator="_merge",
+    )
+
+    n_unmatched = int((out["_merge"] != "both").sum())
+    if n_unmatched:
+        raise ValueError(f"{n_unmatched} rows in imputed frame had no metadata match")
+
+    return out.drop(columns="_merge")
+
+
+def filter_by_mean_demand(
+    imputed_df: pd.DataFrame,
+    series_hourly: pd.DataFrame,
+    group: str = "high",
+    threshold: float = 1 / 24, # hourly mean; equivalent to 1 on a daily scale
+    mean_source: str = "full",
+    return_means: bool = False,
+):
+    """
+    Keep only the series (store_id, product_id) in imputed_df whose mean
+    hourly actual demand is >= threshold ("high") or < threshold ("low").
+
+    mean_source:
+        "full"     -> mean of series_hourly.raw_data_actual_demand over the entire
+                      dataset (train + eval). NaN at stockouts, so stockouts are skipped.
+        "internal" -> mean of imputed_df.actual_demand. Only rows in imputed_df
+                      count, and NaN stockout rows are skipped, so this is effectively
+                      the mean over masked hours only.
+    """
+    if group not in {"high", "low"}:
+        raise ValueError("group must be 'high' or 'low'")
+
+    if mean_source == "full":
+        src, col = series_hourly, "raw_data_actual_demand"
+    elif mean_source == "internal":
+        src, col = imputed_df, "actual_demand"
+    else:
+        raise ValueError("mean_source must be 'full' or 'internal'")
+
+    # select only the needed columns before casting: series_hourly is very large
+    sub = src[SERIES_KEYS + [col]]
+    means = (
+        sub[col]
+        .astype("float64")  # avoid float32 accumulation error near the threshold
+        .groupby([sub["store_id"], sub["product_id"]])
+        .mean()  # skips NaN
+        .rename("mean_actual_demand")
+    )
+
+    keep = means[means >= threshold] if group == "high" else means[means < threshold]
+
+    row_keys = pd.MultiIndex.from_frame(imputed_df[SERIES_KEYS])
+    filtered = imputed_df[row_keys.isin(keep.index)]
+
+    return (filtered, means) if return_means else filtered
