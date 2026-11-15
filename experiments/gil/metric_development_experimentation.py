@@ -10,7 +10,11 @@ import datetime
 from uncertainty_aware_planner.data.config import load_config
 from uncertainty_aware_planner.data.cube import load_cube
 from uncertainty_aware_planner.data.pypots_arrays import build_pypots_set
-from uncertainty_aware_planner.data.helper_functions import to_imputed_hourly, to_imputed_hourly_interval_median, get_series_hourly
+from uncertainty_aware_planner.data.helper_functions import (
+    to_imputed_hourly,
+    to_imputed_hourly_interval_median,
+    get_series_hourly,
+)
 from uncertainty_aware_planner.data.config import load_yaml
 from uncertainty_aware_planner.utils.util_functions import set_seed, get_git_state
 from uncertainty_aware_planner.models.imputation import (
@@ -19,7 +23,7 @@ from uncertainty_aware_planner.models.imputation import (
 from uncertainty_aware_planner.evaluation.error_metrics import (
     calculate_imputation_percent_errors,
     calculate_imputation_errors_df,
-    mean_absolute_scaled_error
+    mean_absolute_scaled_error,
 )
 from uncertainty_aware_planner.evaluation.uncertainty_metrics import (
     prediction_interval_coverage_fraction,
@@ -66,6 +70,7 @@ series_hourly = get_series_hourly()
 elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
 
+
 def timed(fn, *args, **kwargs):
     """Run fn and return (result, elapsed_ms),
     using CUDA events on GPU and perf_counter on CPU."""
@@ -93,9 +98,13 @@ point_estimate = imputation[..., 0, 1]
 print("constructing dfs")
 
 df_point = to_imputed_hourly(calib_set, calib_index, point_estimate)
-df_point_raw = to_imputed_hourly(calib_set, calib_index, point_estimate, clip_demand = False)
+df_point_raw = to_imputed_hourly(
+    calib_set, calib_index, point_estimate, clip_demand=False
+)
 df_interval = to_imputed_hourly_interval_median(calib_set, calib_index, imputation)
-df_interval_raw = to_imputed_hourly_interval_median(calib_set, calib_index, imputation, clip_demand = False)
+df_interval_raw = to_imputed_hourly_interval_median(
+    calib_set, calib_index, imputation, clip_demand=False
+)
 
 # get the WAPE/WPE
 print("calculating dlinear WAPE and WPE with old function")
@@ -110,43 +119,41 @@ print("Old function, dlinear: ", dlinear_result)
 
 print("calculating dlinear WAPE and WPE with new function and clipping demand")
 start = time.perf_counter()
-dlinear_result_new = calculate_imputation_errors_df(
-    imputed_hourly = df_point
-)
+dlinear_result_new = calculate_imputation_errors_df(imputed_hourly=df_point)
 elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
 print("New function, dlinear, with clipping: ", dlinear_result_new)
 
 print("calculating dlinear WAPE and WPE with new function, no clipping")
 start = time.perf_counter()
-dlinear_result_new_raw = calculate_imputation_errors_df(
-    imputed_hourly = df_interval_raw
-)
+dlinear_result_new_raw = calculate_imputation_errors_df(imputed_hourly=df_interval_raw)
 elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
 print("New function, dlinear, no clipping: ", dlinear_result_new_raw)
 
-print("calculating dlinear WAPE and WPE with new function, clipping demand, and include observed hours with zero error")
+print(
+    "calculating dlinear WAPE and WPE with new function, clipping demand, and include observed hours with zero error"
+)
 start = time.perf_counter()
 dlinear_result_new = calculate_imputation_errors_df(
-    imputed_hourly = df_point,
-    include_observed = True,
-    series_hourly = series_hourly
+    imputed_hourly=df_point, include_observed=True, series_hourly=series_hourly
 )
 elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
 print("New function, dlinear, with clipping, observed days added: ", dlinear_result_new)
 
-print("calculating dlinear WAPE and WPE with new function, no clipping, and include observed hours with zero error")
+print(
+    "calculating dlinear WAPE and WPE with new function, no clipping, and include observed hours with zero error"
+)
 start = time.perf_counter()
 dlinear_result_new_raw = calculate_imputation_errors_df(
-    imputed_hourly = df_interval_raw,
-    include_observed = True,
-    series_hourly = series_hourly
+    imputed_hourly=df_interval_raw, include_observed=True, series_hourly=series_hourly
 )
 elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
-print("New function, dlinear, no clipping, observed days added: ", dlinear_result_new_raw)
+print(
+    "New function, dlinear, no clipping, observed days added: ", dlinear_result_new_raw
+)
 
 print("with clipping")
 empirical_coverage = prediction_interval_coverage_fraction(df_interval)
@@ -166,22 +173,34 @@ print("mean interval width, all intervals: ", mean_width_all)
 
 
 print("calculating MASE, 24 hour lag, clipped")
-mase_result = mean_absolute_scaled_error(imputed_df = df_interval, series_hourly=series_hourly)
+mase_result = mean_absolute_scaled_error(
+    imputed_df=df_interval, series_hourly=series_hourly
+)
 print(mase_result)
 print("calculating MASE, 1 hour lag, clipped")
-mase_result = mean_absolute_scaled_error(imputed_df = df_interval, series_hourly=series_hourly, lag_hours=1)
+mase_result = mean_absolute_scaled_error(
+    imputed_df=df_interval, series_hourly=series_hourly, lag_hours=1
+)
 print(mase_result)
 print("calculating MASE, 1 week lag, clipped")
-mase_result = mean_absolute_scaled_error(imputed_df = df_interval, series_hourly=series_hourly, lag_hours=168)
+mase_result = mean_absolute_scaled_error(
+    imputed_df=df_interval, series_hourly=series_hourly, lag_hours=168
+)
 print(mase_result)
 
 
 print("calculating MASE, 24 hour lag, raw")
-mase_result = mean_absolute_scaled_error(imputed_df = df_interval_raw, series_hourly=series_hourly)
+mase_result = mean_absolute_scaled_error(
+    imputed_df=df_interval_raw, series_hourly=series_hourly
+)
 print(mase_result)
 print("calculating MASE, 1 hour lag, raw")
-mase_result = mean_absolute_scaled_error(imputed_df = df_interval_raw, series_hourly=series_hourly, lag_hours=1)
+mase_result = mean_absolute_scaled_error(
+    imputed_df=df_interval_raw, series_hourly=series_hourly, lag_hours=1
+)
 print(mase_result)
 print("calculating MASE, 1 week lag, raw")
-mase_result = mean_absolute_scaled_error(imputed_df = df_interval_raw, series_hourly=series_hourly, lag_hours=168)
+mase_result = mean_absolute_scaled_error(
+    imputed_df=df_interval_raw, series_hourly=series_hourly, lag_hours=168
+)
 print(mase_result)

@@ -42,6 +42,7 @@ def get_git_state(repo_dir: Path) -> str:
         return "unknown"
     return sha + ("-dirty" if status else "")
 
+
 # helper function to raise appropriate KeyErrors if the required columns
 # are not present
 def _require_columns(df: pd.DataFrame, required: list[str]) -> None:
@@ -54,21 +55,26 @@ def _require_columns(df: pd.DataFrame, required: list[str]) -> None:
             f"Available columns: {list(df.columns)}"
         )
 
-# helper function to filter hours from the input dataframe 
+
+# helper function to filter hours from the input dataframe
 # that are not from valid imputation days
 def _valid_day_rows(df: pd.DataFrame) -> pd.DataFrame:
     """Rows from days that have at least one masked hour and no true stockout."""
     # if the input dataframe has appropriate columns, then use them
     # otherwise fall back to assumptions
-    masked = df["is_masked"] if "is_masked" in df.columns else df["actual_demand"].notna()
+    masked = (
+        df["is_masked"] if "is_masked" in df.columns else df["actual_demand"].notna()
+    )
 
     # assumption is the df includes only stockout and masked hours, and those statuses
     # are mutually exclusive
     stockout = df["is_stockout"] if "is_stockout" in df.columns else ~masked
-    
+
     # create a summary df that counts stockout hours and masked hours on a daily basis
     counts = (
-        pd.DataFrame({**{k: df[k] for k in DAY_KEYS}, "masked": masked, "stockout": stockout})
+        pd.DataFrame(
+            {**{k: df[k] for k in DAY_KEYS}, "masked": masked, "stockout": stockout}
+        )
         .groupby(DAY_KEYS)[["masked", "stockout"]]
         .sum()
     )

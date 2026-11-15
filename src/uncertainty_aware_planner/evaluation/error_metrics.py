@@ -10,7 +10,10 @@ from uncertainty_aware_planner.utils.constants import (
 )
 from uncertainty_aware_planner.data.helper_functions import get_series_hourly
 from uncertainty_aware_planner.utils.constants import SERIES_KEYS
-from uncertainty_aware_planner.utils.util_functions import _require_columns, _valid_day_rows
+from uncertainty_aware_planner.utils.util_functions import (
+    _require_columns,
+    _valid_day_rows,
+)
 
 
 def calculate_imputation_percent_errors(
@@ -113,7 +116,9 @@ def calculate_imputation_errors_df(
         sh = series_hourly[[*keys, "datetime", "scaled_sales_quantity"]]
         sh_hour = sh["datetime"].dt.hour
         sh = sh[sh_hour.between(OPEN_HOURS.start, OPEN_HOURS.stop, inclusive="left")]
-        sh = sh.assign(day=sh["datetime"].dt.normalize()).merge(valid_days, on=[*keys, "day"])
+        sh = sh.assign(day=sh["datetime"].dt.normalize()).merge(
+            valid_days, on=[*keys, "day"]
+        )
 
         total_actual = float(sh["scaled_sales_quantity"].sum())
         n = len(sh)
@@ -143,11 +148,19 @@ def mean_absolute_scaled_error(
     Pass `series_hourly` to avoid reloading the dataset on every call.
     """
     keys = list(SERIES_KEYS)
-    _require_columns(imputed_df, ["actual_demand", "estimated_demand", "datetime", *keys])
+    _require_columns(
+        imputed_df, ["actual_demand", "estimated_demand", "datetime", *keys]
+    )
 
     if series_hourly is None:
-        series_hourly = get_series_hourly(cache_dir) if cache_dir is not None else get_series_hourly()
-    _require_columns(series_hourly, [*keys, "datetime", "is_stockout", "scaled_sales_quantity"])
+        series_hourly = (
+            get_series_hourly(cache_dir)
+            if cache_dir is not None
+            else get_series_hourly()
+        )
+    _require_columns(
+        series_hourly, [*keys, "datetime", "is_stockout", "scaled_sales_quantity"]
+    )
 
     # evaluation rows: masked in-stock hours with a known truth
     df = imputed_df.loc[
@@ -158,7 +171,9 @@ def mean_absolute_scaled_error(
 
     # observed in-stock hours only, restricted to the series being evaluated
     obs = (
-        series_hourly.loc[~series_hourly["is_stockout"], [*keys, "datetime", "scaled_sales_quantity"]]
+        series_hourly.loc[
+            ~series_hourly["is_stockout"], [*keys, "datetime", "scaled_sales_quantity"]
+        ]
         .rename(columns={"scaled_sales_quantity": "sales"})
         .merge(df[keys].drop_duplicates(), on=keys)
     )
@@ -178,7 +193,8 @@ def mean_absolute_scaled_error(
     pairs = obs.merge(lagged, on=[*keys, "datetime"], suffixes=("", "_lag"))
     scale = (
         pairs.assign(abs_diff=(pairs["sales"] - pairs["sales_lag"]).abs())
-        .groupby(keys, as_index=False)["abs_diff"].mean()
+        .groupby(keys, as_index=False)["abs_diff"]
+        .mean()
         .rename(columns={"abs_diff": "scale"})
     )
 

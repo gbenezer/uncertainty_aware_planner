@@ -5,6 +5,7 @@ import pandas as pd
 
 from uncertainty_aware_planner.utils.util_functions import _require_columns
 
+
 class MetricResult(TypedDict):
     value: float
     n: int  # number of rows the metric was computed over

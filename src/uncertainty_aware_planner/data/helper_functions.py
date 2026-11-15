@@ -7,9 +7,10 @@ import numpy as np
 import pandas as pd
 from datasets import load_dataset, concatenate_datasets
 
+
 def _hidden_hours(dataset, index):
     """Positions and ground-truth columns for every hidden hour a sample owns."""
-    
+
     # model input: NaN wherever an hour is hidden, either by a real stockout
     # (censored) or by the eval masks (masked)
     x = dataset["X"][..., 0]
@@ -28,23 +29,27 @@ def _hidden_hours(dataset, index):
     # are censored or masked
     sample, step = np.nonzero(np.isnan(x))
 
-    # window start (in hours) plus the step offset gives each hour's 
+    # window start (in hours) plus the step offset gives each hour's
     # absolute timestamp
     stamp = hours("start_date")[sample] + step.astype("timedelta64[h]")
-    
+
     # not sure, something about removing possible duplicates
     own = stamp >= hours("keep_start")[sample]
     sample, step, stamp = sample[own], step[own], stamp[own]
 
     actual = truth[sample, step]  # NaN at real stockouts, true sales at masked hours
-    base = pd.DataFrame({
-        "store_id": index["store_id"].to_numpy()[sample],
-        "product_id": index["product_id"].to_numpy()[sample],
-        "datetime": stamp.astype("datetime64[s]"),
-        "actual_demand": actual,
-        "is_stockout": np.isnan(actual),   # true censoring: real stockout hour
-        "is_masked": ~np.isnan(actual),    # artificial censoring: hidden by eval masks
-    })
+    base = pd.DataFrame(
+        {
+            "store_id": index["store_id"].to_numpy()[sample],
+            "product_id": index["product_id"].to_numpy()[sample],
+            "datetime": stamp.astype("datetime64[s]"),
+            "actual_demand": actual,
+            "is_stockout": np.isnan(actual),  # true censoring: real stockout hour
+            "is_masked": ~np.isnan(
+                actual
+            ),  # artificial censoring: hidden by eval masks
+        }
+    )
     # add date metadata to all tables deriving from this function
     dt = base["datetime"].dt
     base = base.assign(
@@ -57,11 +62,11 @@ def _hidden_hours(dataset, index):
 
 
 def _estimate(imputation, sample, step, clip_demand):
-    # extract the imputation data 
+    # extract the imputation data
     # at the censored and masked times across relevant series
     est = imputation[sample, step]
 
-    # if requested, clip the values to zero 
+    # if requested, clip the values to zero
     # given negative demand is meaningless
     return np.clip(est, 0, None) if clip_demand else est
 
@@ -72,13 +77,17 @@ def to_imputed_hourly(dataset, index, imputation, clip_demand: bool = True):
     base, sample, step = _hidden_hours(dataset, index)
 
     # add the estimated demand to the base dataframe
-    return base.assign(estimated_demand=_estimate(imputation, sample, step, clip_demand))
+    return base.assign(
+        estimated_demand=_estimate(imputation, sample, step, clip_demand)
+    )
 
 
 def to_imputed_hourly_interval(dataset, index, imputation, clip_demand: bool = True):
 
-    assert imputation.shape[-1] == 2, f"expected (lower, upper) quantiles as last dimension, got {imputation.shape}"
-    
+    assert imputation.shape[-1] == 2, (
+        f"expected (lower, upper) quantiles as last dimension, got {imputation.shape}"
+    )
+
     # get the base dataframe, the indices of valid series,
     # and the indices of valid hours
     base, sample, step = _hidden_hours(dataset, index)
@@ -92,10 +101,15 @@ def to_imputed_hourly_interval(dataset, index, imputation, clip_demand: bool = T
     # assign the proper values to the proper column names and return
     return base.assign(q025=q(0), estimated_demand=demand_estimate, q975=q(1))
 
-def to_imputed_hourly_interval_median(dataset, index, imputation, clip_demand: bool = True):
 
-    assert imputation.shape[-1] == 3, f"expected (lower, median, upper) quantiles as last dimension, got {imputation.shape}"
-    
+def to_imputed_hourly_interval_median(
+    dataset, index, imputation, clip_demand: bool = True
+):
+
+    assert imputation.shape[-1] == 3, (
+        f"expected (lower, median, upper) quantiles as last dimension, got {imputation.shape}"
+    )
+
     # get the base dataframe, the indices of valid series,
     # and the indices of valid hours
     base, sample, step = _hidden_hours(dataset, index)
@@ -106,12 +120,17 @@ def to_imputed_hourly_interval_median(dataset, index, imputation, clip_demand: b
     # assign the proper values to the proper column names and return
     return base.assign(q025=q(0), estimated_demand=q(1), q975=q(2))
 
-def get_series_hourly(cache_dir: Optional[Union[str, Path]] = "data/hf_cache") -> pd.DataFrame:
+
+def get_series_hourly(
+    cache_dir: Optional[Union[str, Path]] = "data/hf_cache",
+) -> pd.DataFrame:
     """Circumvents the majority of the data pipeline machinery to get the required `series_hourly`
     dataframe from CONTRACTS.md because it is non-obvious how to best do so from a Cube object"""
 
     # load the dataset
-    ds = load_dataset("Dingdong-Inc/FreshRetailNet-50K", cache_dir=cache_dir)  # load once
+    ds = load_dataset(
+        "Dingdong-Inc/FreshRetailNet-50K", cache_dir=cache_dir
+    )  # load once
 
     # initialize a list for the dataframes
     frames = []
@@ -119,15 +138,15 @@ def get_series_hourly(cache_dir: Optional[Union[str, Path]] = "data/hf_cache") -
     # initialize a constant for the number of hours in the day
     n_hours = 24
 
-
     for split in ("train", "eval"):
-
         # get the proper dataset and its size
         d = ds[split]
         n = len(d)
 
         # Everything except the two list columns
-        scalar_cols = [c for c in d.column_names if c not in ("hours_sale", "hours_stock_status")]
+        scalar_cols = [
+            c for c in d.column_names if c not in ("hours_sale", "hours_stock_status")
+        ]
         base = d.select_columns(scalar_cols).to_pandas()
 
         # List columns -> (n, 24) NumPy arrays directly
