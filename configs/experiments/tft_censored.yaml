@@ -1,0 +1,30 @@
+# Temporal Fusion Transformer on censored demand, project protocol (3 seeds x (6 folds + final)).
+# The TFT trains on a GPU, so its grid is normally submitted with slurm/array_job.sbatch (slurm/README.md
+# section 5); the CPU job in slurm/run_experiment.sbatch would take far longer. Use this experiment mainly to
+# score existing TFT outputs (after pipeline.migrate_layout has moved old ones into the nested layout):
+#   python -m uncertainty_aware_planner.pipeline.run --experiment configs/experiments/tft_censored.yaml --stages evaluate
+# Tables written before the nested layout have no .manifest.json, so the forecast stage would train them again.
+name: tft_censored
+data_config: configs/data.yaml
+
+imputation:
+  run_id: imp-none-censored
+  # censored: built by the pipeline (pipeline.censored); imputed: data/processed/imputed_hourly/<run_id>.parquet
+  # must already exist (written by pipeline/impute.py)
+  source: censored
+
+forecast:
+  config: configs/forecasting_models/temporal_fusion_transformer.yaml
+  seeds: [2025, 2026, 2027]
+  folds: [1, 2, 3, 4, 5, 6]
+  final_parts: [calib, test]
+  # project | paper (paper: train through the calibration week, test only, *_paper_split folders, no folds)
+  protocol: project
+
+evaluate:
+  # q500: the TFT median, read from quantiles_<part>.parquet in the run directory, as the paper scores it.
+  # The table's estimated_demand is the interval midpoint (q025 + q975) / 2 for the TFT, not the median.
+  point: q500
+  truth: data/processed/demand_daily/imp-none-censored.parquet
+  slices: data/processed/slices.parquet
+  out: results/forecasting  # metrics in <out>/<imputation run id>/<protocol>/

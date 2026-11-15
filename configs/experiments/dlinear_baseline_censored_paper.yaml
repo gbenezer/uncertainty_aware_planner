@@ -1,0 +1,27 @@
+# DLinear forecasting baseline on censored demand, paper protocol: as the dataset authors, the final model
+# trains on all 90 training days (03-28..06-25, so through our calibration week) and forecasts the test week
+# once. Compare with their 31.56% WAPE (paper Table 3). As experiments/vishnu/paper_split_run.py does for the TFT,
+# outputs go to separate *_paper_split folders; no folds are run.
+#   python -m uncertainty_aware_planner.pipeline.run --experiment configs/experiments/dlinear_baseline_censored_paper.yaml
+name: dlinear_baseline_censored_paper
+data_config: configs/data.yaml
+
+imputation:
+  run_id: imp-none-censored
+  # censored: built by the pipeline (pipeline.censored); imputed: data/processed/imputed_hourly/<run_id>.parquet
+  # must already exist (written by pipeline/impute.py)
+  source: censored
+
+forecast:
+  config: configs/forecasting_models/dlinear_forecasting_baseline.yaml
+  seeds: [2025, 2026, 2027]
+  final_parts: [test]  # the paper protocol forecasts the test week only
+  # project | paper (paper: train through the calibration week, test only, *_paper_split folders, no folds)
+  protocol: paper
+
+evaluate:
+  # estimated_demand (for this point model it is its median, q500) or q500 (read from the run directory)
+  point: estimated_demand
+  truth: data/processed/demand_daily/imp-none-censored.parquet
+  slices: data/processed/slices.parquet
+  out: results/forecasting  # metrics in <out>/<imputation run id>/<protocol>/

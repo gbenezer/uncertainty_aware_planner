@@ -1,0 +1,29 @@
+# DLinear forecasting baseline on demand recovered by an imputation run (paper Table 3: 30.60% WAPE on
+# DLinear-recovered demand). The imputed_hourly table must exist first; the forecasts are scored against the
+# censored demand_daily, the same truth as the censored experiments.
+#   python -m uncertainty_aware_planner.pipeline.run --experiment configs/experiments/dlinear_baseline_recovered.yaml
+name: dlinear_baseline_recovered
+data_config: configs/data.yaml
+
+imputation:
+  # Placeholder: must match the run id pipeline/impute.py writes, i.e. its output
+  # data/processed/imputed_hourly/<run_id>.parquet.
+  run_id: imp-dlinear-baseline
+  # censored: built by the pipeline (pipeline.censored); imputed: data/processed/imputed_hourly/<run_id>.parquet
+  # must already exist (written by pipeline/impute.py)
+  source: imputed
+
+forecast:
+  config: configs/forecasting_models/dlinear_forecasting_baseline.yaml
+  seeds: [2025, 2026, 2027]
+  folds: [1, 2, 3, 4, 5, 6]
+  final_parts: [calib, test]
+  # project | paper (paper: train through the calibration week, test only, *_paper_split folders, no folds)
+  protocol: project
+
+evaluate:
+  # estimated_demand (for this point model it is its median, q500) or q500 (read from the run directory)
+  point: estimated_demand
+  truth: data/processed/demand_daily/imp-none-censored.parquet  # censored truth, as for the censored runs
+  slices: data/processed/slices.parquet
+  out: results/forecasting  # metrics in <out>/<imputation run id>/<protocol>/
