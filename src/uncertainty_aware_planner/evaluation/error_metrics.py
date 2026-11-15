@@ -1,17 +1,21 @@
 import numpy as np
 import pandas as pd
+from pathlib import Path
+from typing import Optional, Union
 
 from uncertainty_aware_planner.utils.constants import (
     IMPUTATION_WINDOW_DURATION,
     NUMBER_HOURS_IN_DAY,
     OPEN_HOURS,
 )
+from uncertainty_aware_planner.data.helper_functions import get_series_hourly
+from uncertainty_aware_planner.utils.constants import SERIES_KEYS
+from uncertainty_aware_planner.utils.util_functions import _require_columns, _valid_day_rows
 
 
 def calculate_imputation_percent_errors(
     eval_pypots,
     imputation_point_estimate,
-    daily_pool: bool = True,
 ):
 
     # initialize the proper shape for resizing
@@ -28,7 +32,7 @@ def calculate_imputation_percent_errors(
     # censored, and imputed NumPy arrays with NaN
     X = open_hours(eval_pypots["X"][..., 0])
     X_ori = open_hours(eval_pypots["X_ori"][..., 0])
-    imputed = open_hours(imputation_point_estimate[..., 0])
+    imputed = open_hours(imputation_point_estimate)
 
     # separately assess masked-ness and true stockout
     masked = np.isnan(X) & ~np.isnan(X_ori)
@@ -42,35 +46,155 @@ def calculate_imputation_percent_errors(
     truth = np.nan_to_num(X_ori)
     hourly_diff = imputed - truth
 
-    # if the values are to be pooled by day then calculated
-    if daily_pool:
-        # sum hour values across the days for residuals
-        daily_diff = hourly_diff.sum(axis=2)
+    # select the appropriate days
+    hours = np.broadcast_to(day_valid[..., None], hourly_diff.shape)
 
-        # only take the days that are valid (has masking but no stockout)
-        # when getting the signed difference
-        total_diff = daily_diff[day_valid].sum()
+    # sum across all the relevant hours
+    total_diff = hourly_diff[hours].sum()
 
-        # get the sum of absolute values of daily differences
-        total_abs_diff = np.abs(daily_diff)[day_valid].sum()
+    # sum absolute values across all relevant hours
+    total_abs_diff = np.abs(hourly_diff)[hours].sum()
 
-        # get the total sales over all the relevant days
-        total_actual = truth.sum(axis=2)[day_valid].sum()
+    # sum all sales over relevant hours
+    total_actual = truth[hours].sum()
 
-    else:
-        # same population of days as the pooled metric
-        hours = np.broadcast_to(day_valid[..., None], hourly_diff.shape)
-
-        # sum across all the relevant hours
-        total_diff = hourly_diff[hours].sum()
-
-        # sum absolute values across all relevant hours
-        total_abs_diff = np.abs(hourly_diff)[hours].sum()
-
-        # sum all sales over relevant hours
-        total_actual = truth[hours].sum()
+    # sample size is the number of valid hours
+    n = int(hours.sum())
 
     if total_actual == 0:
-        return {"wape": np.nan, "wpe": np.nan}
+        return {"wape": np.nan, "wpe": np.nan, "n": n}
 
-    return {"wape": total_abs_diff / total_actual, "wpe": total_diff / total_actual}
+    return {
+        "wape": float(total_abs_diff / total_actual),
+        "wpe": float(total_diff / total_actual),
+        "n_pe": n,
+    }
+
+
+def calculate_imputation_errors_df(
+    imputed_hourly: pd.DataFrame,
+    estimate_col: str = "estimated_demand",
+    include_observed: bool = False,
+    series_hourly: Optional[pd.DataFrame] = None,
+) -> dict:
+    """Hourly WAPE / WPE of imputed demand on masked in-stock hours.
+
+    imputed_hourly: the `imputed_hourly` table for a single run
+        (one model / seed / fold / split).
+    estimate_col: "estimated_demand" or a calibrated point estimate.
+    include_observed: emulate `calculate_imputation_percent_errors`, which
+        scores every open hour of a valid day. Observed hours were visible to
+        the model, so they add true sales to the denominator and sample size
+        but nothing to the error. Requires `series_hourly`.
+    series_hourly: full true hourly table; only used when include_observed=True.
+    """
+    if include_observed and series_hourly is None:
+        raise ValueError("include_observed=True requires series_hourly")
+
+    # keep only open hours
+    hour = pd.to_datetime(imputed_hourly["datetime"]).dt.hour
+    in_open_hours = hour.between(OPEN_HOURS.start, OPEN_HOURS.stop, inclusive="left")
+
+    df = _valid_day_rows(imputed_hourly[in_open_hours])
+
+    # on valid days every row is a masked hour with ground truth
+    diff = df[estimate_col] - df["actual_demand"]
+    total_actual = df["actual_demand"].sum()
+    n = len(df)
+
+    if include_observed:
+        keys = list(SERIES_KEYS)
+
+        # (series, day) pairs that passed the validity filter
+        valid_days = df[keys].assign(day=pd.to_datetime(df["date"])).drop_duplicates()
+
+        # every open hour on those days; valid days have no open-hour stockouts,
+        # so this is exactly the masked hours plus the observed hours
+        sh = series_hourly[[*keys, "datetime", "scaled_sales_quantity"]]
+        sh_hour = sh["datetime"].dt.hour
+        sh = sh[sh_hour.between(OPEN_HOURS.start, OPEN_HOURS.stop, inclusive="left")]
+        sh = sh.assign(day=sh["datetime"].dt.normalize()).merge(valid_days, on=[*keys, "day"])
+
+        total_actual = float(sh["scaled_sales_quantity"].sum())
+        n = len(sh)
+
+    if total_actual == 0:
+        return {"wape": np.nan, "wpe": np.nan, "n": n}
+
+    return {
+        "wape": float(diff.abs().sum() / total_actual),
+        "wpe": float(diff.sum() / total_actual),
+        "n_pe": n,
+    }
+
+
+def mean_absolute_scaled_error(
+    imputed_df: pd.DataFrame,
+    lag_hours: int = 24,
+    cache_dir: Optional[Union[str, Path]] = None,
+    series_hourly: Optional[pd.DataFrame] = None,
+) -> dict:
+    """MASE of `estimated_demand` against `actual_demand` on masked evaluation rows.
+
+    The scale for each store-product series is the mean absolute difference
+    between in-stock sales at hour t and hour t - lag_hours, using only pairs
+    where both hours were observed. The masked evaluation hours themselves are
+    excluded from the scale, so no evaluation truth leaks into the denominator.
+    Pass `series_hourly` to avoid reloading the dataset on every call.
+    """
+    keys = list(SERIES_KEYS)
+    _require_columns(imputed_df, ["actual_demand", "estimated_demand", "datetime", *keys])
+
+    if series_hourly is None:
+        series_hourly = get_series_hourly(cache_dir) if cache_dir is not None else get_series_hourly()
+    _require_columns(series_hourly, [*keys, "datetime", "is_stockout", "scaled_sales_quantity"])
+
+    # evaluation rows: masked in-stock hours with a known truth
+    df = imputed_df.loc[
+        imputed_df["actual_demand"].notna(),
+        [*keys, "datetime", "actual_demand", "estimated_demand"],
+    ].dropna()
+    df["datetime"] = pd.to_datetime(df["datetime"])
+
+    # observed in-stock hours only, restricted to the series being evaluated
+    obs = (
+        series_hourly.loc[~series_hourly["is_stockout"], [*keys, "datetime", "scaled_sales_quantity"]]
+        .rename(columns={"scaled_sales_quantity": "sales"})
+        .merge(df[keys].drop_duplicates(), on=keys)
+    )
+    obs["datetime"] = pd.to_datetime(obs["datetime"])
+
+    # anti-join: drop the masked evaluation hours from the scale data
+    obs = obs.merge(
+        df[[*keys, "datetime"]].drop_duplicates().assign(_eval=True),
+        on=[*keys, "datetime"],
+        how="left",
+    )
+    obs = obs[obs["_eval"].isna()].drop(columns="_eval")
+
+    # naive-forecast scale, matched on timestamps so gaps in a series are
+    # skipped instead of being bridged by a positional shift
+    lagged = obs.assign(datetime=obs["datetime"] + pd.Timedelta(hours=lag_hours))
+    pairs = obs.merge(lagged, on=[*keys, "datetime"], suffixes=("", "_lag"))
+    scale = (
+        pairs.assign(abs_diff=(pairs["sales"] - pairs["sales_lag"]).abs())
+        .groupby(keys, as_index=False)["abs_diff"].mean()
+        .rename(columns={"abs_diff": "scale"})
+    )
+
+    df = df.merge(scale, on=keys, how="left")
+
+    # series with no usable lag pairs, or a constant series (scale 0), have no valid scale
+    valid = df["scale"].notna() & (df["scale"] > 0)
+    n_dropped = int((~valid).sum())
+    df = df[valid]
+
+    if df.empty:
+        return {"value": float("nan"), "n": 0, "n_dropped_no_scale": n_dropped}
+
+    scaled_err = (df["estimated_demand"] - df["actual_demand"]).abs() / df["scale"]
+    return {
+        "value": float(scaled_err.mean()),
+        "n_mase": len(df),
+        "n_mase_dropped_no_scale": n_dropped,
+    }

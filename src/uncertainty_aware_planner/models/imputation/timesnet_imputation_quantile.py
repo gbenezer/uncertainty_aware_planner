@@ -56,7 +56,9 @@ class TimesNet_Imputation_Quantile:
         if not quantiles:
             raise ValueError("cfg['quantiles'] must contain at least one quantile")
         if any(not (0.0 < q < 1.0) for q in quantiles):
-            raise ValueError(f"Quantiles must be strictly between 0 and 1, got {quantiles}")
+            raise ValueError(
+                f"Quantiles must be strictly between 0 and 1, got {quantiles}"
+            )
         tags = [self._tag(q) for q in quantiles]
         if len(set(tags)) != len(tags):
             raise ValueError(
@@ -106,9 +108,26 @@ class TimesNet_Imputation_Quantile:
         # consistent filenames: 0.1 -> q010, 0.5 -> q050, 0.9 -> q090
         return f"q{int(round(q * 100)):03d}"
 
+    def _select(self, quantile: Optional[float] = None):
+        # returns a list of (q, model) pairs: all of them, or just the requested one
+        if quantile is None:
+            return list(self.models.items())
+        for q, m in self.models.items():
+            if np.isclose(q, quantile):
+                return [(q, m)]
+        raise ValueError(
+            f"Quantile {quantile} is not one of the configured quantiles "
+            f"{list(self.quantiles)}"
+        )
+
     def fit(
-        self, train_set: Union[Dict, str], val_set: Optional[Union[Dict, str]] = None
+        self,
+        train_set: Union[Dict, str],
+        val_set: Optional[Union[Dict, str]] = None,
+        quantile: Optional[float] = None,
     ):
+        # quantile=None fits every sub-model; otherwise only the matching one
+        selected = self._select(quantile)  # validate before any work is done
         if val_set is None:
             warnings.warn(
                 "No val_set given: early stopping and best-model saving will "
@@ -120,7 +139,7 @@ class TimesNet_Imputation_Quantile:
                 "val_set for imputation must contain 'X' (artificially masked) "
                 "and 'X_ori' (ground truth)."
             )
-        for m in self.models.values():
+        for _, m in selected:
             m.fit(train_set, val_set)
         return self
 
@@ -143,12 +162,18 @@ class TimesNet_Imputation_Quantile:
         preds = self.impute(test_set)
         return np.median(preds, axis=-1)
 
-    def save(self, directory: Union[Path, str], overwrite: bool = False):
+    def save(
+        self,
+        directory: Union[Path, str],
+        overwrite: bool = False,
+        quantile: Optional[float] = None,
+    ):
         # Note: separate from PyPOTS's own timestamped checkpoints written
         # under saving_path/<tag> during fit().
+        selected = self._select(quantile)
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
-        for q, m in self.models.items():
+        for q, m in selected:
             m.save(str(directory / f"{self._tag(q)}.pypots"), overwrite=overwrite)
         return self
 
