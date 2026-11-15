@@ -234,3 +234,6 @@ slurm/job_logs/*
 
 # macOS Finder metadata
 .DS_Store
+
+# advisory lock used by pipeline/evaluate_forecasting.py while it merges metrics
+results/**/.evaluate.lock

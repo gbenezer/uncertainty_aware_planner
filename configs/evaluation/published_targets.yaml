@@ -1,0 +1,36 @@
+# Published test-week WAPE and WPE the forecasting models are compared against (Dev Contract A.7.2).
+# Source: Wang et al. 2025, FreshRetailNet-50K (arXiv:2505.16319), Table 3. Values in percent.
+# WPE sign: forecast - actual (negative = under-forecast). Slices follow the authors' psd split: high_sales is
+# mean daily demand before the test week >= 1, low_sales < 1. Scored on days without a daytime stockout.
+source: Wang et al. 2025, arXiv:2505.16319, Table 3
+units: percent
+
+# model_id -> published model family, and imputation_run_id -> the training data it stands for. An id matches
+# a key when it equals the key or starts with the key followed by "-" (the longest match wins). Ids that
+# match nothing have no published target.
+model_families:
+  fc-dlinear: dlinear
+  fc-tft: tft
+training_data:
+  imp-none-censored: raw_sales  # recorded sales, stockouts not recovered
+  imp-dlinear: dlinear_recovered  # demand recovered by DLinear imputation
+
+targets:  # family -> training data -> slice -> {wape, wpe}
+  dlinear:
+    raw_sales:
+      all: {wape: 31.56, wpe: -4.89}
+      high_sales: {wape: 25.68, wpe: -7.63}
+      low_sales: {wape: 39.78, wpe: -1.03}
+    dlinear_recovered:
+      all: {wape: 30.60, wpe: 4.02}
+      high_sales: {wape: 23.61, wpe: 0.36}
+      low_sales: {wape: 40.35, wpe: 9.16}
+  tft:
+    raw_sales:
+      all: {wape: 31.75, wpe: -7.37}
+      high_sales: {wape: 27.95, wpe: -11.46}
+      low_sales: {wape: 37.04, wpe: -1.72}
+    dlinear_recovered:
+      all: {wape: 29.71, wpe: 2.63}
+      high_sales: {wape: 23.68, wpe: -2.05}
+      low_sales: {wape: 38.09, wpe: 9.16}
