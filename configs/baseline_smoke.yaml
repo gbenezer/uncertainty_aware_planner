@@ -1,0 +1,30 @@
+# Smoke test of the imputation baseline: one command, CPU only, no credentials, well under 5 minutes.
+#   uv run python -m uncertainty_aware_planner.pipeline.baseline_smoke
+#
+
+model_config: configs/imputation_models/dlinear_imputation_baseline.yaml
+data_config: configs/data.yaml  # splits, covariates and cleaning come from here; only the source changes
+device: cpu
+seeds: [86400, 12, 214]  # the first three of the full run's nine seeds
+folds: [1, 2, 3, 4, 5, 6]  # every rolling fold in configs/splits.yaml
+
+source:
+  kind: parquet
+  data_files:
+    train: fixtures/raw_series/train.parquet
+    eval: fixtures/raw_series/eval.parquet
+  files:
+    fixtures/raw_series/train.parquet:
+      sha256: aaf7ff60026722b829335c7b03965c275e460f8ccf15d7c4f0a45e89b752655e
+      bytes: 37376
+    fixtures/raw_series/eval.parquet:
+      sha256: 062a060e9c063aefb7bd3fae601838db21ba201c23e5bbe29dbbd525c85b8993
+      bytes: 8890
+expected:
+  n_series: 6
+  train_days: 90
+  test_days: 7
+
+work_dir: data/runs/baseline_smoke  # gitignored: datasets cache and one run_log JSON per run
+log: results/imputation/baseline_log.csv  # committed; each run is compared with the smoke reference row
+tolerance: 0.001  # largest accepted |difference| in mean WAPE and WPE against the reference row

@@ -1,0 +1,115 @@
+/home/benezer.gi/.conda/envs/py3.8_frn/bin/python
+Python 3.8.20
+cuda:0
+9153778
+old
+wape 0.3033881425058783
+wpe -0.18975447730032102
+new, faithful
+{'wape': 0.3199302665889875, 'wpe': -0.20010076863161994}
+new, imputation-only (no reconstruction error)
+{'wape': 0.31993026780284045, 'wpe': -0.20010077285989164}
+new, hourly, aligned hours
+{'wape': 0.714814354142635, 'wpe': -0.20010076863161932}
+new, hourly, aligned hours, imputation-only
+{'wape': 0.7148143493450398, 'wpe': -0.20010077285989145}
+new, hourly, all hours
+{'wape': 0.12274098570057068, 'wpe': -0.03435934476339639}
+new, hourly, all hours, imputation-only
+{'wape': 0.9570903784346011, 'wpe': -0.267922048007301}
+cuda:0
+9154070
+old
+wape 0.29940973274359634
+wpe -0.1434930794292338
+new, faithful
+{'wape': 0.3157173522686618, 'wpe': -0.15130855864685783}
+new, imputation-only (no reconstruction error)
+{'wape': 0.31571735281516866, 'wpe': -0.15130856287736083}
+new, hourly, aligned hours
+{'wape': 0.7431089570617069, 'wpe': -0.151308558646858}
+new, hourly, aligned hours, imputation-only
+{'wape': 0.7431089522559301, 'wpe': -0.15130856287736075}
+new, hourly, all hours
+{'wape': 0.12750387217338835, 'wpe': -0.025961757819746308}
+new, hourly, all hours, imputation-only
+{'wape': 0.995393599645179, 'wpe': -0.20267764854993134}
+cuda:0
+9161021
+old
+wape 0.29257878437014173
+wpe -0.15194753220025273
+new, faithful
+{'wape': 0.3085176574588291, 'wpe': -0.16022520837247695}
+new, imputation-only (no reconstruction error)
+{'wape': 0.30851765816576227, 'wpe': -0.16022521260227404}
+new, hourly, aligned hours
+{'wape': 0.7407284080256371, 'wpe': -0.1602252083724771}
+new, hourly, aligned hours, imputation-only
+{'wape': 0.7407284032282546, 'wpe': -0.1602252126022743}
+new, hourly, all hours
+{'wape': 0.12745848479000688, 'wpe': -0.027570226301870605}
+new, hourly, all hours, imputation-only
+{'wape': 0.9918967215127102, 'wpe': -0.2145548387117807}
+cuda:0
+9140672
+old
+wape 0.3077275416040408
+wpe -0.17835703917230086
+new, faithful
+{'wape': 0.3244597059730103, 'wpe': -0.18805490137936215}
+new, imputation-only (no reconstruction error)
+{'wape': 0.3244597070129056, 'wpe': -0.18805490560710605}
+new, hourly, aligned hours
+{'wape': 0.7229892271714342, 'wpe': -0.1880549013793624}
+new, hourly, aligned hours, imputation-only
+{'wape': 0.7229892223568115, 'wpe': -0.1880549056071062}
+new, hourly, all hours
+{'wape': 0.12417191201249729, 'wpe': -0.032298024817771394}
+new, hourly, all hours, imputation-only
+{'wape': 0.969027353348415, 'wpe': -0.25205126415384577}
+cuda:0
+9155068
+old
+wape 0.32701602997874435
+wpe -0.22048054364015546
+new, faithful
+{'wape': 0.3448218595867123, 'wpe': -0.23248557896574445}
+new, imputation-only (no reconstruction error)
+{'wape': 0.3448218609894205, 'wpe': -0.23248558318632673}
+new, hourly, aligned hours
+{'wape': 0.6971278032670708, 'wpe': -0.2324855789657443}
+new, hourly, aligned hours, imputation-only
+{'wape': 0.6971277984780274, 'wpe': -0.23248558318632653}
+new, hourly, all hours
+{'wape': 0.1198413790865331, 'wpe': -0.03996595637290609}
+new, hourly, all hours, imputation-only
+{'wape': 0.9331931243975206, 'wpe': -0.31121115557962614}
+cuda:0
+9170071
+old
+wape 0.3326133820953296
+wpe -0.2486720626610117
+new, faithful
+{'wape': 0.3507504879957938, 'wpe': -0.2622319245840568}
+new, imputation-only (no reconstruction error)
+{'wape': 0.3507504895310976, 'wpe': -0.262231928805945}
+new, hourly, aligned hours
+{'wape': 0.6943369429697409, 'wpe': -0.26223192458405714}
+new, hourly, aligned hours, imputation-only
+{'wape': 0.6943369381844079, 'wpe': -0.26223192880594537}
+new, hourly, all hours
+{'wape': 0.11958669762736975, 'wpe': -0.04516458000500994}
+new, hourly, all hours, imputation-only
+{'wape': 0.9288448454301879, 'wpe': -0.35079910340868026}
+cuda:0
+9159580
+old
+wape 0.3290737967064811
+wpe -0.24849230742941772
+new, faithful
+{'wape': 0.3469697963641306, 'wpe': -0.262006049007122}
+new, hourly, aligned hours
+{'wape': 0.6914264451195686, 'wpe': -0.26200604900712243}
+new, hourly, all hours
+{'wape': 0.1189249627621068, 'wpe': -0.04506487482395325}

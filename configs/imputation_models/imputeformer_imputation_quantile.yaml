@@ -1,0 +1,19 @@
+name: "ImputeFormer_Imputation_Quantile"
+n_steps: 672
+n_features: 9
+n_layers: 2
+d_input_embed: 64
+d_learnable_embed: 64
+d_proj: 64
+d_ffn: 32
+n_temporal_heads: 4
+dropout: 0.0
+input_dim: 1
+output_dim: 1
+ORT_weight: 1
+MIT_weight: 1
+batch_size: 128
+epochs: 5
+patience: 5
+optimizer_parameters:
+quantiles: [0.025, 0.975]

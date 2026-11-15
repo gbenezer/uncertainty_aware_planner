@@ -1,0 +1,5 @@
+wape,wpe,num_quantiles,commit,public_data_config_file,split_config_file,device,execution_datetime,seed,fold
+7.8742757,-5.3328924,2,648112335d0f2233cc937adac89733ee1851705b-dirty,configs/data.yaml,configs/splits.yaml,cuda,2026-11-10 16:04:03.090449,86400,1
+4.4989038,-1.7732459,3,648112335d0f2233cc937adac89733ee1851705b-dirty,configs/data.yaml,configs/splits.yaml,cuda,2026-11-10 16:04:03.090449,86400,1
+7.348197,-4.7684546,2,648112335d0f2233cc937adac89733ee1851705b-dirty,configs/data.yaml,configs/splits.yaml,cuda,2026-11-10 19:27:09.292755,86400,2
+4.566527,-1.9434607,3,648112335d0f2233cc937adac89733ee1851705b-dirty,configs/data.yaml,configs/splits.yaml,cuda,2026-11-10 19:27:09.292755,86400,2
