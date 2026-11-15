@@ -1,4 +1,3 @@
-
 """Evaluate PICP and MPIW for DLinear Quantile forecasts.
 
 Example:
@@ -7,21 +6,16 @@ Example:
 Reads saved forecast Parquet files and calculates interval metrics.
 """
 
-from pathlib import Path
 import argparse
 import csv
+from pathlib import Path
 
 import numpy as np
 import pyarrow.parquet as pq
 
+DEFAULT_FORECAST_DIR = Path("data/processed/forecast/fc-dlinear-quantile-2025")
 
-DEFAULT_FORECAST_DIR = Path(
-    "data/processed/forecast/fc-dlinear-quantile-2025"
-)
-
-DEFAULT_OUTPUT = Path(
-    "results/forecasting/dlinear_interval_evaluation.csv"
-)
+DEFAULT_OUTPUT = Path("results/forecasting/dlinear_interval_evaluation.csv")
 
 
 def calculate_metrics(path: Path) -> dict:
@@ -52,9 +46,7 @@ def calculate_metrics(path: Path) -> dict:
         lower = lower[valid]
         upper = upper[valid]
 
-        covered += np.count_nonzero(
-            (actual >= lower) & (actual <= upper)
-        )
+        covered += np.count_nonzero((actual >= lower) & (actual <= upper))
 
         width_sum += np.sum(upper - lower)
         total += len(actual)
@@ -109,9 +101,7 @@ def main():
         )
 
     if not results:
-        raise FileNotFoundError(
-            f"No forecast files found in {args.forecast_dir}"
-        )
+        raise FileNotFoundError(f"No forecast files found in {args.forecast_dir}")
 
     args.output.parent.mkdir(
         parents=True,
@@ -128,14 +118,8 @@ def main():
 
     print(f"\nResults saved to: {args.output}")
 
-    print(
-        f"Average PICP: "
-        f"{np.mean([r['picp'] for r in results]):.2f}%"
-    )
-    print(
-        f"Average MPIW: "
-        f"{np.mean([r['mpiw'] for r in results]):.4f}"
-    )
+    print(f"Average PICP: {np.mean([r['picp'] for r in results]):.2f}%")
+    print(f"Average MPIW: {np.mean([r['mpiw'] for r in results]):.4f}")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-
 """Apply split conformal quantile calibration to DLinear forecasts."""
 
 from pathlib import Path
@@ -6,17 +5,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-
-FORECAST_DIR = Path(
-    "data/processed/forecast/fc-dlinear-quantile-2025"
-)
+FORECAST_DIR = Path("data/processed/forecast/fc-dlinear-quantile-2025")
 
 CALIB_PATH = FORECAST_DIR / "final_calib.parquet"
 TEST_PATH = FORECAST_DIR / "final_test.parquet"
 
-OUTPUT_PATH = (
-    FORECAST_DIR / "calibrated" / "final_test.parquet"
-)
+OUTPUT_PATH = FORECAST_DIR / "calibrated" / "final_test.parquet"
 
 ALPHA = 0.05
 
@@ -45,11 +39,7 @@ def main():
         raise ValueError("No calibration samples")
 
     k = int(np.ceil((n + 1) * (1 - ALPHA)))
-    qhat95 = (
-        np.partition(scores, k - 1)[k - 1]
-        if k <= n
-        else float("inf")
-    )
+    qhat95 = np.partition(scores, k - 1)[k - 1] if k <= n else float("inf")
 
     print(f"Calibration rows: {n:,}")
     print(f"Conformal qhat95: {qhat95:.6f}")
@@ -61,9 +51,7 @@ def main():
         raise ValueError("Test predictions contain missing bounds")
 
     test["qhat95"] = qhat95
-    test["q025_cal"] = np.maximum(
-        0.0, test["q025"] - qhat95
-    )
+    test["q025_cal"] = np.maximum(0.0, test["q025"] - qhat95)
     test["q975_cal"] = test["q975"] + qhat95
 
     if (test["q025_cal"] > test["q975_cal"]).any():

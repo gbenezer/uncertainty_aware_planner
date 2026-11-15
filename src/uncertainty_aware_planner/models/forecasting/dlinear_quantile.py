@@ -1,10 +1,10 @@
-
-import torch
-from torch import nn
-import torch.nn.functional as F
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
+import torch
+import torch.nn.functional as F
+from torch import nn
 
 
 class DLinearQuantile(nn.Module):
@@ -53,14 +53,9 @@ class DLinearQuantile(nn.Module):
         seasonal = x - trend
 
         # Predict future demand quantiles
-        output = (
-            self.seasonal_linear(seasonal)
-            + self.trend_linear(trend)
-        )
+        output = self.seasonal_linear(seasonal) + self.trend_linear(trend)
 
-        raw = output.reshape(
-            -1, self.horizon_days, len(self.quantiles)
-        )
+        raw = output.reshape(-1, self.horizon_days, len(self.quantiles))
 
         lower = raw[..., :1]
         increments = F.softplus(raw[..., 1:])
@@ -103,9 +98,7 @@ def fit(model, train_ds, cfg, run_dir):
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    device = torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
-    )
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
     loader_cfg = cfg["dataloader"]
@@ -134,7 +127,7 @@ def fit(model, train_ds, cfg, run_dir):
         for batch_idx, (x, y) in enumerate(train_loader):
             if limit is not None and batch_idx >= limit:
                 break
-            
+
             history = x["encoder_target"].float().to(device)
             target = y[0].float().to(device)
 
@@ -156,10 +149,7 @@ def fit(model, train_ds, cfg, run_dir):
 
         avg_loss = total_loss / max(num_batches, 1)
 
-        print(
-            f"Epoch {epoch + 1}/{epochs}, "
-            f"Pinball Loss: {avg_loss:.4f}"
-        )
+        print(f"Epoch {epoch + 1}/{epochs}, Pinball Loss: {avg_loss:.4f}")
 
     checkpoint_path = run_dir / "dlinear_quantile.pt"
 
@@ -175,7 +165,6 @@ def fit(model, train_ds, cfg, run_dir):
     )
 
     return checkpoint_path
-
 
 
 def predict_quantiles(
@@ -215,7 +204,6 @@ def predict_quantiles(
 
     with torch.no_grad():
         for batch_idx, (x, _) in enumerate(loader):
-
             # Limit prediction batches during smoke tests
             if limit is not None and batch_idx >= limit:
                 break
@@ -239,9 +227,7 @@ def predict_quantiles(
             indices.append(eval_ds.x_to_index(x))
 
             # Number of valid forecast days
-            lengths.append(
-                x["decoder_lengths"].cpu().numpy()
-            )
+            lengths.append(x["decoder_lengths"].cpu().numpy())
 
     if not predictions:
         raise ValueError("Evaluation dataset is empty")

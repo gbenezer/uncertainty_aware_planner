@@ -1,4 +1,3 @@
-
 """Create shared low-sales and high-sales product labels."""
 
 from pathlib import Path
@@ -6,10 +5,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-
-DATA_PATH = Path(
-    "data/processed/demand_daily/imp-none-censored.parquet"
-)
+DATA_PATH = Path("data/processed/demand_daily/imp-none-censored.parquet")
 SPLITS_PATH = Path("configs/splits.yaml")
 OUTPUT_PATH = Path("data/processed/slices.parquet")
 
@@ -57,12 +53,9 @@ def main():
     if history.duplicated(KEYS + ["date"]).any():
         raise ValueError("Duplicate store-product-day records found")
 
-    slices = (
-        history.groupby(KEYS, as_index=False)
-        .agg(
-            mean_scaled_demand=("demand_total", "mean"),
-            history_days=("demand_total", "size"),
-        )
+    slices = history.groupby(KEYS, as_index=False).agg(
+        mean_scaled_demand=("demand_total", "mean"),
+        history_days=("demand_total", "size"),
     )
 
     slices["slice"] = "high_sales"

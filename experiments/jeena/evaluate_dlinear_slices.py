@@ -1,21 +1,15 @@
-
 """Evaluate DLinear Quantile forecasts by sales-volume slice."""
 
-from pathlib import Path
 import csv
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-
-FORECAST_DIR = Path(
-    "data/processed/forecast/fc-dlinear-quantile-2025"
-)
+FORECAST_DIR = Path("data/processed/forecast/fc-dlinear-quantile-2025")
 SLICES_PATH = Path("data/processed/slices.parquet")
-OUTPUT_PATH = Path(
-    "results/forecasting/dlinear_ma7_slice_evaluation.csv"
-)
+OUTPUT_PATH = Path("results/forecasting/dlinear_ma7_slice_evaluation.csv")
 
 KEYS = ["store_id", "product_id"]
 GROUPS = ["all", "low_sales", "high_sales"]
@@ -53,9 +47,7 @@ def update(stats, df):
     stats["rows"] += len(actual)
     stats["error"] += np.abs(actual - pred).sum()
     stats["actual_sum"] += np.abs(actual).sum()
-    stats["covered"] += np.count_nonzero(
-        (actual >= lower) & (actual <= upper)
-    )
+    stats["covered"] += np.count_nonzero((actual >= lower) & (actual <= upper))
     stats["width_sum"] += (upper - lower).sum()
 
 
@@ -69,14 +61,8 @@ def metrics(stats):
             if stats["actual_sum"] > 0
             else float("nan")
         ),
-        "picp": (
-            100 * stats["covered"] / n
-            if n else float("nan")
-        ),
-        "mpiw": (
-            stats["width_sum"] / n
-            if n else float("nan")
-        ),
+        "picp": (100 * stats["covered"] / n if n else float("nan")),
+        "mpiw": (stats["width_sum"] / n if n else float("nan")),
     }
 
 
@@ -100,15 +86,14 @@ def main():
 
         print(f"\nEvaluating Fold {fold}...", flush=True)
 
-        fold_stats = {
-            group: empty_stats() for group in GROUPS
-        }
+        fold_stats = {group: empty_stats() for group in GROUPS}
 
         parquet = pq.ParquetFile(path)
 
         for batch in parquet.iter_batches(
             batch_size=100_000,
-            columns=KEYS + [
+            columns=KEYS
+            + [
                 "actual_demand",
                 "estimated_demand",
                 "q025",
@@ -125,26 +110,23 @@ def main():
             )
 
             if df["slice"].isna().any():
-                raise ValueError(
-                    f"Fold {fold}: some products lack slice labels"
-                )
+                raise ValueError(f"Fold {fold}: some products lack slice labels")
 
             for group in GROUPS:
-                subset = (
-                    df if group == "all"
-                    else df.loc[df["slice"] == group]
-                )
+                subset = df if group == "all" else df.loc[df["slice"] == group]
 
                 update(fold_stats[group], subset)
                 update(pooled[group], subset)
 
         for group in GROUPS:
             result = metrics(fold_stats[group])
-            results.append({
-                "fold": fold,
-                "slice": group,
-                **result,
-            })
+            results.append(
+                {
+                    "fold": fold,
+                    "slice": group,
+                    **result,
+                }
+            )
 
             print(
                 f"{group}: "
@@ -153,16 +135,18 @@ def main():
                 f"MPIW={result['mpiw']:.4f}"
             )
 
-    OUTPUT_PATH.parent.mkdir(
-        parents=True, exist_ok=True
-    )
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     with OUTPUT_PATH.open("w", newline="") as file:
         writer = csv.DictWriter(
             file,
             fieldnames=[
-                "fold", "slice", "rows",
-                "wape", "picp", "mpiw",
+                "fold",
+                "slice",
+                "rows",
+                "wape",
+                "picp",
+                "mpiw",
             ],
         )
         writer.writeheader()

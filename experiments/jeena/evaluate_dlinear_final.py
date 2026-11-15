@@ -1,4 +1,3 @@
-
 """Evaluate final DLinear forecasts and calibrated intervals."""
 
 from pathlib import Path
@@ -6,17 +5,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-
 FORECAST_PATH = Path(
-    "data/processed/forecast/"
-    "fc-dlinear-quantile-2025/calibrated/final_test.parquet"
+    "data/processed/forecast/fc-dlinear-quantile-2025/calibrated/final_test.parquet"
 )
 
 SLICES_PATH = Path("data/processed/slices.parquet")
 
-OUTPUT_PATH = Path(
-    "results/forecasting/dlinear_final_test_metrics.csv"
-)
+OUTPUT_PATH = Path("results/forecasting/dlinear_final_test_metrics.csv")
 
 
 def calculate_metrics(df):
@@ -34,15 +29,10 @@ def calculate_metrics(df):
     return {
         "rows": len(df),
         "wape": (
-            np.abs(y - pred).sum() / denominator * 100
-            if denominator > 0 else np.nan
+            np.abs(y - pred).sum() / denominator * 100 if denominator > 0 else np.nan
         ),
-        "picp_before": np.mean(
-            (y >= lower) & (y <= upper)
-        ) * 100,
-        "picp_after": np.mean(
-            (y >= lower_cal) & (y <= upper_cal)
-        ) * 100,
+        "picp_before": np.mean((y >= lower) & (y <= upper)) * 100,
+        "picp_after": np.mean((y >= lower_cal) & (y <= upper_cal)) * 100,
         "mpiw_before": np.mean(upper - lower),
         "mpiw_after": np.mean(upper_cal - lower_cal),
     }
@@ -83,19 +73,13 @@ def main():
     if not np.isfinite(df[required].to_numpy()).all():
         raise ValueError("Missing or non-finite forecast values")
 
-    if (
-        (df["q025"] > df["q975"]).any()
-        or (df["q025_cal"] > df["q975_cal"]).any()
-    ):
+    if (df["q025"] > df["q975"]).any() or (df["q025_cal"] > df["q975_cal"]).any():
         raise ValueError("Invalid prediction intervals")
 
     results = []
 
     for group in ["all", "low_sales", "high_sales"]:
-        subset = (
-            df if group == "all"
-            else df.loc[df["slice"] == group]
-        )
+        subset = df if group == "all" else df.loc[df["slice"] == group]
 
         if subset.empty:
             raise ValueError(f"No rows for {group}")

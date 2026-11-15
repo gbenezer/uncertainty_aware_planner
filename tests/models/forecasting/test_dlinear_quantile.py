@@ -1,14 +1,15 @@
+from pathlib import Path
 
-import torch
 import numpy as np
+import pandas as pd
+import torch
+
 from uncertainty_aware_planner.models.forecasting.dlinear_quantile import (
     DLinearQuantile,
+    fit,
     pinball_loss,
-    fit, 
-    predict_quantiles
+    predict_quantiles,
 )
-from pathlib import Path
-import pandas as pd
 
 
 def test_dlinear_quantile_output():
@@ -25,9 +26,7 @@ def test_dlinear_quantile_output():
     assert torch.isfinite(predictions).all()
 
     targets = torch.rand(4, 7)
-    loss = pinball_loss(
-        predictions, targets, model.quantiles
-    )
+    loss = pinball_loss(predictions, targets, model.quantiles)
 
     assert torch.isfinite(loss)
 
@@ -79,7 +78,6 @@ def test_fit_saves_checkpoint(tmp_path):
     assert "model_state_dict" in saved
 
 
-
 def test_predict_quantiles(tmp_path):
     class FakeDataset:
         def to_dataloader(self, train, batch_size, num_workers):
@@ -90,22 +88,27 @@ def test_predict_quantiles(tmp_path):
             return [(x, None)]
 
         def x_to_index(self, x):
-            return pd.DataFrame({
-                "store_id": [1, 1, 2, 2],
-                "product_id": [10, 11, 10, 11],
-                "time_idx": [28, 28, 28, 28],
-            })
+            return pd.DataFrame(
+                {
+                    "store_id": [1, 1, 2, 2],
+                    "product_id": [10, 11, 10, 11],
+                    "time_idx": [28, 28, 28, 28],
+                }
+            )
 
     model = DLinearQuantile(encoder_days=21)
 
     checkpoint_path = tmp_path / "model.pt"
-    torch.save({
-        "model_state_dict": model.state_dict(),
-        "encoder_days": 21,
-        "horizon_days": 7,
-        "quantiles": model.quantiles,
-        "moving_avg": model.moving_avg,
-    }, checkpoint_path)
+    torch.save(
+        {
+            "model_state_dict": model.state_dict(),
+            "encoder_days": 21,
+            "horizon_days": 7,
+            "quantiles": model.quantiles,
+            "moving_avg": model.moving_avg,
+        },
+        checkpoint_path,
+    )
 
     cfg = {
         "dataloader": {
@@ -139,9 +142,8 @@ def test_quantile_crossing_rate():
     predictions = model(x)
 
     # Check whether lower > median or median > upper
-    crossing = (
-        (predictions[:, :, 0] > predictions[:, :, 1])
-        | (predictions[:, :, 1] > predictions[:, :, 2])
+    crossing = (predictions[:, :, 0] > predictions[:, :, 1]) | (
+        predictions[:, :, 1] > predictions[:, :, 2]
     )
 
     crossing_rate = crossing.float().mean().item()

@@ -1,4 +1,3 @@
-
 """Compare DLinear moving-average windows across validation folds."""
 
 import csv
@@ -8,7 +7,6 @@ from pathlib import Path
 
 import numpy as np
 import pyarrow.parquet as pq
-
 
 EXPERIMENTS = {
     "MA7": {
@@ -21,15 +19,10 @@ EXPERIMENTS = {
     },
 }
 
-DATA_PATH = (
-    "data/processed/demand_daily/"
-    "imp-none-censored.parquet"
-)
+DATA_PATH = "data/processed/demand_daily/imp-none-censored.parquet"
 
 OUTPUT_DIR = Path("data/processed/forecast")
-RESULTS_FILE = Path(
-    "results/forecasting/dlinear_ma_comparison.csv"
-)
+RESULTS_FILE = Path("results/forecasting/dlinear_ma_comparison.csv")
 
 
 def calculate_wape(path):
@@ -57,11 +50,7 @@ def calculate_wape(path):
         total_actual += np.abs(actual).sum()
         total_rows += len(actual)
 
-    wape = (
-        total_error / total_actual * 100
-        if total_actual > 0
-        else float("nan")
-    )
+    wape = total_error / total_actual * 100 if total_actual > 0 else float("nan")
 
     return wape, total_rows
 
@@ -73,12 +62,7 @@ def main():
 
     for fold in range(1, 7):
         for name, experiment in EXPERIMENTS.items():
-
-            output = (
-                OUTPUT_DIR
-                / experiment["run_id"]
-                / f"fold{fold}.parquet"
-            )
+            output = OUTPUT_DIR / experiment["run_id"] / f"fold{fold}.parquet"
 
             if output.exists():
                 print(f"Using existing {name} Fold {fold}", flush=True)
@@ -103,12 +87,14 @@ def main():
 
             wape, rows = calculate_wape(output)
 
-            results.append({
-                "model": name,
-                "fold": fold,
-                "wape": round(wape, 4),
-                "rows": rows,
-            })
+            results.append(
+                {
+                    "model": name,
+                    "fold": fold,
+                    "wape": round(wape, 4),
+                    "rows": rows,
+                }
+            )
 
             print(
                 f"{name} Fold {fold}: WAPE = {wape:.2f}%",
@@ -126,11 +112,7 @@ def main():
     print("\nAverage WAPE across folds:")
 
     for name in EXPERIMENTS:
-        values = [
-            row["wape"]
-            for row in results
-            if row["model"] == name
-        ]
+        values = [row["wape"] for row in results if row["model"] == name]
 
         print(f"{name}: {np.mean(values):.2f}%")
 
