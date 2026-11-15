@@ -69,34 +69,45 @@ print(f"{elapsed:.4f} s")
 
 print(series_hourly.head())
 print(series_hourly.columns)
-print(series_hourly.describe())
 
-# def timed(fn, *args, **kwargs):
-#     """Run fn and return (result, elapsed_ms),
-#     using CUDA events on GPU and perf_counter on CPU."""
-#     if torch.cuda.is_available():
-#         start = torch.cuda.Event(enable_timing=True)
-#         end = torch.cuda.Event(enable_timing=True)
-#         torch.cuda.synchronize()
-#         start.record()
-#         result = fn(*args, **kwargs)
-#         end.record()
-#         torch.cuda.synchronize()
-#         return result, start.elapsed_time(end)
-#     t0 = time.perf_counter()
-#     result = fn(*args, **kwargs)
-#     return result, (time.perf_counter() - t0) * 1000
+for column in series_hourly.columns:
+    print(column)
+    print(series_hourly[column].dtype)
 
 
-# print("imputing all three quantiles")
-# imputation, ms = timed(dlinear_model.impute, calib_set)
-# print(f"{ms:.2f} ms")
+def timed(fn, *args, **kwargs):
+    """Run fn and return (result, elapsed_ms),
+    using CUDA events on GPU and perf_counter on CPU."""
+    if torch.cuda.is_available():
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        torch.cuda.synchronize()
+        start.record()
+        result = fn(*args, **kwargs)
+        end.record()
+        torch.cuda.synchronize()
+        return result, start.elapsed_time(end)
+    t0 = time.perf_counter()
+    result = fn(*args, **kwargs)
+    return result, (time.perf_counter() - t0) * 1000
 
-# print("constructing dfs")
-# df_interval = to_imputed_hourly_interval_median(calib_set, calib_index, imputation)
-# df_interval_raw = to_imputed_hourly_interval_median(
-#     calib_set, calib_index, imputation, clip_demand=False
-# )
+
+print("imputing all three quantiles")
+imputation, ms = timed(dlinear_model.impute, calib_set)
+print(f"{ms:.2f} ms")
+
+print("constructing dfs")
+df_interval = to_imputed_hourly_interval_median(calib_set, calib_index, imputation)
+df_interval_raw = to_imputed_hourly_interval_median(
+    calib_set, calib_index, imputation, clip_demand=False
+)
+
+print("imputed_hourly_interval_median columns")
+print(df_interval.columns)
+
+for column in df_interval.columns:
+    print(column)
+    print(series_hourly[column].dtype)
 
 # print("calculating dlinear WAPE and WPE with new function and clipping demand")
 # start = time.perf_counter()
