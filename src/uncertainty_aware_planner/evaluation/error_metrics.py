@@ -67,20 +67,30 @@ def calculate_imputation_percent_errors(
     return {
         "wape": float(total_abs_diff / total_actual),
         "wpe": float(total_diff / total_actual),
-        "n": n,
+        "n_pe": n,
     }
 
 
 def calculate_imputation_errors_df(
     imputed_hourly: pd.DataFrame,
     estimate_col: str = "estimated_demand",
+    include_observed: bool = False,
+    series_hourly: Optional[pd.DataFrame] = None,
 ) -> dict:
     """Hourly WAPE / WPE of imputed demand on masked in-stock hours.
 
     imputed_hourly: the `imputed_hourly` table for a single run
         (one model / seed / fold / split).
     estimate_col: "estimated_demand" or a calibrated point estimate.
+    include_observed: emulate `calculate_imputation_percent_errors`, which
+        scores every open hour of a valid day. Observed hours were visible to
+        the model, so they add true sales to the denominator and sample size
+        but nothing to the error. Requires `series_hourly`.
+    series_hourly: full true hourly table; only used when include_observed=True.
     """
+    if include_observed and series_hourly is None:
+        raise ValueError("include_observed=True requires series_hourly")
+
     # keep only open hours
     hour = pd.to_datetime(imputed_hourly["datetime"]).dt.hour
     in_open_hours = hour.between(OPEN_HOURS.start, OPEN_HOURS.stop, inclusive="left")
@@ -92,13 +102,29 @@ def calculate_imputation_errors_df(
     total_actual = df["actual_demand"].sum()
     n = len(df)
 
+    if include_observed:
+        keys = list(SERIES_KEYS)
+
+        # (series, day) pairs that passed the validity filter
+        valid_days = df[keys].assign(day=pd.to_datetime(df["date"])).drop_duplicates()
+
+        # every open hour on those days; valid days have no open-hour stockouts,
+        # so this is exactly the masked hours plus the observed hours
+        sh = series_hourly[[*keys, "datetime", "scaled_sales_quantity"]]
+        sh_hour = sh["datetime"].dt.hour
+        sh = sh[sh_hour.between(OPEN_HOURS.start, OPEN_HOURS.stop, inclusive="left")]
+        sh = sh.assign(day=sh["datetime"].dt.normalize()).merge(valid_days, on=[*keys, "day"])
+
+        total_actual = float(sh["scaled_sales_quantity"].sum())
+        n = len(sh)
+
     if total_actual == 0:
         return {"wape": np.nan, "wpe": np.nan, "n": n}
 
     return {
         "wape": float(diff.abs().sum() / total_actual),
         "wpe": float(diff.sum() / total_actual),
-        "n": n,
+        "n_pe": n,
     }
 
 
@@ -169,6 +195,6 @@ def mean_absolute_scaled_error(
     scaled_err = (df["estimated_demand"] - df["actual_demand"]).abs() / df["scale"]
     return {
         "value": float(scaled_err.mean()),
-        "n": len(df),
-        "n_dropped_no_scale": n_dropped,
+        "n_mase": len(df),
+        "n_mase_dropped_no_scale": n_dropped,
     }
