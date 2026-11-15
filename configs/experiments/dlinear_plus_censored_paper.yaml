@@ -1,0 +1,22 @@
+# Improved DLinear on censored demand, paper protocol: trains on all 90 training days (03-28..06-25) like the
+# dataset authors and forecasts the test week once, so it compares like for like with their 31.56% WAPE and
+# with dlinear_baseline_censored_paper.yaml. Outputs go to *_paper_split folders; no folds are run.
+#   python -m uncertainty_aware_planner.pipeline.run --experiment configs/experiments/dlinear_plus_censored_paper.yaml
+name: dlinear_plus_censored_paper
+data_config: configs/data.yaml
+
+imputation:
+  run_id: imp-none-censored
+  source: censored
+
+forecast:
+  config: configs/forecasting_models/dlinear_forecasting_plus.yaml
+  seeds: [2025, 2026, 2027]
+  final_parts: [test]
+  protocol: paper
+
+evaluate:
+  point: estimated_demand
+  truth: data/processed/demand_daily/imp-none-censored.parquet
+  slices: data/processed/slices.parquet
+  out: results/forecasting
