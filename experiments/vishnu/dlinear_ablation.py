@@ -41,6 +41,11 @@ VARIANTS = {  # model-section overrides; "lookback" sets windows.final_lookback_
         "revin_in_stock_stats": True,
         "future_covariates": PLANNED,
     },
+    "mask+instock_revin": {"mask_stockout_targets": True, "revin_in_stock_stats": True},
+    "instock_revin+planned": {
+        "revin_in_stock_stats": True,
+        "future_covariates": PLANNED,
+    },
     "lookback28": {"lookback": 28},
     "lookback28+all": {
         "lookback": 28,

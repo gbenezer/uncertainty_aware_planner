@@ -195,16 +195,27 @@ uv run python -m uncertainty_aware_planner.pipeline.censored    # writes imputed
 uv run python -m uncertainty_aware_planner.data daily \
     --imputed data/processed/imputed_hourly/<run-id>.parquet --run-id <run-id>
 
-# Forecasting (Feature 2): one seed and one fold per run; omit --fold for the final model, add --smoke for a tiny CPU check
+# Forecasting (Feature 2): one seed and one fold per run; omit --fold for the final model, add --smoke for a tiny CPU check.
+# Configs: temporal_fusion_transformer.yaml, dlinear_forecasting_baseline.yaml (port of the dataset authors' DLinear,
+# CPU, minutes), dlinear_forecasting_plus.yaml. Outputs go to data/processed/forecast/<imputation-run-id>/<run-id>/.
 uv run python -m uncertainty_aware_planner.pipeline.forecast \
-    --config configs/forecasting_models/temporal_fusion_transformer.yaml \
+    --config configs/forecasting_models/dlinear_forecasting_baseline.yaml \
     --demand-daily data/processed/demand_daily/<run-id>.parquet --seed 2025 --fold 1
+
+# Evaluation: WAPE, WPE, MASE, PICP/MPIW per sales slice against raw sales on stockout-free days (CONTRACTS.md
+# 2.10), with the published targets and the acceptance verdicts; writes results/forecasting/<run-id>/<protocol>/
+uv run python -m uncertainty_aware_planner.pipeline.evaluate_forecasting \
+    --tables "data/processed/forecast/<run-id>/fc-dlinear-baseline-*/*.parquet" --protocol project
+
+# Everything above in one command (skips finished stages; --dry-run shows the plan, --smoke runs it on fixtures)
+uv run python -m uncertainty_aware_planner.pipeline.run --experiment configs/experiments/dlinear_baseline_censored.yaml
+sbatch slurm/run_experiment.sbatch configs/experiments/dlinear_baseline_censored.yaml   # the same on Explorer
 
 # Dashboard (reads demand_daily)
 uv run streamlit run dashboard/app.py
 ```
 
-Conformal calibration, evaluation and end-of-project data cleanup do not have a command yet; they are in progress.
+Forecast outputs written before the per-imputation-run layout move with `python -m uncertainty_aware_planner.pipeline.migrate_layout --imputation-run-id imp-none-censored` (`--dry-run` first). Conformal calibration, imputation evaluation and end-of-project data cleanup do not have a command yet; they are in progress.
 
 Every run writes a run-log record (data version, git commit, config, seed) so any result can be reproduced.
 
