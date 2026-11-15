@@ -60,6 +60,12 @@ print("building calibration set")
 calib_set, calib_index = build_pypots_set(cube, cfg, "calib", masks=masks)
 calibration_df = to_imputed_hourly(calib_set, calib_index, calib_set["X_ori"][..., 0])
 
+print("building full true `series_hourly`")
+start = time.perf_counter()
+series_hourly = get_series_hourly()
+elapsed = time.perf_counter() - start
+print(f"{elapsed:.4f} s")
+
 def timed(fn, *args, **kwargs):
     """Run fn and return (result, elapsed_ms),
     using CUDA events on GPU and perf_counter on CPU."""
@@ -120,6 +126,28 @@ elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
 print("New function, dlinear, no clipping: ", dlinear_result_new_raw)
 
+print("calculating dlinear WAPE and WPE with new function, clipping demand, and include observed hours with zero error")
+start = time.perf_counter()
+dlinear_result_new = calculate_imputation_errors_df(
+    imputed_hourly = df_point,
+    include_observed = True,
+    series_hourly = series_hourly
+)
+elapsed = time.perf_counter() - start
+print(f"{elapsed:.4f} s")
+print("New function, dlinear, with clipping, observed days added: ", dlinear_result_new)
+
+print("calculating dlinear WAPE and WPE with new function, no clipping, and include observed hours with zero error")
+start = time.perf_counter()
+dlinear_result_new_raw = calculate_imputation_errors_df(
+    imputed_hourly = df_interval_raw,
+    include_observed = True,
+    series_hourly = series_hourly
+)
+elapsed = time.perf_counter() - start
+print(f"{elapsed:.4f} s")
+print("New function, dlinear, no clipping, observed days added: ", dlinear_result_new_raw)
+
 print("with clipping")
 empirical_coverage = prediction_interval_coverage_fraction(df_interval)
 print("empirical coverage: ", empirical_coverage)
@@ -136,11 +164,7 @@ mean_width_all = mean_prediction_interval_width(df_interval_raw, include_stockou
 print("mean interval width, masked only: ", mean_width_actuals)
 print("mean interval width, all intervals: ", mean_width_all)
 
-print("building full true `series_hourly`")
-start = time.perf_counter()
-series_hourly = get_series_hourly()
-elapsed = time.perf_counter() - start
-print(f"{elapsed:.4f} s")
+
 print("calculating MASE, 24 hour lag, clipped")
 mase_result = mean_absolute_scaled_error(imputed_df = df_interval, series_hourly=series_hourly)
 print(mase_result)
