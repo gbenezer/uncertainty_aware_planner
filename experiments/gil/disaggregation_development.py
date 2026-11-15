@@ -63,6 +63,12 @@ calib_set, calib_index = build_pypots_set(cube, cfg, "calib", masks=masks)
 
 print("building full true `series_hourly`")
 start = time.perf_counter()
+cache = DATA_DIR / "series_hourly.parquet"
+if cache.exists():
+    series_hourly = pd.read_parquet(cache)
+else:
+    series_hourly = get_series_hourly()
+    series_hourly.to_parquet(cache)
 series_hourly = get_series_hourly()
 elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
