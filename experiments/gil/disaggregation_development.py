@@ -107,7 +107,7 @@ print(df_interval.columns)
 
 for column in df_interval.columns:
     print(column)
-    print(series_hourly[column].dtype)
+    print(df_interval[column].dtype)
 
 # print("calculating dlinear WAPE and WPE with new function and clipping demand")
 # start = time.perf_counter()
