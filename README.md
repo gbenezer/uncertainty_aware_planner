@@ -287,10 +287,10 @@ The table lists where test information could reach training, and what the code d
 
 | Area (under `src/uncertainty_aware_planner/` unless noted) | Lead |
 |---|---|
-| `data/`, `uq/conformal.py`, DLinear imputation (quantile) | Tarakaram |
-| `evaluation/`, fairness report, TimesNet imputation, DLinear baselines | Gil |
+| `data/`, `uq/conformal.py` | Tarakaram |
+| `evaluation/`, fairness report, TimesNet imputation, DLinear imputation (baseline), DLinear imputation (quantile) | Gil |
 | `api/`, `dashboard/` (both at repo root), DLinear forecasting (quantile) | Jeena |
-| `pipeline/`, `slurm/` (repo root), TFT forecasting, final runs, security check | Vishnu |
+| `pipeline/`, `slurm/` (repo root), TFT forecasting, DLinear baseline forecasting, final runs, security check | Vishnu |
 | `contracts/` (repo root) | All four; changes need every lead's approval |
 
 Ownership is agreed in this table. There is no `CODEOWNERS` file yet, so reviewers are requested by hand. Each lead also writes one section of the final report.
