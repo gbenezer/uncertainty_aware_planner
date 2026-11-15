@@ -27,7 +27,7 @@ def prediction_interval_coverage_fraction(
         return {"value": float("nan"), "n": 0}  # nothing to evaluate
 
     covered = df["actual_demand"].between(df[lo], df[hi])  # inclusive on both ends
-    return {"value": float(covered.mean()), "n": len(df)}
+    return {"value": float(covered.mean()), "n_picp": len(df)}
 
 
 def mean_prediction_interval_width(
@@ -53,4 +53,4 @@ def mean_prediction_interval_width(
     if df.empty:
         return {"value": float("nan"), "n": 0}  # nothing to evaluate
 
-    return {"value": float((df[hi] - df[lo]).mean()), "n": len(df)}
+    return {"value": float((df[hi] - df[lo]).mean()), "n_mpiw": len(df)}
