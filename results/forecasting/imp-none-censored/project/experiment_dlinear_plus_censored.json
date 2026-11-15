@@ -1,0 +1,431 @@
+{
+  "name": "dlinear_plus_censored",
+  "experiment": {
+    "name": "dlinear_plus_censored",
+    "data_config": "configs/data.yaml",
+    "imputation": {
+      "run_id": "imp-none-censored",
+      "source": "censored"
+    },
+    "forecast": {
+      "config": "configs/forecasting_models/dlinear_forecasting_plus.yaml",
+      "seeds": [
+        2025,
+        2026,
+        2027
+      ],
+      "folds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "final_parts": [
+        "calib",
+        "test"
+      ],
+      "protocol": "project"
+    },
+    "evaluate": {
+      "point": "estimated_demand",
+      "truth": "data/processed/demand_daily/imp-none-censored.parquet",
+      "slices": "data/processed/slices.parquet",
+      "out": "results/forecasting"
+    }
+  },
+  "options": {
+    "stages": [
+      "data",
+      "impute",
+      "daily",
+      "forecast",
+      "evaluate"
+    ],
+    "force": false,
+    "smoke": false,
+    "metrics_only": false,
+    "work_dir": null
+  },
+  "git_commit": "ba1efdf803cf110b719cc63e84829e251d9572d3",
+  "git_dirty": false,
+  "started_at_utc": "2026-11-15T06:17:28+00:00",
+  "stages": {
+    "data": {
+      "status": "skipped",
+      "reason": "data/raw/DATA_VERSION.json exists",
+      "wall_seconds": 0.0
+    },
+    "impute": {
+      "status": "skipped",
+      "reason": "data/processed/imputed_hourly/imp-none-censored.parquet exists",
+      "wall_seconds": 0.0
+    },
+    "daily": {
+      "status": "skipped",
+      "reason": "data/processed/demand_daily/imp-none-censored.parquet exists",
+      "wall_seconds": 0.0
+    },
+    "forecast": {
+      "status": "ran",
+      "reason": "21 of 21 runs (fc-dlinear-plus, project protocol)",
+      "wall_seconds": 674.6
+    },
+    "evaluate": {
+      "status": "ran",
+      "reason": "forecast runs ran",
+      "argv": [
+        "--tables",
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/*.parquet",
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/*.parquet",
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/*.parquet",
+        "--truth",
+        "data/processed/demand_daily/imp-none-censored.parquet",
+        "--slices",
+        "data/processed/slices.parquet",
+        "--point",
+        "estimated_demand",
+        "--quantiles-root",
+        "data/runs/forecasting",
+        "--protocol",
+        "project",
+        "--out",
+        "results/forecasting"
+      ],
+      "wall_seconds": 163.5
+    }
+  },
+  "runs": [
+    {
+      "seed": 2025,
+      "fold": 1,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold1.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold1.parquet missing",
+      "wall_seconds": 34.1
+    },
+    {
+      "seed": 2025,
+      "fold": 2,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold2.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold2.parquet missing",
+      "wall_seconds": 26.7
+    },
+    {
+      "seed": 2025,
+      "fold": 3,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold3.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold3.parquet missing",
+      "wall_seconds": 26.8
+    },
+    {
+      "seed": 2025,
+      "fold": 4,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold4.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold4.parquet missing",
+      "wall_seconds": 26.6
+    },
+    {
+      "seed": 2025,
+      "fold": 5,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold5.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold5.parquet missing",
+      "wall_seconds": 26.5
+    },
+    {
+      "seed": 2025,
+      "fold": 6,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold6.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold6.parquet missing",
+      "wall_seconds": 26.7
+    },
+    {
+      "seed": 2025,
+      "fold": null,
+      "parts": [
+        "calib",
+        "test"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/final_calib.parquet",
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/final_test.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/final_calib.parquet missing",
+      "wall_seconds": 62.1
+    },
+    {
+      "seed": 2026,
+      "fold": 1,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold1.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold1.parquet missing",
+      "wall_seconds": 26.6
+    },
+    {
+      "seed": 2026,
+      "fold": 2,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold2.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold2.parquet missing",
+      "wall_seconds": 26.5
+    },
+    {
+      "seed": 2026,
+      "fold": 3,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold3.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold3.parquet missing",
+      "wall_seconds": 26.7
+    },
+    {
+      "seed": 2026,
+      "fold": 4,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold4.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold4.parquet missing",
+      "wall_seconds": 26.8
+    },
+    {
+      "seed": 2026,
+      "fold": 5,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold5.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold5.parquet missing",
+      "wall_seconds": 26.6
+    },
+    {
+      "seed": 2026,
+      "fold": 6,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold6.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold6.parquet missing",
+      "wall_seconds": 26.7
+    },
+    {
+      "seed": 2026,
+      "fold": null,
+      "parts": [
+        "calib",
+        "test"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/final_calib.parquet",
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/final_test.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/final_calib.parquet missing",
+      "wall_seconds": 62.2
+    },
+    {
+      "seed": 2027,
+      "fold": 1,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold1.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold1.parquet missing",
+      "wall_seconds": 26.7
+    },
+    {
+      "seed": 2027,
+      "fold": 2,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold2.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold2.parquet missing",
+      "wall_seconds": 26.8
+    },
+    {
+      "seed": 2027,
+      "fold": 3,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold3.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold3.parquet missing",
+      "wall_seconds": 26.8
+    },
+    {
+      "seed": 2027,
+      "fold": 4,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold4.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold4.parquet missing",
+      "wall_seconds": 26.6
+    },
+    {
+      "seed": 2027,
+      "fold": 5,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold5.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold5.parquet missing",
+      "wall_seconds": 26.5
+    },
+    {
+      "seed": 2027,
+      "fold": 6,
+      "parts": [
+        "val"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold6.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold6.parquet missing",
+      "wall_seconds": 26.6
+    },
+    {
+      "seed": 2027,
+      "fold": null,
+      "parts": [
+        "calib",
+        "test"
+      ],
+      "tables": [
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/final_calib.parquet",
+        "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/final_test.parquet"
+      ],
+      "status": "ran",
+      "reason": "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/final_calib.parquet missing",
+      "wall_seconds": 62.1
+    }
+  ],
+  "tables": [
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold1.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold2.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold3.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold4.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold5.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/fold6.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/final_calib.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/final_test.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold1.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold2.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold3.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold4.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold5.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/fold6.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/final_calib.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/final_test.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold1.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold2.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold3.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold4.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold5.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/fold6.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/final_calib.parquet",
+    "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/final_test.parquet"
+  ],
+  "evaluation": {
+    "argv": [
+      "--tables",
+      "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2025/*.parquet",
+      "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2026/*.parquet",
+      "data/processed/forecast/imp-none-censored/fc-dlinear-plus-2027/*.parquet",
+      "--truth",
+      "data/processed/demand_daily/imp-none-censored.parquet",
+      "--slices",
+      "data/processed/slices.parquet",
+      "--point",
+      "estimated_demand",
+      "--quantiles-root",
+      "data/runs/forecasting",
+      "--protocol",
+      "project",
+      "--out",
+      "results/forecasting"
+    ],
+    "finished_at_utc": "2026-11-15T06:31:26+00:00",
+    "metrics": "results/forecasting/imp-none-censored/project/metrics.csv"
+  },
+  "pruned_tables": [],
+  "finished_at_utc": "2026-11-15T06:31:26+00:00",
+  "wall_seconds": 865.5
+}
