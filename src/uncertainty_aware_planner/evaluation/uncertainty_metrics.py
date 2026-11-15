@@ -14,7 +14,7 @@ def prediction_interval_coverage_fraction(
     actual_and_interval_df: pd.DataFrame,
     conformal_intervals: bool = False,
 ) -> MetricResult:
-    # assumes CONTRACTS.md imputed_hourly columns exist
+    # assumes CONTRACTS.md imputed_hourly/forecast columns exist
     lo, hi = ("q025_cal", "q975_cal") if conformal_intervals else ("q025", "q975")
 
     _require_columns(actual_and_interval_df, ["actual_demand", lo, hi])
@@ -35,7 +35,7 @@ def mean_prediction_interval_width(
     include_stockout: bool = False,
     conformal_intervals: bool = False,
 ) -> MetricResult:
-    # assumes CONTRACTS.md imputed_hourly columns exist
+    # assumes CONTRACTS.md imputed_hourly/forecast columns exist
     lo, hi = ("q025_cal", "q975_cal") if conformal_intervals else ("q025", "q975")
 
     _require_columns(interval_df, ["actual_demand", lo, hi])
