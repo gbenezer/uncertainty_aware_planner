@@ -75,7 +75,26 @@ def to_imputed_hourly(dataset, index, imputation, clip_demand: bool = True):
     return base.assign(estimated_demand=_estimate(imputation, sample, step, clip_demand))
 
 
+def to_imputed_hourly_interval(dataset, index, imputation, clip_demand: bool = True):
+
+    assert imputation.shape[-1] == 2, f"expected (lower, upper) quantiles as last dimension, got {imputation.shape}"
+    
+    # get the base dataframe, the indices of valid series,
+    # and the indices of valid hours
+    base, sample, step = _hidden_hours(dataset, index)
+
+    # create an anonymous function to get the other quantiles
+    q = lambda k: _estimate(imputation[..., 0, k], sample, step, clip_demand)
+
+    # construct the demand estimate given there are only intervals
+    demand_estimate = (q(0) + q(1)) * 0.5
+
+    # assign the proper values to the proper column names and return
+    return base.assign(q025=q(0), estimated_demand=demand_estimate, q975=q(1))
+
 def to_imputed_hourly_interval_median(dataset, index, imputation, clip_demand: bool = True):
+
+    assert imputation.shape[-1] == 3, f"expected (lower, median, upper) quantiles as last dimension, got {imputation.shape}"
     
     # get the base dataframe, the indices of valid series,
     # and the indices of valid hours
