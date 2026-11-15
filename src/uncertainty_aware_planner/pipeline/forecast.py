@@ -9,8 +9,11 @@ Fold k trains on the fold's train window and forecasts its val window (rolling 7
 --fold the final model trains on 03-28..06-18 and forecasts the calibration and test weeks from the same
 checkpoint, so conformal offsets fitted on calib apply to the model that made the test forecasts.
 
-Outputs: <output_dir>/<run_id>/{fold<k>,final_<part>}.parquet and <run_dir>/<run_id>/{fold<k>,final}/ with
-the checkpoint, training logs, all predicted quantiles and run_log.json.
+Outputs, nested by the imputation run the demand history comes from (so grids on censored and on imputed
+demand never overwrite each other):
+    <output_dir>/<imputation_run_id>/<run_id>/{fold<k>,final_<part>}.parquet (+ .manifest.json)
+    <run_dir>/<imputation_run_id>/<run_id>/{fold<k>,final}/ with the checkpoint, training logs, all predicted
+    quantiles and run_log.json.
 """
 
 from __future__ import annotations
@@ -22,24 +25,28 @@ import platform
 import subprocess
 import time
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pandas as pd
 import torch
 
 from uncertainty_aware_planner.data.config import load_config, load_yaml, resolve
+from uncertainty_aware_planner.data.outputs import file_sha256, write_manifest
 from uncertainty_aware_planner.data.splits import final_windows
 from uncertainty_aware_planner.data.timeseries_dataset import build_timeseries_datasets
-from uncertainty_aware_planner.models.forecasting import tft
+from uncertainty_aware_planner.models.forecasting import dlinear, tft
 from uncertainty_aware_planner.models.forecasting.forecast_table import (
     long_quantiles,
     run_id,
     to_forecast_table,
 )
-from uncertainty_aware_planner.utils.util_functions import set_seed
+from uncertainty_aware_planner.utils.util_functions import get_git_state, set_seed
 
 # Each architecture module provides build_model(train_ds, cfg), fit(model, train_ds, cfg, run_dir) -> ckpt
-# and predict_quantiles(ckpt, eval_ds, cfg) -> (quantiles, index, decoder_lengths).
-ARCHITECTURES = {"tft": tft}
+# and predict_quantiles(ckpt, eval_ds, cfg) -> (quantiles, index, decoder_lengths). A module may also provide
+# build_datasets(demand_daily, data_cfg, model_cfg, fold, eval_part) -> (train_ds, eval_ds, spec) and
+# same_preprocessing(a, b) -> bool; without them the shared pytorch-forecasting datasets are used.
+ARCHITECTURES = {"tft": tft, "dlinear_baseline": dlinear, "dlinear_plus": dlinear}
 
 
 def _merge(base: dict, override: dict) -> dict:
@@ -80,6 +87,34 @@ def _same_encoders(a, b) -> bool:
     )
 
 
+def _datasets(module, demand_daily, data_cfg, model_cfg, fold, eval_part):
+    build = getattr(module, "build_datasets", None)
+    if build is not None:
+        return build(demand_daily, data_cfg, model_cfg, fold=fold, eval_part=eval_part)
+    return build_timeseries_datasets(
+        demand_daily, data_cfg, fold=fold, eval_part=eval_part
+    )
+
+
+def _same_preprocessing(module, a, b) -> bool:
+    check = getattr(module, "same_preprocessing", None)
+    return check(a, b) if check is not None else _same_encoders(a, b)
+
+
+def run_paths(
+    model_cfg: dict, imputation_run_id: str, rid: str, fold: int | None
+) -> tuple[Path, Path]:
+    """(run directory, table directory) for one run, nested by imputation run id."""
+    run_dir = (
+        resolve(model_cfg["run_dir"])
+        / imputation_run_id
+        / rid
+        / (f"fold{fold}" if fold is not None else "final")
+    )
+    out_dir = resolve(model_cfg["output_dir"]) / imputation_run_id / rid
+    return run_dir, out_dir
+
+
 def run(
     model_cfg: dict,
     data_cfg: dict,
@@ -95,17 +130,14 @@ def run(
     model_module = ARCHITECTURES[model_cfg["architecture"]]
     parts = ["val"] if fold is not None else list(eval_parts or ["calib", "test"])
     rid = run_id(model_cfg["model_id"], seed)
-    run_dir = (
-        resolve(model_cfg["run_dir"])
-        / rid
-        / (f"fold{fold}" if fold is not None else "final")
-    )
-    out_dir = resolve(model_cfg["output_dir"]) / rid
+    imputation_run_id = str(demand_daily["imputation_run_id"].iloc[0])
+    run_dir, out_dir = run_paths(model_cfg, imputation_run_id, rid, fold)
     out_dir.mkdir(parents=True, exist_ok=True)
     start_date = final_windows(data_cfg["splits"])["train"].start
+    demand_sha = file_sha256(resolve(demand_daily_path)) if demand_daily_path else None
 
-    train_ds, eval_ds, spec = build_timeseries_datasets(
-        demand_daily, data_cfg, fold=fold, eval_part=parts[0]
+    train_ds, eval_ds, spec = _datasets(
+        model_module, demand_daily, data_cfg, model_cfg, fold, parts[0]
     )
     model = model_module.build_model(train_ds, model_cfg)
     ckpt = model_module.fit(model, train_ds, model_cfg, run_dir)
@@ -118,9 +150,15 @@ def run(
         "fold": fold,
         "eval_parts": parts,
         "demand_daily": demand_daily_path,
-        "imputation_run_id": str(demand_daily["imputation_run_id"].iloc[0]),
+        "demand_daily_sha256": demand_sha,
+        "imputation_run_id": imputation_run_id,
         "git_commit": _git_commit(),
+        "git_state": get_git_state(resolve(".")),
         "model_config": model_cfg,
+        "splits": {
+            "final": data_cfg["splits"]["final"],
+            "folds": data_cfg["splits"]["folds"],
+        },
         "dataset_spec": spec,
         "n_train_samples": len(train_ds),
         "checkpoint": str(ckpt),
@@ -132,25 +170,49 @@ def run(
     }
     for i, part in enumerate(parts):
         if i > 0:
-            part_train_ds, eval_ds, _ = build_timeseries_datasets(
-                demand_daily, data_cfg, eval_part=part
+            part_train_ds, eval_ds, _ = _datasets(
+                model_module, demand_daily, data_cfg, model_cfg, None, part
             )
-            if not _same_encoders(train_ds, part_train_ds):
+            if not _same_preprocessing(model_module, train_ds, part_train_ds):
                 raise RuntimeError(
-                    f"the {part} dataset encodes categories differently from training"
+                    f"the {part} dataset is preprocessed differently from training"
                 )
         q, index, lengths = model_module.predict_quantiles(ckpt, eval_ds, model_cfg)
         rows, stats = long_quantiles(
             q, index, lengths, model_cfg["quantiles"], start_date
         )
         table = to_forecast_table(
-            rows, demand_daily, model_cfg["model_id"], seed, fold, part
+            rows,
+            demand_daily,
+            model_cfg["model_id"],
+            seed,
+            fold,
+            part,
+            point_only=bool(model_cfg.get("point_forecast", False)),
         )
 
         name = f"fold{fold}" if fold is not None else f"final_{part}"
         table_path = out_dir / f"{name}.parquet"
         table.to_parquet(table_path, index=False)
         rows.to_parquet(run_dir / f"quantiles_{part}.parquet", index=False)
+        write_manifest(
+            table_path,
+            data_cfg,
+            model_cfg.get("config_path", ""),
+            seed,
+            {
+                "run_id": rid,
+                "model_id": model_cfg["model_id"],
+                "imputation_run_id": imputation_run_id,
+                "fold": fold,
+                "split": part,
+                "rows": len(table),
+                "demand_daily": demand_daily_path,
+                "demand_daily_sha256": demand_sha,
+                "run_dir": str(run_dir),
+                "git_commit": log["git_commit"],
+            },
+        )
         log["outputs"][part] = {
             "table": str(table_path),
             "n_eval_samples": len(eval_ds),
@@ -198,6 +260,7 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     model_cfg = load_yaml(args.config)
+    model_cfg["config_path"] = args.config
     if args.smoke:
         model_cfg = smoke_config(model_cfg)
     data_cfg = load_config(args.data_config or model_cfg["data_config"])

@@ -59,7 +59,7 @@ def test_fold_run_writes_contract_table(cfg, demand, tft_cfg):
     assert table["target_date"].min() == val.start
     assert table["target_date"].max() == val.end
 
-    run_dir = Path(tft_cfg["run_dir"]) / "fc-tft-quantile-7" / "fold1"
+    run_dir = Path(tft_cfg["run_dir"]) / "imp-fixture-0" / "fc-tft-quantile-7" / "fold1"
     saved = json.loads((run_dir / "run_log.json").read_text())
     assert saved["seed"] == 7 and saved["fold"] == 1
     assert Path(saved["checkpoint"]).exists()

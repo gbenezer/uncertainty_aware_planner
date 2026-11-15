@@ -57,6 +57,8 @@ def long_quantiles(
     n, horizon, n_q = q.shape
     if n_q != len(quantiles):
         raise ValueError(f"{n_q} quantile outputs but {len(quantiles)} quantile levels")
+    if len({quantile_column(level) for level in quantiles}) != len(quantiles):
+        raise ValueError(f"quantile levels must be distinct: {quantiles}")
     order = np.argsort(quantiles)
     q = q[..., order]
     levels = [quantiles[i] for i in order]
@@ -96,16 +98,29 @@ def to_forecast_table(
     seed: int,
     fold: int | None,
     split: str,
+    point_only: bool = False,
 ) -> pd.DataFrame:
     """Contract-exact table from `long_quantiles` rows. Hierarchy, imputation_run_id and actual_demand come
     from demand_daily; the conformal columns stay null until uq/ fills them.
+
+    Point models (point_only, e.g. the DLinear baseline trained with an L1 loss, i.e. a median forecast) give
+    only q500: q025 and q975 stay null, which CONTRACTS.md 2.5 allows for non-quantile baseline models, and
+    estimated_demand is q500.
     """
     lower, upper = quantile_column(LOWER), quantile_column(UPPER)
-    missing = {lower, upper} - set(quantile_rows.columns)
-    if missing:
-        raise ValueError(
-            f"the forecast table needs quantiles {LOWER} and {UPPER}; missing {sorted(missing)}"
-        )
+    median = quantile_column(0.5)
+    if point_only:
+        if median not in quantile_rows.columns:
+            raise ValueError(f"a point model must provide {median}")
+        extra = {lower, upper} & set(quantile_rows.columns)
+        if extra:
+            raise ValueError(f"a point model must not provide {sorted(extra)}")
+    else:
+        missing = {lower, upper} - set(quantile_rows.columns)
+        if missing:
+            raise ValueError(
+                f"the forecast table needs quantiles {LOWER} and {UPPER}; missing {sorted(missing)}"
+            )
 
     daily = demand_daily.assign(
         target_date=pd.to_datetime(demand_daily["date"]).dt.date
@@ -136,9 +151,14 @@ def to_forecast_table(
     out["forecast_fold"] = pd.array([fold] * len(out), dtype="UInt8")
     out["forecast_split"] = split
     out["forecast_run_id"] = run_id(model_id, seed)
-    out["q025"] = out[lower].astype("float64")
-    out["q975"] = out[upper].astype("float64")
-    out["estimated_demand"] = (out["q025"] + out["q975"]) / 2
+    if point_only:
+        out["q025"] = np.nan
+        out["q975"] = np.nan
+        out["estimated_demand"] = out[median].astype("float64")
+    else:
+        out["q025"] = out[lower].astype("float64")
+        out["q975"] = out[upper].astype("float64")
+        out["estimated_demand"] = (out["q025"] + out["q975"]) / 2
     out["actual_demand"] = out["demand_total"].astype("float64")
     for column in ("q025_cal", "q975_cal", "qhat95"):
         out[column] = np.nan
