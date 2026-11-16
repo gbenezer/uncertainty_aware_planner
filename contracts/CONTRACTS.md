@@ -175,7 +175,7 @@ One row per store-product-forecast-day.
 |`target_date`|date|`origin_date + horizon` days|
 |`q025`|float, nullable|Raw model lower quantile outputs. Null only for non-quantile baseline models|
 |`q975`|float, nullable|Raw model upper quantile outputs. Null only for non-quantile baseline models|
-|`estimated_demand`|float|Forecasted daily demand (midpoint of quantiles)|
+|`estimated_demand`|float|Forecasted daily demand: the model's median (`q500`) when it has one, otherwise the midpoint of `q025` and `q975`|
 |`actual_demand`|float, nullable|`demand_total` for `target_date`, when it exists (is in the past). **Only the evaluation code reads this column**|
 |`q025_cal`|float, nullable|Lower quantile output after conformal calibration. Null before conformalization|
 |`q975_cal`|float, nullable|Upper quantile output after conformal calibration. Null before conformalization|

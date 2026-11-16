@@ -2,9 +2,12 @@
 
 Every run, whatever demand history it was trained on, is scored against raw recorded sales (`demand_total` of
 the censored demand_daily), and only target days with no stockout between 06:00 and 22:00 are scored, as the
-dataset authors do (experiments/vishnu/paper_wape.py). WAPE and WPE follow the paper's scoring generalised to
-rolling origins: one ratio per (origin_date, target_date) cell, averaged over the cells. For the test week
-(one origin, 7 target days) this is the paper's mean of the 7 daily values.
+dataset authors do (experiments/vishnu/paper_wape.py).
+
+WAPE and WPE follow the literature and Dev Contract A.4: one ratio over all scored rows, each row's error taken
+on its own store-product-day. The dataset paper's own scoring (the ratio per (origin_date, target_date) cell,
+averaged over the cells; for the test week the mean of the 7 daily values) is kept as `paper_wape` to compare
+with its published numbers. PICP and MPIW use the team functions in evaluation/uncertainty_metrics.py.
 """
 
 from __future__ import annotations
@@ -19,6 +22,10 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from uncertainty_aware_planner.data.splits import Window, final_windows, fold_windows
+from uncertainty_aware_planner.evaluation.uncertainty_metrics import (
+    mean_prediction_interval_width,
+    prediction_interval_coverage_fraction,
+)
 
 FEATURE = "forecasting"
 CENSORED_RUN = "imp-none-censored"
@@ -247,9 +254,32 @@ def _members(scored: pd.DataFrame):
 
 
 def wape_wpe(scored: pd.DataFrame) -> pd.DataFrame:
-    """Paper-style WAPE and WPE per slice: sum|F - A| / sum|A| and sum(F - A) / sum|A| per (origin_date,
-    target_date) cell, averaged over the cells (WPE > 0 is over-forecast). Cells with sum|A| = 0 are skipped.
-    """
+    """WAPE and WPE per slice as in the literature and Dev Contract A.4: sum|F - A| / sum|A| and
+    sum(F - A) / sum|A| over all scored rows (WPE > 0 is over-forecast). Each row is one store-product-day, so
+    no residuals are summed before the absolute value. A slice with no demand gives NaN."""
+    error = (scored["forecast"] - scored["actual"]).to_numpy(dtype="float64")
+    abs_actual = scored["actual"].abs().to_numpy(dtype="float64")
+    rows = []
+    for name, member in _members(scored):
+        total = abs_actual[member].sum()
+        used = total > 0
+        for metric, values in (("wape", np.abs(error)), ("wpe", error)):
+            rows.append(
+                {
+                    "slice": name,
+                    "metric": metric,
+                    "value": values[member].sum() / total if used else np.nan,
+                    "n": int(member.sum()) if used else 0,
+                    "n_skipped": 0 if used else int(member.sum()),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def paper_wape_wpe(scored: pd.DataFrame) -> pd.DataFrame:
+    """The dataset paper's WAPE and WPE per slice: the same ratios per (origin_date, target_date) cell,
+    averaged over the cells; for the test week, the mean of the 7 daily values. Cells with sum|A| = 0 are
+    skipped. Kept to compare with the published numbers."""
     error = scored["forecast"] - scored["actual"]
     frame = pd.DataFrame(
         {
@@ -286,16 +316,12 @@ def wape_wpe(scored: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def pooled_wape(scored: pd.DataFrame) -> pd.DataFrame:
-    """One sum|F - A| / sum|A| over all scored rows per slice; for information, not a 2.10 metric."""
-    abs_error = (scored["forecast"] - scored["actual"]).abs().to_numpy()
-    abs_actual = scored["actual"].abs().to_numpy()
-    rows = []
-    for name, member in _members(scored):
-        total = abs_actual[member].sum()
-        value = abs_error[member].sum() / total if total > 0 else np.nan
-        rows.append({"slice": name, "value": value, "n": int(member.sum())})
-    return pd.DataFrame(rows)
+def paper_wape(scored: pd.DataFrame) -> pd.DataFrame:
+    """Paper-style WAPE per slice (paper_wape_wpe), for comparison with the published numbers; not a 2.10
+    metric."""
+    rows = paper_wape_wpe(scored)
+    rows = rows[rows["metric"] == "wape"]
+    return rows[["slice", "value", "n"]].reset_index(drop=True)
 
 
 def series_scale(truth: pd.DataFrame, start: date, end: date) -> pd.Series:
@@ -350,28 +376,46 @@ def mase(scored: pd.DataFrame, scale: pd.Series) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _sample_size(result: dict) -> int:
+    for key in ("n_picp", "n_mpiw", "n"):
+        if key in result:
+            return int(result[key])
+    return 0
+
+
 def interval_metrics(scored: pd.DataFrame, calibrated: bool = False) -> pd.DataFrame:
-    """PICP and MPIW of the 95% interval per slice, on the scored rows where both bounds are set: [q025, q975],
-    or [q025_cal, q975_cal] when calibrated. Bounds are inclusive; degenerate [0, 0] intervals count."""
+    """PICP and MPIW of the 95% interval per slice with the team functions in evaluation/uncertainty_metrics.py:
+    [q025, q975], or [q025_cal, q975_cal] when calibrated, on the scored rows (actual = raw sales). Bounds are
+    inclusive; rows without both bounds and degenerate intervals (lower == upper, e.g. [0, 0]) are left out
+    and counted in n_skipped."""
     lower, upper = BOUNDS[calibrated]
-    low = scored[lower].to_numpy(dtype="float64")
-    high = scored[upper].to_numpy(dtype="float64")
-    actual = scored["actual"].to_numpy(dtype="float64")
-    bounded = ~np.isnan(low) & ~np.isnan(high)
-    inside = (low <= actual) & (actual <= high)
-    width = high - low
+    frame = pd.DataFrame(
+        {
+            "actual_demand": scored["actual"].to_numpy(dtype="float64"),
+            lower: scored[lower].to_numpy(dtype="float64"),
+            upper: scored[upper].to_numpy(dtype="float64"),
+        }
+    )
     rows = []
     for name, member in _members(scored):
-        used = member & bounded
-        n = int(used.sum())
-        for metric, values in (("picp95", inside), ("mpiw95", width)):
+        part = frame[member]
+        results = {
+            "picp95": prediction_interval_coverage_fraction(
+                part, conformal_intervals=calibrated
+            ),
+            "mpiw95": mean_prediction_interval_width(
+                part, conformal_intervals=calibrated
+            ),
+        }
+        for metric, result in results.items():
+            n = _sample_size(result)
             rows.append(
                 {
                     "slice": name,
                     "metric": metric,
-                    "value": values[used].mean() if n else np.nan,
+                    "value": float(result["value"]),
                     "n": n,
-                    "n_skipped": int((member & ~bounded).sum()),
+                    "n_skipped": int(member.sum()) - n,
                 }
             )
     return pd.DataFrame(rows)
@@ -450,40 +494,32 @@ def seed_average(scored: pd.DataFrame) -> pd.DataFrame:
     return scored.groupby(ROW_KEY, observed=True).agg(**aggregations).reset_index()
 
 
-def _cell_wape(abs_error: np.ndarray, abs_actual: np.ndarray) -> np.ndarray:
-    """Mean over the last axis (cells) of abs_error / abs_actual, skipping cells with no actual demand."""
-    used = abs_actual > 0
-    with np.errstate(invalid="ignore", divide="ignore"):
-        ratio = np.where(used, abs_error / abs_actual, 0.0)
-        return ratio.sum(axis=-1) / used.sum(axis=-1)
-
-
 def paired_bootstrap_delta(
     scored_a: pd.DataFrame, scored_b: pd.DataFrame, n_boot: int = 1000, seed: int = 0
 ) -> dict:
-    """95% CI of the paper-style WAPE difference a - b on the rows both models scored (negative favours a).
+    """95% CI of the WAPE difference a - b (wape_wpe, one ratio over all rows) on the rows both models scored;
+    negative favours a.
 
     Forecasts are first averaged over seeds per (series, origin, horizon). Each draw resamples series with
-    replacement, the same draw for both models, and recomputes the mean over (origin_date, target_date) cells.
+    replacement, the same draw for both models, and recomputes both ratios.
     """
     a, b = seed_average(scored_a), seed_average(scored_b)
     both = a.merge(b[ROW_KEY + ["forecast"]], on=ROW_KEY, suffixes=("_a", "_b"))
     if both.empty:
         raise ValueError("the two models share no scored rows")
     series = both.groupby(KEYS, sort=True).ngroup().to_numpy()
-    cell = both.groupby(["origin_date", "target_date"], sort=True).ngroup().to_numpy()
-    n_series, n_cells = series.max() + 1, cell.max() + 1
+    n_series = series.max() + 1
 
-    def dense(values: pd.Series) -> np.ndarray:
-        out = np.zeros((n_series, n_cells))
-        np.add.at(out, (series, cell), values.to_numpy(dtype="float64"))
-        return out
+    def per_series(values: pd.Series) -> np.ndarray:
+        return np.bincount(
+            series, weights=values.to_numpy(dtype="float64"), minlength=n_series
+        )
 
-    abs_actual = dense(both["actual"].abs())
-    error_a = dense((both["forecast_a"] - both["actual"]).abs())
-    error_b = dense((both["forecast_b"] - both["actual"]).abs())
-    wape_a = float(_cell_wape(error_a.sum(axis=0), abs_actual.sum(axis=0)))
-    wape_b = float(_cell_wape(error_b.sum(axis=0), abs_actual.sum(axis=0)))
+    abs_actual = per_series(both["actual"].abs())
+    error_a = per_series((both["forecast_a"] - both["actual"]).abs())
+    error_b = per_series((both["forecast_b"] - both["actual"]).abs())
+    wape_a = float(error_a.sum() / abs_actual.sum())
+    wape_b = float(error_b.sum() / abs_actual.sum())
 
     rng = np.random.default_rng(seed)
     chunk = max(1, 5_000_000 // n_series)
@@ -495,10 +531,10 @@ def paired_bootstrap_delta(
         weights = np.bincount(flat, minlength=size * n_series).reshape(size, n_series)
         weights = weights.astype("float64")
         denominator = weights @ abs_actual
-        deltas.append(
-            _cell_wape(weights @ error_a, denominator)
-            - _cell_wape(weights @ error_b, denominator)
-        )
+        with np.errstate(invalid="ignore", divide="ignore"):
+            deltas.append(
+                (weights @ error_a) / denominator - (weights @ error_b) / denominator
+            )
     low, high = np.nanpercentile(np.concatenate(deltas), [2.5, 97.5])
     return {
         "wape_a": wape_a,

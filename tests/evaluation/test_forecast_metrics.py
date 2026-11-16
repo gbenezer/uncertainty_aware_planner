@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from uncertainty_aware_planner.data.config import REPO_ROOT, load_yaml
+from uncertainty_aware_planner.evaluation import uncertainty_metrics
 from uncertainty_aware_planner.evaluation.forecast_metrics import (
     KEYS,
     METRIC_KEY,
@@ -17,7 +18,8 @@ from uncertainty_aware_planner.evaluation.forecast_metrics import (
     mase,
     metric_rows,
     paired_bootstrap_delta,
-    pooled_wape,
+    paper_wape,
+    paper_wape_wpe,
     score_table,
     series_scale,
     top_misforecasts,
@@ -132,14 +134,14 @@ def cells():
     return table, truth
 
 
-def test_wape_wpe_by_cell(cells):
+def test_paper_wape_wpe_by_cell(cells):
     table, truth = cells
     scored = attach_slices(score_table(table, truth), build_slices(truth))
     assert len(scored) == 6  # the four stockout rows are not scored
     # The truth, not the table's actual_demand.
     assert scored["actual"].tolist() == [4, 0, 4, 2, 0, 3]
 
-    result = wape_wpe(scored).set_index(["slice", "metric"])
+    result = paper_wape_wpe(scored).set_index(["slice", "metric"])
     # Cells: (O1,T1) 1/4; (O1,T2) skipped; (O2,T1) 2/6 and 0/6; (O2,T2) 2/3 and 0/3.
     assert result.loc[("all", "wape"), "value"] == pytest.approx(
         (1 / 4 + 2 / 6 + 2 / 3) / 3
@@ -152,10 +154,25 @@ def test_wape_wpe_by_cell(cells):
         assert np.isnan(result.loc[("low_sales", metric), "value"])
         assert result.loc[("low_sales", metric), "n"] == 0
 
-    pooled = pooled_wape(scored).set_index("slice")
-    assert pooled.loc["all", "value"] == pytest.approx(6 / 13)
-    assert np.isnan(pooled.loc["low_sales", "value"])
-    assert pooled.loc["low_sales", "n"] == 0
+    paper = paper_wape(scored).set_index("slice")
+    assert paper.loc["all", "value"] == pytest.approx((1 / 4 + 2 / 6 + 2 / 3) / 3)
+    assert paper.loc["all", "n"] == 5
+    assert np.isnan(paper.loc["low_sales", "value"])
+
+
+def test_wape_wpe_is_one_ratio_over_all_rows(cells):
+    """Literature WAPE (Dev Contract A.4): sum|F - A| / sum|A| over every scored row, errors per row."""
+    table, truth = cells
+    scored = attach_slices(score_table(table, truth), build_slices(truth))
+    result = wape_wpe(scored).set_index(["slice", "metric"])
+    # Errors -1, +1, +1, -1, +1, -1 on actuals 4, 0, 4, 2, 0, 3.
+    assert result.loc[("all", "wape"), "value"] == pytest.approx(6 / 13)
+    assert result.loc[("all", "wpe"), "value"] == pytest.approx(0.0)
+    assert result.loc[("all", "wape"), ["n", "n_skipped"]].tolist() == [6, 0]
+    assert result.loc[("high_sales", "wape"), "value"] == pytest.approx(6 / 13)
+    for metric in ("wape", "wpe"):
+        assert np.isnan(result.loc[("low_sales", metric), "value"])
+        assert result.loc[("low_sales", metric), "n"] == 0
 
 
 def test_score_table_checks_rows(cells):
@@ -238,10 +255,10 @@ def test_training_windows():
     assert (paper.start, paper.end) == (date(2024, 3, 28), date(2024, 6, 25))
 
 
-def test_interval_metrics_inclusive_bounds():
+def test_interval_metrics_use_the_team_functions():
     scored = scored_frame(
         [
-            (1, 1, O1, 1, 0.0, 0.0, "low_sales"),  # [0, 0] holds A = 0
+            (1, 1, O1, 1, 0.0, 0.0, "low_sales"),  # [0, 0]: degenerate, left out
             (1, 1, O1, 2, 2.5, 2.0, "low_sales"),  # on the lower bound
             (1, 1, O1, 3, 2.5, 3.0, "low_sales"),  # on the upper bound
             (1, 1, O1, 4, 2.5, 4.0, "low_sales"),  # outside
@@ -254,9 +271,17 @@ def test_interval_metrics_inclusive_bounds():
         q975_cal=[1.0, np.nan, np.nan, np.nan, np.nan],
     )
     raw = interval_metrics(scored).set_index(["slice", "metric"])
-    assert raw.loc[("all", "picp95"), "value"] == pytest.approx(3 / 4)
-    assert raw.loc[("all", "mpiw95"), "value"] == pytest.approx(3 / 4)
-    assert raw.loc[("all", "picp95"), ["n", "n_skipped"]].tolist() == [4, 1]
+    assert raw.loc[("all", "picp95"), "value"] == pytest.approx(2 / 3)
+    assert raw.loc[("all", "mpiw95"), "value"] == pytest.approx(1.0)
+    assert raw.loc[("all", "picp95"), ["n", "n_skipped"]].tolist() == [3, 2]
+    # Same numbers as evaluation/uncertainty_metrics.py on the same rows.
+    team = scored.rename(columns={"actual": "actual_demand"})
+    assert raw.loc[("all", "picp95"), "value"] == pytest.approx(
+        uncertainty_metrics.prediction_interval_coverage_fraction(team)["value"]
+    )
+    assert raw.loc[("all", "mpiw95"), "value"] == pytest.approx(
+        uncertainty_metrics.mean_prediction_interval_width(team)["value"]
+    )
     assert np.isnan(raw.loc[("high_sales", "picp95"), "value"])
     calibrated = interval_metrics(scored, calibrated=True).set_index(
         ["slice", "metric"]
@@ -321,7 +346,7 @@ def test_wape_matches_paper_scoring(monkeypatch):
     scored = attach_slices(
         score_table(quantiles, truth, point="q500"), build_slices(truth)
     )
-    result = wape_wpe(scored).set_index(["slice", "metric"])
+    result = paper_wape_wpe(scored).set_index(["slice", "metric"])
     for slice_, group in (
         ("all", "psd>=0"),
         ("high_sales", "psd>=1"),

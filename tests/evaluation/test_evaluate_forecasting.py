@@ -153,7 +153,7 @@ def test_cli_end_to_end(world, capsys):
     out = world / "results" / CENSORED / "project"
     for name in (
         "metrics.csv",
-        "pooled_wape.csv",
+        "paper_wape.csv",
         "summary.csv",
         "summary.md",
         "top_misforecasts.csv",
@@ -289,12 +289,9 @@ def scored_wape(tables, tmp_path, **options) -> pd.Series:
         ledger=False,
         **options,
     )
-    metrics = read_metrics(result["metrics"][CENSORED])
-    wape = metrics[
-        (metrics["split"] == "test")
-        & (metrics["slice"] == "all")
-        & (metrics["metric"] == "wape")
-    ]
+    # experiments/vishnu/paper_wape.py is the dataset paper's scoring: compare the paper-style WAPE.
+    paper = pd.read_csv(result["out_dirs"][CENSORED] / "paper_wape.csv")
+    wape = paper[(paper["split"] == "test") & (paper["slice"] == "all")]
     return wape.set_index("seed")["value"]
 
 

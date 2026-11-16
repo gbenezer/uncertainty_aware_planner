@@ -15,7 +15,7 @@ from uncertainty_aware_planner.evaluation.forecast_metrics import SLICES
 
 DEFAULT_TARGETS = "configs/evaluation/published_targets.yaml"
 GROUP = ["model_id", "imputation_run_id", "protocol", "point"]
-VERDICTS = ["pass", "stretch", "a72_literal"]
+VERDICTS = ["pass", "beats_by_1sd", "a72_literal"]
 SUMMARY_COLUMNS = GROUP + [
     "slice",
     "n_seeds",
@@ -23,14 +23,14 @@ SUMMARY_COLUMNS = GROUP + [
     "test_wape_sd",
     "test_wpe_mean",
     "test_wpe_sd",
-    "test_pooled_wape_mean",
+    "test_paper_wape_mean",
     "cv_n",
     "cv_wape_mean",
     "cv_wape_sd",
     "published_wape",
     "published_wpe",
     "pass",
-    "stretch",
+    "beats_by_1sd",
     "improvement_sd",
     "a72_literal",
     "test_mase",
@@ -53,20 +53,25 @@ LEDGER_COLUMNS = [
 NOTES = """\
 - **Truth:** raw recorded sales (`demand_total` of the censored demand_daily) for every model, whatever demand
   history it was trained on. Only target days with no stockout between 06:00 and 22:00 are scored.
-- **WAPE** = sum|F - A| / sum|A| and **WPE** = sum(F - A) / sum|A| per (origin date, target date) cell,
-  averaged over the cells: the dataset paper's mean of the 7 daily values for the test week. WPE sign as in
-  the paper: positive = over-forecast, negative = under-forecast. Pooled WAPE is one ratio over all scored
-  test rows, for information.
+- **WAPE** = sum|F - A| / sum|A| and **WPE** = sum(F - A) / sum|A| over all scored rows (the literature
+  definition, Dev Contract A.4); each row is one store-product-day, so no errors are netted before the
+  absolute value. WPE sign as in the dataset paper: positive = over-forecast, negative = under-forecast.
+  **Paper-style WAPE** is the dataset paper's own scoring (the ratio per target day, averaged over the days),
+  shown only to compare with its published numbers.
 - **Test:** mean ± SD over seeds (number of seeds). **Fold CV:** mean ± SD over all (fold, seed) validation
   runs (number of runs); SD_cv is that SD.
-- **Published:** Wang et al. 2025 (arXiv:2505.16319), Table 3. **Pass:** test mean <= published + SD_cv.
-  **Stretch:** test mean <= published - SD_cv. **Improvement:** (published - test mean) / SD_cv.
-  **A.7.2 literal:** |fold CV mean - published| <= SD_cv.
+- **Published:** Wang et al. 2025 (arXiv:2505.16319), Table 3. **Pass (A.7.2):** test WAPE <= published +
+  SD_cv, with SD_cv from the >= 3-fold cross-validation (Dev Contract, Appendix A.7, item 2).
+  **>= 1 SD better:** test WAPE <= published - SD_cv, an optional team goal (not a contract term).
+  **Improvement:** (published - test WAPE) / SD_cv. **A.7.2 literal:** |fold CV mean - published| <= SD_cv.
+- **PICP / MPIW:** the team functions in `evaluation/uncertainty_metrics.py`: rows with both bounds,
+  degenerate intervals (lower = upper, e.g. [0, 0]) left out.
+- Metric rows follow `contracts/CONTRACTS.md` §2.10, plus imputation_run_id, protocol, point and n_skipped.
 - WAPE, WPE and PICP in percent; MASE and MPIW (normalized sales units) as plain numbers."""
 BOOTSTRAP_NOTE = """\
 Test week, all series; forecasts averaged over seeds first. Each draw resamples series with replacement, the
-same draw for both models. Delta = model WAPE - baseline WAPE (negative favours the model), with its 95%
-bootstrap interval."""
+same draw for both models, and recomputes WAPE over all rows. Delta = model WAPE - baseline WAPE (negative
+favours the model), with its 95% bootstrap interval."""
 
 
 def load_targets(path: str | Path = DEFAULT_TARGETS) -> dict:
@@ -124,12 +129,12 @@ def _sd(values: np.ndarray) -> float:
 
 
 def verdicts(test_mean: float, cv_mean: float, cv_sd: float, published: float) -> dict:
-    """Pass, stretch, improvement in SD_cv units and the literal A.7.2 check; NA when an input is missing."""
+    """Pass, >= 1 SD better, improvement in SD_cv units and the literal A.7.2 check; NA when an input is missing."""
     test_known = bool(np.isfinite([test_mean, cv_sd, published]).all())
     cv_known = bool(np.isfinite([cv_mean, cv_sd, published]).all())
     return {
         "pass": test_mean <= published + cv_sd if test_known else pd.NA,
-        "stretch": test_mean <= published - cv_sd if test_known else pd.NA,
+        "beats_by_1sd": test_mean <= published - cv_sd if test_known else pd.NA,
         "improvement_sd": (published - test_mean) / cv_sd
         if test_known and cv_sd > 0
         else np.nan,
@@ -140,7 +145,7 @@ def verdicts(test_mean: float, cv_mean: float, cv_sd: float, published: float) -
 def summarize(
     metrics: pd.DataFrame,
     cv_metrics: pd.DataFrame | None = None,
-    pooled: pd.DataFrame | None = None,
+    paper: pd.DataFrame | None = None,
     targets: dict | None = None,
 ) -> pd.DataFrame:
     """One row per (model_id, imputation_run_id, protocol, point, slice), values as fractions.
@@ -160,7 +165,7 @@ def summarize(
                 key: group[key] for key in ("model_id", "imputation_run_id", "point")
             }
             cv = _select(cv_metrics, same_run)
-        runs = _select(pooled, group) if pooled is not None else None
+        runs = _select(paper, group) if paper is not None else None
         target = None
         if targets is not None:
             target = published_target(
@@ -179,7 +184,7 @@ def summarize(
                 "test_wape_sd": _sd(wape),
                 "test_wpe_mean": _mean(wpe),
                 "test_wpe_sd": _sd(wpe),
-                "test_pooled_wape_mean": np.nan,
+                "test_paper_wape_mean": np.nan,
                 "cv_n": len(cv_wape),
                 "cv_wape_mean": _mean(cv_wape),
                 "cv_wape_sd": _sd(cv_wape),
@@ -188,7 +193,7 @@ def summarize(
             }
             if runs is not None:
                 test = runs[(runs["split"] == "test") & (runs["slice"] == name)]
-                row["test_pooled_wape_mean"] = _mean(test["value"].dropna().to_numpy())
+                row["test_paper_wape_mean"] = _mean(test["value"].dropna().to_numpy())
             row.update(
                 verdicts(
                     row["test_wape_mean"],
@@ -241,11 +246,11 @@ def summary_markdown(
         lines.append(
             "- Paper protocol: fold CV comes from the project-protocol folds of the same model and data."
         )
-    accuracy = ["Slice", "Test WAPE", "Test WPE", "Pooled WAPE", "Fold CV WAPE"]
+    accuracy = ["Slice", "Test WAPE", "Test WPE", "Paper-style WAPE", "Fold CV WAPE"]
     accuracy += [
         "Published WAPE / WPE",
         "Pass",
-        "Stretch",
+        ">= 1 SD better (optional)",
         "Improvement (SD_cv)",
         "A.7.2 literal",
     ]
@@ -267,11 +272,11 @@ def summary_markdown(
                     r["slice"],
                     _spread(r["test_wape_mean"], r["test_wape_sd"], r["n_seeds"]),
                     _spread(r["test_wpe_mean"], r["test_wpe_sd"], r["n_seeds"]),
-                    _number(r["test_pooled_wape_mean"]),
+                    _number(r["test_paper_wape_mean"]),
                     _spread(r["cv_wape_mean"], r["cv_wape_sd"], r["cv_n"]),
                     f"{_number(r['published_wape'])} / {_number(r['published_wpe'])}",
                     _flag(r["pass"]),
-                    _flag(r["stretch"]),
+                    _flag(r["beats_by_1sd"]),
                     _number(r["improvement_sd"], scale=1),
                     _flag(r["a72_literal"]),
                 ]

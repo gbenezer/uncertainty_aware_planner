@@ -103,9 +103,9 @@ def to_forecast_table(
     """Contract-exact table from `long_quantiles` rows. Hierarchy, imputation_run_id and actual_demand come
     from demand_daily; the conformal columns stay null until uq/ fills them.
 
-    Point models (point_only, e.g. the DLinear baseline trained with an L1 loss, i.e. a median forecast) give
-    only q500: q025 and q975 stay null, which CONTRACTS.md 2.5 allows for non-quantile baseline models, and
-    estimated_demand is q500.
+    estimated_demand is the model's median (q500) when it has one, otherwise the midpoint of q025 and q975
+    (CONTRACTS.md 2.5). Point models (point_only, e.g. the DLinear baseline trained with an L1 loss, i.e. a
+    median forecast) give only q500: q025 and q975 stay null, which 2.5 allows for non-quantile baselines.
     """
     lower, upper = quantile_column(LOWER), quantile_column(UPPER)
     median = quantile_column(0.5)
@@ -158,7 +158,10 @@ def to_forecast_table(
     else:
         out["q025"] = out[lower].astype("float64")
         out["q975"] = out[upper].astype("float64")
-        out["estimated_demand"] = (out["q025"] + out["q975"]) / 2
+        if median in out.columns:
+            out["estimated_demand"] = out[median].astype("float64")
+        else:
+            out["estimated_demand"] = (out["q025"] + out["q975"]) / 2
     out["actual_demand"] = out["demand_total"].astype("float64")
     for column in ("q025_cal", "q975_cal", "qhat95"):
         out[column] = np.nan

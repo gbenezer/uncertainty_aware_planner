@@ -9,7 +9,7 @@ between 06:00 and 22:00, whatever demand history the model was trained on. --poi
 from the run directory: <quantiles-root>/**/<run_id>/{fold<k>,final}/quantiles_<split>.parquet.
 
 Outputs go to <out>/<imputation_run_id>/<protocol>/: metrics.csv (2.10 rows; a re-evaluated table replaces
-its rows), pooled_wape.csv, summary.csv, summary.md, top_misforecasts.csv and, with --baseline-model,
+its rows), paper_wape.csv, summary.csv, summary.md, top_misforecasts.csv and, with --baseline-model,
 comparisons.csv. Scoring test-week tables appends to <out>/test_ledger.csv unless --no-ledger. Evaluations
 writing into the same --out at the same time take turns through a lock on <out>/.evaluate.lock. The sales
 slices are built once into --slices (with a manifest) when that file is missing.
@@ -55,7 +55,7 @@ from uncertainty_aware_planner.evaluation.forecast_metrics import (
     load_truth,
     metric_rows,
     paired_bootstrap_delta,
-    pooled_wape,
+    paper_wape,
     read_metrics,
     read_parquet,
     score_table,
@@ -106,7 +106,7 @@ RUN_KEY = [
     "seed",
     "split",
 ]
-POOLED_COLUMNS = RUN_KEY + ["slice", "value", "n"]
+PAPER_COLUMNS = RUN_KEY + ["slice", "value", "n"]
 TEST_COLUMNS = ROW_KEY + ["target_date", "forecast", "actual", "slice"]
 BASELINE = ["baseline_model_id", "baseline_imputation_run_id"]
 FOLDER_OUTPUTS = (
@@ -309,8 +309,8 @@ def _output_lock(out_root: Path):
         yield  # closing the file releases the lock
 
 
-def _pooled_frame(rows: pd.DataFrame) -> pd.DataFrame:
-    out = rows[POOLED_COLUMNS].copy()
+def _paper_frame(rows: pd.DataFrame) -> pd.DataFrame:
+    out = rows[PAPER_COLUMNS].copy()
     out["fold"] = out["fold"].astype("Int64")
     out["seed"] = out["seed"].astype("int64")
     out["value"] = out["value"].astype("float64")
@@ -318,8 +318,8 @@ def _pooled_frame(rows: pd.DataFrame) -> pd.DataFrame:
     return out.reset_index(drop=True)
 
 
-def _read_pooled(path: Path) -> pd.DataFrame:
-    return _pooled_frame(pd.read_csv(path, dtype={"fold": "Int64"}))
+def _read_paper(path: Path) -> pd.DataFrame:
+    return _paper_frame(pd.read_csv(path, dtype={"fold": "Int64"}))
 
 
 def _merge_rows(path: Path, new: pd.DataFrame, key: list[str], read) -> pd.DataFrame:
@@ -376,7 +376,7 @@ def _merge_comparisons(path: Path, new: pd.DataFrame, rescored: set) -> pd.DataF
 def _write_folder(
     folder: Path,
     metrics: pd.DataFrame,
-    pooled: pd.DataFrame,
+    paper_rows: pd.DataFrame,
     comparisons: pd.DataFrame | None,
     tests: dict,
     targets: dict,
@@ -389,9 +389,9 @@ def _write_folder(
     all_metrics = _merge_rows(paths["metrics"], metrics, RUN_KEY, read_metrics)
     check_metric_keys(all_metrics)
     all_metrics.to_csv(paths["metrics"], index=False)
-    pooled_path = folder / "pooled_wape.csv"
-    all_pooled = _merge_rows(pooled_path, pooled, RUN_KEY, _read_pooled)
-    all_pooled.to_csv(pooled_path, index=False)
+    paper_path = folder / "paper_wape.csv"
+    all_paper = _merge_rows(paper_path, paper_rows, RUN_KEY, _read_paper)
+    all_paper.to_csv(paper_path, index=False)
 
     cv_metrics = None
     project = folder.parent / "project" / "metrics.csv"
@@ -406,7 +406,7 @@ def _write_folder(
     if len(folder_comparisons) or comparisons_path.exists():
         folder_comparisons.to_csv(comparisons_path, index=False)
 
-    summary = summarize(all_metrics, cv_metrics, all_pooled, targets)
+    summary = summarize(all_metrics, cv_metrics, all_paper, targets)
     title = f"Forecast evaluation: {imputation_run_id}, {protocol} protocol"
     paths["summary_csv"], paths["summary_md"] = write_summary(
         summary, folder, title, folder_comparisons
@@ -505,7 +505,7 @@ def evaluate(
     truth = load_truth(truth_path)
     slices = load_slices(resolve(slices_path), truth, truth_path)
 
-    scales, metrics, pooled, tests = {}, [], [], {}
+    scales, metrics, paper_rows, tests = {}, [], [], {}
     for info in infos:
         table = read_table(info, point, quantiles_root)
         scored = score_table(
@@ -538,7 +538,7 @@ def evaluate(
                 calibrated=has_bounds(table, calibrated=True),
             )
         )
-        pooled.append(pooled_wape(scored).assign(feature=FEATURE, **meta))
+        paper_rows.append(paper_wape(scored).assign(feature=FEATURE, **meta))
         if info.split == "test":
             group = (info.model_id, info.imputation_run_id, protocol, point)
             tests.setdefault(group, []).append((info, scored[TEST_COLUMNS]))
@@ -547,7 +547,7 @@ def evaluate(
 
     metrics = pd.concat(metrics, ignore_index=True)
     check_metric_keys(metrics)
-    pooled = _pooled_frame(pd.concat(pooled, ignore_index=True))
+    paper_rows = _paper_frame(pd.concat(paper_rows, ignore_index=True))
     comparisons = _comparisons(tests, baseline_model) if baseline_model else None
 
     out_root = resolve(out_dir)
@@ -559,7 +559,7 @@ def evaluate(
             paths, summary = _write_folder(
                 out_root / imputation_run_id / protocol,
                 metrics[metrics["imputation_run_id"] == imputation_run_id],
-                pooled[pooled["imputation_run_id"] == imputation_run_id],
+                paper_rows[paper_rows["imputation_run_id"] == imputation_run_id],
                 comparisons,
                 tests,
                 targets,
