@@ -206,7 +206,7 @@ def mean_absolute_scaled_error(
     df = df[valid]
 
     if df.empty:
-        return {"value": float("nan"), "n": 0, "n_dropped_no_scale": n_dropped}
+        return {"value": float("nan"), "n_mase": 0, "n_mase_dropped_no_scale": n_dropped}
 
     scaled_err = (df["estimated_demand"] - df["actual_demand"]).abs() / df["scale"]
     return {
