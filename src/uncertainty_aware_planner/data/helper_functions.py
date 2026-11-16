@@ -249,7 +249,7 @@ def filter_by_mean_demand(
     imputed_df: pd.DataFrame,
     series_hourly: pd.DataFrame,
     group: str = "high",
-    threshold: float = 1 / 24, # hourly mean; equivalent to 1 on a daily scale
+    threshold: float = 1 / 24,  # hourly mean; equivalent to 1 on a daily scale
     mean_source: str = "full",
     return_means: bool = False,
 ):
