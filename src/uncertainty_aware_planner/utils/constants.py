@@ -22,6 +22,10 @@ COVARIATES = [
 # raw data primary keys
 PRIMARY_KEYS = ["store_id", "product_id", "dt"]
 
+# other key listings
+SERIES_KEYS = ["store_id", "product_id"]
+DAY_KEYS = ["store_id", "product_id", "date"]
+
 # number of hours the store is open
 NUMBER_OPEN_HOURS = 16
 OPEN_HOURS = slice(6, 22)
