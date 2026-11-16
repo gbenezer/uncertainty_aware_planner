@@ -3,20 +3,23 @@
 **Owner:** Vishnu. **Data:** FreshRetailNet-50K, censored setting (`imp-none-censored`).
 
 **Numbers:**
-- `dlinear_paper_check_wape.csv` (reproduction)
-- `imp-none-censored/{project,paper}/summary.md` and `metrics.csv` (evaluation, CONTRACTS.md 2.10)
-- `dlinear_ablation.{csv,md}` (validation-only selection)
-- `test_ledger.csv` (every test-week scoring)
+- `dlinear_paper_check_wape.csv`: the reproduction.
+- `imp-none-censored/{project,paper}/`: `summary.md`, `metrics.csv` (CONTRACTS.md 2.10) and `paper_wape.csv`.
+- `dlinear_ablation*.{csv,md}`: validation-only selection.
+- `test_ledger.csv`: every test-week scoring.
+
+**How WAPE is computed (after review):**
+- **Official WAPE** follows the literature (Dev Contract A.4): Σ|F − A| / Σ|A| over all scored rows. Each row is one store-product-day, so no errors are netted before the absolute value.
+- **Paper-style WAPE** is the dataset paper's own scoring: the same ratio per test day, then averaged over the 7 days. It is shown only to compare with the published numbers, which use it.
+- **Rows scored:** stockout-free days only, against raw sales. The two definitions differ by at most 0.25 points here.
 
 **TL;DR.**
-- **The port reproduces the paper.**
-  - On the paper's training split our DLinear scores **31.54% ± 0.01** WAPE (3 seeds), against the published **31.56%** (raw sales, paper Table 3).
-  - The slices also match: psd ≥ 1 is 25.68% (published 25.68%) and psd < 1 is 39.73% (published 39.78%).
-- **On the project split** (calibration week held out) it scores **31.76% ± 0.01**. That **passes** contract A.7.2 against 31.56% ± SD_cv, where SD_cv = **0.78** (6 folds × 3 seeds).
-- **It beats our TFT.** On the same split, with seed-averaged forecasts, the DLinear is 0.73 points better than the TFT median (95% bootstrap CI [0.55, 0.92]).
-- **The improved DLinear (`fc-dlinear-plus`)** scores **30.67% ± 0.02** on the project split and **30.48%** on the paper split.
+- **The port reproduces the paper.** On the paper's training split our DLinear scores **31.54% ± 0.01** paper-style (official **31.51%**), against the published **31.56%** (raw sales, paper Table 3). The psd slices match: 25.68% for psd ≥ 1 (published 25.68%) and 39.73% for psd < 1 (published 39.78%).
+- **Project split** (calibration week held out): **31.74% ± 0.01**. It passes Dev Contract A.7.2 against 31.56% + SD_cv, with SD_cv = **0.80** (6 folds × 3 seeds).
+- **It beats our TFT.** With seed-averaged forecasts, the DLinear is 0.62 points better than the TFT median (95% bootstrap CI [0.44, 0.81]).
+- **The improved DLinear (`fc-dlinear-plus`)** scores **30.70% ± 0.02** on the project split and **30.51%** on the paper split.
   - Its changes were chosen on validation data only.
-  - That is about 1.1 points better than the baseline (CI excludes 0) and than the published 31.56%.
+  - That is about 1.0 point better than the baseline (CI excludes 0) and than the published 31.56%.
   - It is ≥ 1 SD better against the baseline's SD_cv, but not against its own (inflated) fold SD; see below.
   - Trade-off: it under-forecasts more (WPE about −11%).
 
@@ -40,37 +43,39 @@ Their model takes 7 channels (6 covariates and the target), but its channel-shar
 
 **Data path.** `models/forecasting/dense_windows.py` holds the daily series as `[series, day]` arrays: about 0.1 GB against about 13 GB for the pytorch-forecasting datasets. The tests check that its training and evaluation windows equal those of `data/timeseries_dataset.py` for all 6 folds and both final parts, and that test-week targets never reach the model. A full run of 6 folds + final takes about 5 minutes on 8 CPU cores.
 
-## Results (test week 06-26..07-02, raw sales, stockout-free days, paper scoring)
+## Results (test week 06-26..07-02, raw sales, stockout-free days, 3 seeds)
 
-| Run | Train | Seeds | WAPE all | WPE all | WAPE psd ≥ 1 | WAPE psd < 1 |
-|---|---|---|---|---|---|---|
-| DLinear, published (raw sales) | 03-28..06-25 | n/a | **31.56%** | −4.89% | 25.68% | 39.78% |
-| **Ours, paper split** | 03-28..06-25 | 3 | **31.54 ± 0.01%** | −5.17% | 25.68% | 39.73% |
-| **Ours, project split** | 03-28..06-18 | 3 | **31.76 ± 0.01%** | −7.05% | 26.14% | 39.60% |
-| TFT median, project split (for comparison) | 03-28..06-18 | 3 | 33.44 ± 0.27% | −11.90% | 29.39% | 39.04% |
+| Run | Train | WAPE all | Paper-style | WPE all | WAPE psd ≥ 1 | WAPE psd < 1 | MASE |
+|---|---|---|---|---|---|---|---|
+| DLinear, published (raw sales) | 03-28..06-25 | n/a | **31.56%** | −4.89% | 25.68% | 39.78% | n/a |
+| **Baseline, paper split** | 03-28..06-25 | **31.51 ± 0.02%** | 31.54% | −5.46% | 25.73% | 39.48% | 0.910 |
+| **Plus, paper split** | 03-28..06-25 | **30.51 ± 0.00%** | 30.48% | −11.05% | 25.26% | 37.73% | 0.886 |
+| TFT median, paper split (1 seed) | 03-28..06-25 | 31.63% | 31.73% | −7.40% | 27.73% | 37.00% | 0.877 |
+| **Baseline, project split** | 03-28..06-18 | **31.74 ± 0.01%** | 31.76% | −7.38% | 26.19% | 39.38% | 0.933 |
+| **Plus, project split** | 03-28..06-18 | **30.70 ± 0.02%** | 30.67% | −11.89% | 25.49% | 37.87% | 0.911 |
+| TFT median, project split | 03-28..06-18 | 33.30 ± 0.31% | 33.44% | −11.53% | 29.24% | 38.89% | 0.954 |
+
+**Paired bootstrap** (seed-averaged forecasts, series resampled, 1000 draws):
+
+| Comparison | Project split | Paper split |
+|---|---|---|
+| Plus − baseline | **−1.05 [−1.13, −0.96]** | **−1.01 [−1.10, −0.92]** |
+| TFT median − baseline | +0.62 [0.44, 0.81] | +0.12 [−0.12, 0.36] |
 
 **Project-split extras:**
-- **Fold CV:** 38.24% ± 0.78 (6 folds × 3 seeds).
-- **Test MASE:** 0.933.
-- **Holding out the calibration week costs 0.22 points:** 31.54% → 31.76%, against about 1.7 points for the TFT.
+- **Fold CV:** baseline 38.06% ± 0.80, plus 38.23% ± 2.26, TFT median 39.33% ± 2.82 (6 folds × 3 seeds).
+- **Holding out the calibration week** costs the baseline 0.23 points (31.51% → 31.74%), against about 1.7 points for the TFT.
 
-**Contract A.7.2 (SD_cv = 0.78):**
+**Contract A.7.2 for the baseline (SD_cv = 0.80):**
 
 | Check | Result |
 |---|---|
-| Pass: 31.76 ≤ 31.56 + 0.78 | ✅ |
-| Stretch: 31.76 ≤ 31.56 − 0.78 = 30.78 | ❌ |
-| Literal: \|fold mean − published\| ≤ SD_cv | ❌ (6.68 points) |
+| Pass: 31.74 ≤ 31.56 + 0.80 | ✅ |
+| Literal: \|fold mean − published\| ≤ SD_cv | ❌ (6.5 points) |
 
 The literal check fails for every model, ours and the TFT alike, because the folds are much harder than the test week:
 - Their validation windows include the May Day holidays.
 - A fold trains a 21-day lookback on 28 days of data: one window per series.
-
-## Findings
-1. **The port reproduces the paper.** It is within 0.02 points overall, and the slices are within 0.05.
-2. **Seed noise is tiny for a linear model.** The SD is about 0.01 points, so the contract's SD has to come from the folds.
-3. **The model under-forecasts** (WPE −5% to −7%), as expected from training on censored sales. Days with a stockout are the high-demand days, so their recorded sales pull the fit down.
-4. **Folds cannot judge calendar inputs.** A fold trains on one window per series, all with the same dates, so day-of-week and holiday effects are not identifiable. Variants with planned inputs therefore look worse on folds than they are. Model selection for the improved DLinear uses an inner validation week, 06-12..06-18, trained through 06-11 with 8 origins per series; the folds are a secondary check. See `dlinear_ablation.md`.
 
 ## Improved DLinear (`fc-dlinear-plus`)
 
@@ -82,37 +87,25 @@ The literal check fails for every model, ours and the TFT alike, because the fol
 
 **Selection (`dlinear_ablation.md`, `dlinear_ablation_pairs.md`).**
 - **Data used:** 11 variants × 3 seeds, scored on the inner week 06-12..06-18 (trained through 06-11) and on the 6 team folds. Calib and test were never used.
-- **Choice:** the frozen config has the best inner-week WAPE, **31.72% against 34.22%** for the baseline (paired, 3 of 3 seeds better).
-- **Why the folds don't decide it:** the masked loss with in-stock RevIN also improves all 18 fold runs (−1.17 points). The planned-input head cannot be learned on folds (see finding 4).
-- **Test-week scoring:** done once per protocol for the frozen config. `test_ledger.csv` records the table hashes; the later rows re-score the same files.
+- **Choice:** the frozen config has the best inner-week WAPE, **31.72% against 34.22%** for the baseline (paper-style scoring, paired, 3 of 3 seeds better).
+- **Why the folds don't decide it:** the masked loss with in-stock RevIN also improves all 18 fold runs. The planned-input head cannot be learned on folds, because a fold trains on one window per series, all with the same dates.
+- **Test-week scoring:** done once per protocol for the frozen config. `test_ledger.csv` records the table hashes; later rows re-score the same files (the hashes match).
 
-**Results (test week, raw sales, 3 seeds).**
+**Beating the published WAPE by ≥ 1 SD (an optional team goal, not a contract term): it depends on which SD.**
 
-| Run | WAPE all | WPE all | WAPE psd ≥ 1 | WAPE psd < 1 | MASE | Δ vs baseline (95% bootstrap CI) |
-|---|---|---|---|---|---|---|
-| Published DLinear (raw sales) | 31.56% | −4.89% | 25.68% | 39.78% | n/a | |
-| Baseline, paper split | 31.54 ± 0.01% | −5.16% | 25.68% | 39.73% | | |
-| **Plus, paper split** | **30.48 ± 0.00%** | −11.03% | 25.21% | 37.83% | | **−1.05 [−1.15, −0.97]** |
-| Baseline, project split | 31.76 ± 0.01% | −7.05% | 26.14% | 39.60% | 0.933 | |
-| **Plus, project split** | **30.67 ± 0.02%** | −11.84% | 25.43% | 37.97% | 0.911 | **−1.08 [−1.17, −0.99]** |
-
-**Stretch goal (beat the published WAPE by ≥ 1 SD_cv): it depends on which SD.**
-
-| SD used | Paper split, 31.56 − 30.48 | Project split, 31.56 − 30.67 | Met? |
+| SD used | Paper split, 31.56 − 30.51 | Project split, 31.56 − 30.70 | Met? |
 |---|---|---|---|
-| Baseline's fold SD (0.78) | 1.38 SD | 1.14 SD | ✅ |
-| Plus's own fold SD (2.48) | 0.43 SD | 0.36 SD | ❌ |
+| Baseline's fold SD (0.80) | 1.31 SD | 1.08 SD | ✅ |
+| Plus's own fold SD (2.26) | 0.46 SD | 0.38 SD | ❌ |
 
-- The plus model's own SD comes from folds where its planned-input head cannot be learned, so it is inflated.
-- `summary.md` applies each model's own SD, so it reports stretch = no.
-- **The team needs to choose which SD the contract claim uses.** Either way, the model passes A.7.2.
-- **Our recommendation:** use the reference model's SD and state both numbers.
+- The plus model's own SD is inflated by folds where its planned-input head cannot be learned.
+- `summary.md` applies each model's own SD.
 
 **Caveat on bias.**
 - Plus under-forecasts more than the baseline: WPE about −11% against −5% to −7%. The published model is at −4.89%.
-- An L1 loss targets the median, and on right-skewed demand the median sits below the mean. The masked loss also trains on in-stock days, whose recorded sales are lower.
-- WAPE and slow-seller accuracy improve: low sellers are 1.8 points better than published. Planners who care about stockouts should still see the bias.
-- Conformal calibration on the calib week (Tarakaram) or a level correction fitted there are the natural next steps. Neither may be tuned on the test week.
+- An L1 loss targets the median, and on right-skewed demand the median sits below the mean. The masked loss also trains on in-stock days.
+- WAPE improves, and so does slow-seller accuracy: low sellers are 2 points better than published.
+- Conformal calibration on the calibration week, or a level correction fitted there, is the natural next step. Neither may be tuned on the test week.
 
 ## Reproduce (Explorer, CPU)
 ```bash
