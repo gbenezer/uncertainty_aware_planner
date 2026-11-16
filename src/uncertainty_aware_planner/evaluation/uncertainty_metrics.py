@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -6,15 +6,10 @@ import pandas as pd
 from uncertainty_aware_planner.utils.util_functions import _require_columns
 
 
-class MetricResult(TypedDict):
-    value: float
-    n: int  # number of rows the metric was computed over
-
-
 def prediction_interval_coverage_fraction(
     actual_and_interval_df: pd.DataFrame,
     conformal_intervals: bool = False,
-) -> MetricResult:
+) -> Dict:
     # assumes CONTRACTS.md imputed_hourly/forecast columns exist
     lo, hi = ("q025_cal", "q975_cal") if conformal_intervals else ("q025", "q975")
 
@@ -35,7 +30,7 @@ def mean_prediction_interval_width(
     interval_df: pd.DataFrame,
     include_stockout: bool = False,
     conformal_intervals: bool = False,
-) -> MetricResult:
+) -> Dict:
     # assumes CONTRACTS.md imputed_hourly/forecast columns exist
     lo, hi = ("q025_cal", "q975_cal") if conformal_intervals else ("q025", "q975")
 
