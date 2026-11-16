@@ -13,11 +13,15 @@ from uncertainty_aware_planner.data.pypots_arrays import build_pypots_set
 from uncertainty_aware_planner.data.helper_functions import (
     to_imputed_hourly_interval_median,
     get_series_hourly,
+    add_series_metadata,
+    filter_by_mean_demand,
 )
 from uncertainty_aware_planner.data.config import load_yaml
 from uncertainty_aware_planner.utils.util_functions import set_seed, get_git_state
 from uncertainty_aware_planner.models.imputation import (
     DLinear_Imputation_Quantile,
+    DLinear_Imputation_Baseline,
+    TimesNet_Imputation_Quantile,
 )
 from uncertainty_aware_planner.evaluation.error_metrics import (
     calculate_imputation_errors_df,
@@ -69,16 +73,8 @@ if cache.exists():
 else:
     series_hourly = get_series_hourly()
     series_hourly.to_parquet(cache)
-series_hourly = get_series_hourly()
 elapsed = time.perf_counter() - start
 print(f"{elapsed:.4f} s")
-
-print(series_hourly.head())
-print(series_hourly.columns)
-
-for column in series_hourly.columns:
-    print(column)
-    print(series_hourly[column].dtype)
 
 
 def timed(fn, *args, **kwargs):
@@ -108,12 +104,15 @@ df_interval_raw = to_imputed_hourly_interval_median(
     calib_set, calib_index, imputation, clip_demand=False
 )
 
-print("imputed_hourly_interval_median columns")
-print(df_interval.columns)
+print("testing the metadata function")
+df_interval_with_data = add_series_metadata(df_interval, series_hourly)
 
-for column in df_interval.columns:
-    print(column)
-    print(df_interval[column].dtype)
+print("testing the filter function")
+low_sales = filter_by_mean_demand(df_interval_with_data, series_hourly, group="low")
+high_sales = filter_by_mean_demand(df_interval_with_data, series_hourly, group="high")
+print(df_interval_with_data.shape[0])
+print(low_sales.shape[0])
+print(high_sales.shape[0])
 
 # print("calculating dlinear WAPE and WPE with new function and clipping demand")
 # start = time.perf_counter()
