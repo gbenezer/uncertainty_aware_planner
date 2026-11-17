@@ -2,8 +2,8 @@
 
 One *unit* is one (seed, fold, model config). For each unit the script trains on
 the fold's training split, then evaluates on its validation split with the same
-metrics, subsets and output tables as `evaluate_imputation.py` (the shared
-pipeline is in `imputation_evaluation`).
+metrics, subsets and output tables as `pretrained_model_eval.py` (the shared
+pipeline is in `imputation_evaluation_helpers`).
 
 Job time limits
 ---------------
@@ -58,7 +58,7 @@ from uncertainty_aware_planner.data.config import load_config, load_yaml
 from uncertainty_aware_planner.data.cube import load_cube
 from uncertainty_aware_planner.data.pypots_arrays import build_pypots_set
 from uncertainty_aware_planner.utils.util_functions import set_seed
-from uncertainty_aware_planner.evaluation import imputation_evaluation as ie
+from uncertainty_aware_planner.evaluation import imputation_evaluation_helpers as ie
 
 # ---------------------------------------------------------------- constants
 CONFIG_DIR = Path("configs/imputation_models")
@@ -135,7 +135,7 @@ class Unit:
 
 
 def build_model(unit, epochs=None):
-    model_cls = ie.MODEL_CLASSES[(unit.model_type, unit.num_quantiles)]
+    model_cls = ie.MODEL_CLASSES[unit.model_type]
     config = unit.config
     if epochs is not None:
         # patience=None: with one-epoch fits early stopping could never trigger
@@ -364,6 +364,20 @@ def main(argv=None):
         for fold in args.folds
         for name in selected
     ]
+
+    # fail now, not after loading data and training the first few units
+    for name in selected:
+        quantiles = configs[name].get("quantiles")
+        ie.check_supported(
+            configs[name]["name"], len(quantiles) if quantiles is not None else None
+        )
+    ids = [u.run_id for u in units]
+    clashes = sorted({i for i in ids if ids.count(i) > 1})
+    if clashes:
+        sys.exit(
+            "two configs share a model name and number of quantiles, so their "
+            f"runs would overwrite each other: {clashes[:2]}"
+        )
 
     cfg = load_config()
     cube = load_cube(cfg)

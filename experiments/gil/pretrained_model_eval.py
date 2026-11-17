@@ -77,6 +77,14 @@ def main():
     completed = load_completed_runs()
     configs = [load_yaml(CONFIG_DIR / f) for f in CONFIG_FILES]
 
+    # fail now, not after loading data and the first few models
+    for config in configs:
+        quantiles = config.get("quantiles")
+        key = (config["name"], len(quantiles) if quantiles is not None else None)
+        ie.check_supported(*key)
+        if key not in CHECKPOINT_SUBDIRS:
+            raise ValueError(f"no pretrained checkpoint directory known for {key}")
+
     cfg = load_config()
     cube = load_cube(cfg)
     masks = pd.read_parquet("data/processed/eval_masks.parquet")
@@ -105,7 +113,7 @@ def main():
 
             # load
             key = (model_type, num_quantiles)
-            model = ie.MODEL_CLASSES[key](config)
+            model = ie.MODEL_CLASSES[model_type](config)
             model.load(MODEL_DIRECTORY / f"seed_{seed}_{CHECKPOINT_SUBDIRS[key]}")
 
             metrics, latency = ie.evaluate_run(
