@@ -24,6 +24,9 @@ script is built to be stopped and restarted at any point:
   rebuilt from them at the end of every invocation.
 * The exit code is 0 when every selected unit is done and 75 when work remains,
   so a submit script can resubmit until it sees 0.
+* `--shard I/N` gives this process every N-th unit starting at I, so N workers
+  started with I = 0..N-1 split the work with no overlap. Use it when the
+  cluster caps how many jobs may run at once.
 
 Model API (the only coupling to the model classes). Written against the
 wrappers in models/imputation: the constructor takes the config dict, whose
@@ -214,7 +217,9 @@ def train(unit, state, env):
         # leave room for the slowest epoch seen so far (10% slack)
         est = 1.1 * max(durations, default=state["epoch_seconds"])
         if time.time() + est > env.deadline:
-            log(f"{unit.run_id}: out of time at epoch {state['epochs_done']}/{total_epochs}")
+            log(
+                f"{unit.run_id}: out of time at epoch {state['epochs_done']}/{total_epochs}"
+            )
             break
 
         # reseed per epoch so a resumed run draws the same random numbers an
@@ -232,7 +237,10 @@ def train(unit, state, env):
         state["train_complete"] = state["epochs_done"] >= total_epochs
         dirty = True
 
-        if state["train_complete"] or time.time() - last_save >= CHECKPOINT_MIN_INTERVAL_S:
+        if (
+            state["train_complete"]
+            or time.time() - last_save >= CHECKPOINT_MIN_INTERVAL_S
+        ):
             save_checkpoint(model, state, unit.ckpt_dir)
             dirty, last_save = False, time.time()
 
@@ -328,24 +336,66 @@ def run_all(units, env):
 
 
 # ---------------------------------------------------------------------- main
+def parse_shard(text):
+    try:
+        index, count = (int(x) for x in text.split("/"))
+        if not 0 <= index < count:
+            raise ValueError
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"--shard must look like I/N with 0 <= I < N, got {text!r}"
+        )
+    return index, count
+
+
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("--seeds", type=int, nargs="+", default=SEEDS)
     p.add_argument("--folds", type=int, nargs="+", default=list(FOLDS))
     p.add_argument(
-        "--models", nargs="+", default=None,
+        "--models",
+        nargs="+",
+        default=None,
         help="config file stems to run (default: all), e.g. dlinear_imputation_baseline",
     )
-    p.add_argument("--time-limit-hours", type=float, default=8.0,
-                   help="the job's wall-clock cap, counted from script start")
-    p.add_argument("--margin-minutes", type=float, default=25.0,
-                   help="stop this long before the cap (checkpoint writes, slack)")
-    p.add_argument("--eval-reserve-minutes", type=float, default=30.0,
-                   help="only start evaluating a trained unit if this much time is left")
-    p.add_argument("--min-start-minutes", type=float, default=45.0,
-                   help="time needed to start a unit whose epoch time is not known yet")
-    p.add_argument("--latency-runs", type=int, default=None,
-                   help=f"timed inference repeats per unit (default: {ie.LATENCY_TIMED_RUNS})")
+    p.add_argument(
+        "--shard",
+        type=parse_shard,
+        default=None,
+        metavar="I/N",
+        help="run only every N-th unit starting at I (0-based), so N workers "
+        "given I = 0..N-1 split the units between them",
+    )
+    p.add_argument(
+        "--time-limit-hours",
+        type=float,
+        default=8.0,
+        help="the job's wall-clock cap, counted from script start",
+    )
+    p.add_argument(
+        "--margin-minutes",
+        type=float,
+        default=25.0,
+        help="stop this long before the cap (checkpoint writes, slack)",
+    )
+    p.add_argument(
+        "--eval-reserve-minutes",
+        type=float,
+        default=30.0,
+        help="only start evaluating a trained unit if this much time is left",
+    )
+    p.add_argument(
+        "--min-start-minutes",
+        type=float,
+        default=45.0,
+        help="time needed to start a unit whose epoch time is not known yet",
+    )
+    p.add_argument(
+        "--latency-runs",
+        type=int,
+        default=None,
+        help=f"timed inference repeats per unit (default: {ie.LATENCY_TIMED_RUNS})",
+    )
     return p.parse_args(argv)
 
 
@@ -378,6 +428,11 @@ def main(argv=None):
             "two configs share a model name and number of quantiles, so their "
             f"runs would overwrite each other: {clashes[:2]}"
         )
+
+    if args.shard:
+        index, count = args.shard
+        units = units[index::count]
+        log(f"shard {index}/{count}: {len(units)} units")
 
     cfg = load_config()
     cube = load_cube(cfg)
