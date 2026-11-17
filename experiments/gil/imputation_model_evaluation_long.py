@@ -46,10 +46,12 @@ SPLIT_CONFIG_FILE = Path("configs/splits.yaml")
 
 DATA_DIR = Path("experiments/gil/data")
 MODEL_DIRECTORY = Path("experiments/gil/models")
-RESULTS_FILE = Path(
-    "results/imputation/"
-    "full_train_data_calbration_data_eval_imputation_no_conformalization.csv"
-)
+RESULTS_DIR = Path("results/imputation")
+RESULTS_STEM = "full_train_data_calbration_data_eval_imputation_no_conformalization"
+RUNS_FILE = RESULTS_DIR / f"{RESULTS_STEM}_runs.csv"  # one row per run
+METRICS_FILE = (
+    RESULTS_DIR / f"{RESULTS_STEM}_metrics.csv"
+)  # long: run x subset x metric
 REPO_DIR = Path(__file__).resolve().parent
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -144,39 +146,45 @@ def impute_with_latency(model, dataset):
 
 
 # ---------------------------------------------------------------- evaluation
-def _flat(prefix, metrics):
-    """{'value': v, 'n_x': n} -> {prefix: v, 'prefix_n_x': n}."""
-    return {
-        (prefix if k == "value" else f"{prefix}_{k}"): v for k, v in metrics.items()
-    }
-
-
 def evaluate_subset(df, errors):
-    """All metrics for one slice of the imputation dataframe, as a flat dict.
+    """Long-format metrics for one slice: columns metric, value, n, n_dropped.
+
+    `n` is the number of rows the metric was computed on; `n_dropped` is only
+    set for MASE (rows without a valid scale).
 
     `errors` is the per-row output of `scaled_absolute_errors` for the full
     frame; the slice is picked out by index, so every slice shares one MASE
     scale per series.
 
     The baseline needs no special case: its q025/q975 columns are NaN, so the
-    interval metrics return NaN with a count of 0. This relies on every metric
-    returning the same keys when the slice is empty (see the library patch).
+    interval metrics return NaN with n = 0.
     """
-    out = dict(calculate_imputation_errors_df(imputed_hourly=df))  # wape, wpe, n_pe
+    rows = []
+
+    pe = calculate_imputation_errors_df(imputed_hourly=df)
+    rows += [
+        ("wape", pe["wape"], pe["n_pe"], np.nan),
+        ("wpe", pe["wpe"], pe["n_pe"], np.nan),
+    ]
 
     sub_errors = errors.loc[df.index]
     for lag in MASE_LAGS:
-        out.update(_flat(f"mase_{lag}hr", summarize_scaled_errors(sub_errors, lag)))
+        m = summarize_scaled_errors(sub_errors, lag)
+        rows.append(
+            (f"mase_{lag}hr", m["value"], m["n_mase"], m["n_mase_dropped_no_scale"])
+        )
 
-    out.update(
-        _flat("picp", prediction_interval_coverage_fraction(actual_and_interval_df=df))
-    )
-    out.update(_flat("mpiw", mean_prediction_interval_width(interval_df=df)))
-    return out
+    picp = prediction_interval_coverage_fraction(actual_and_interval_df=df)
+    rows.append(("picp", picp["value"], picp["n_picp"], np.nan))
+    mpiw = mean_prediction_interval_width(interval_df=df)
+    rows.append(("mpiw", mpiw["value"], mpiw["n_mpiw"], np.nan))
+
+    return pd.DataFrame(rows, columns=["metric", "value", "n", "n_dropped"])
 
 
 def make_subsets(df, series_hourly):
-    """overall / weekday / weekend, each further split by low / high volume."""
+    """{(day_type, volume): slice}: overall / weekday / weekend, each for
+    all / low / high volume series."""
     is_weekday = df["weekday"] & ~df["holiday_flag"]
     day_masks = {
         "overall": np.ones(len(df), bool),
@@ -202,26 +210,37 @@ def make_subsets(df, series_hourly):
 
     subsets = {}
     for day_name, day_mask in day_masks.items():
-        subsets[day_name] = df[day_mask]
+        subsets[(day_name, "all")] = df[day_mask]
         for group, vol_mask in volume_masks.items():
-            subsets[f"{day_name}_{group}_volume"] = df[day_mask & vol_mask]
+            subsets[(day_name, group)] = df[day_mask & vol_mask]
     return subsets
 
 
 # ------------------------------------------------------------------- helpers
-def run_key(seed, model_type, num_quantiles):
-    """Normalise so NaN (read from CSV) and None (baseline) compare equal."""
-    n = None if pd.isna(num_quantiles) else int(num_quantiles)
-    return seed, model_type, n
+def make_run_id(seed, model_type, num_quantiles):
+    q = "none" if num_quantiles is None else num_quantiles
+    return f"{model_type}__q{q}__seed{seed}"
 
 
 def load_completed_runs():
-    if not RESULTS_FILE.exists():
-        return set()
-    done = pd.read_csv(
-        RESULTS_FILE, usecols=["seed", "model_type", "num_quantiles"]
-    ).drop_duplicates()
-    return {run_key(*row) for row in done.itertuples(index=False)}
+    """run_ids in the runs table.
+
+    A run's runs row is written after its metric rows, so metric rows without
+    one come from an interrupted run; they are dropped so the run can be redone.
+    """
+    done = set()
+    if RUNS_FILE.exists():
+        done = set(pd.read_csv(RUNS_FILE, usecols=["run_id"])["run_id"])
+    if METRICS_FILE.exists():
+        metrics = pd.read_csv(METRICS_FILE)
+        keep = metrics["run_id"].isin(done)
+        if not keep.all():
+            metrics[keep].to_csv(METRICS_FILE, index=False)
+    return done
+
+
+def append_csv(df, path):
+    df.to_csv(path, mode="a", header=not path.exists(), index=False)
 
 
 def load_series_hourly():
@@ -253,7 +272,7 @@ def main():
         "device": DEVICE,
     }
 
-    RESULTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
     for seed in SEEDS:
         for config in configs:
@@ -261,7 +280,8 @@ def main():
             quantiles = config.get("quantiles")
             num_quantiles = len(quantiles) if quantiles is not None else None
 
-            if run_key(seed, model_type, num_quantiles) in completed:
+            run_id = make_run_id(seed, model_type, num_quantiles)
+            if run_id in completed:
                 print(f"Skipping seed={seed}, {model_type}, q={num_quantiles} (done)")
                 continue
 
@@ -277,8 +297,24 @@ def main():
             imputation_df = TO_DATAFRAME[num_quantiles](calib_set, calib_index, output)
             imputation_df = add_series_metadata(imputation_df, series_hourly)
 
-            # evaluate every subset
-            row = {
+            # scaled errors once per run (one pass over the hourly table per
+            # lag), then every subset just slices them
+            errors = scaled_absolute_errors(imputation_df, MASE_LAGS, series_hourly)
+            frames = [
+                evaluate_subset(subset_df, errors).assign(
+                    day_type=day_type, volume=volume
+                )
+                for (day_type, volume), subset_df in make_subsets(
+                    imputation_df, series_hourly
+                ).items()
+            ]
+            metrics = pd.concat(frames, ignore_index=True)[
+                ["day_type", "volume", "metric", "value", "n", "n_dropped"]
+            ]
+            metrics.insert(0, "run_id", run_id)
+
+            run_row = {
+                "run_id": run_id,
                 **experiment_dict,
                 "execution_datetime": datetime.datetime.now(),
                 "seed": seed,
@@ -288,22 +324,11 @@ def main():
                 "num_quantiles": num_quantiles,
                 **latency,
             }
-            # scaled errors once per run (one pass over the hourly table per
-            # lag), then every subset just slices them
-            errors = scaled_absolute_errors(imputation_df, MASE_LAGS, series_hourly)
-            for subset_name, subset_df in make_subsets(
-                imputation_df, series_hourly
-            ).items():
-                metrics = evaluate_subset(subset_df, errors)
-                row.update({f"{subset_name}_{k}": v for k, v in metrics.items()})
 
-            # one append per run, so a run is either fully recorded or not at all
-            pd.DataFrame([row]).to_csv(
-                RESULTS_FILE,
-                mode="a",
-                header=not RESULTS_FILE.exists(),
-                index=False,
-            )
+            # metrics first, runs row last: a run counts as done only once its
+            # runs row exists (see load_completed_runs)
+            append_csv(metrics, METRICS_FILE)
+            append_csv(pd.DataFrame([run_row]), RUNS_FILE)
 
 
 if __name__ == "__main__":

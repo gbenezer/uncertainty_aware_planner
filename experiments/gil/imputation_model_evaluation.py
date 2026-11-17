@@ -25,7 +25,8 @@ from uncertainty_aware_planner.models.imputation import (
 )
 from uncertainty_aware_planner.evaluation.error_metrics import (
     calculate_imputation_errors_df,
-    mean_absolute_scaled_error,
+    scaled_absolute_errors,
+    summarize_scaled_errors,
 )
 from uncertainty_aware_planner.evaluation.uncertainty_metrics import (
     prediction_interval_coverage_fraction,
@@ -69,9 +70,18 @@ def _baseline_to_df(calib_set, calib_index, output):
 
 # (model name, num quantiles) -> (model class, checkpoint subdirectory suffix)
 MODELS = {
-    ("DLinear_Imputation_Baseline", None): (DLinear_Imputation_Baseline, "dlinear_baseline"),
-    ("DLinear_Imputation_Quantile", 2): (DLinear_Imputation_Quantile, "dlinear_quantile_interval_only"),
-    ("DLinear_Imputation_Quantile", 3): (DLinear_Imputation_Quantile, "dlinear_quantile"),
+    ("DLinear_Imputation_Baseline", None): (
+        DLinear_Imputation_Baseline,
+        "dlinear_baseline",
+    ),
+    ("DLinear_Imputation_Quantile", 2): (
+        DLinear_Imputation_Quantile,
+        "dlinear_quantile_interval_only",
+    ),
+    ("DLinear_Imputation_Quantile", 3): (
+        DLinear_Imputation_Quantile,
+        "dlinear_quantile",
+    ),
     ("TimesNet_Imputation_Quantile", 3): (TimesNet_Imputation_Quantile, "timesnet"),
 }
 
@@ -114,7 +124,7 @@ def impute_with_latency(model, dataset):
         times.append(time.perf_counter() - start)
 
     times = np.asarray(times)
-    n_samples = dataset["X"].shape[0]
+    n_samples = dataset["X"].shape[0]  # the PyPOTS set is a dict, not a sequence
     latency = {
         "latency_n_samples": n_samples,
         "latency_n_timed_runs": LATENCY_TIMED_RUNS,
@@ -134,42 +144,67 @@ def impute_with_latency(model, dataset):
 
 
 # ---------------------------------------------------------------- evaluation
-def evaluate_subset(df, series_hourly, has_intervals):
-    """All metrics for one slice of the imputation dataframe, as a flat dict."""
-    out = dict(calculate_imputation_errors_df(imputed_hourly=df))
+def _flat(prefix, metrics):
+    """{'value': v, 'n_x': n} -> {prefix: v, 'prefix_n_x': n}."""
+    return {
+        (prefix if k == "value" else f"{prefix}_{k}"): v for k, v in metrics.items()
+    }
 
+
+def evaluate_subset(df, errors):
+    """All metrics for one slice of the imputation dataframe, as a flat dict.
+
+    `errors` is the per-row output of `scaled_absolute_errors` for the full
+    frame; the slice is picked out by index, so every slice shares one MASE
+    scale per series.
+
+    The baseline needs no special case: its q025/q975 columns are NaN, so the
+    interval metrics return NaN with a count of 0. This relies on every metric
+    returning the same keys when the slice is empty (see the library patch).
+    """
+    out = dict(calculate_imputation_errors_df(imputed_hourly=df))  # wape, wpe, n_pe
+
+    sub_errors = errors.loc[df.index]
     for lag in MASE_LAGS:
-        out[f"mase_{lag}hr"] = mean_absolute_scaled_error(
-            imputed_df=df, lag_hours=lag, series_hourly=series_hourly
-        )
+        out.update(_flat(f"mase_{lag}hr", summarize_scaled_errors(sub_errors, lag)))
 
-    if has_intervals:
-        picp = prediction_interval_coverage_fraction(actual_and_interval_df=df)
-        mpiw = mean_prediction_interval_width(interval_df=df)
-    else:  # baseline has no intervals
-        picp = {"value": np.nan, "n_picp": 0}
-        mpiw = {"value": np.nan, "n_mpiw": 0}
-
-    out["picp"], out["n_picp"] = picp["value"], picp["n_picp"]
-    out["mpiw"], out["n_mpiw"] = mpiw["value"], mpiw["n_mpiw"]
+    out.update(
+        _flat("picp", prediction_interval_coverage_fraction(actual_and_interval_df=df))
+    )
+    out.update(_flat("mpiw", mean_prediction_interval_width(interval_df=df)))
     return out
 
 
 def make_subsets(df, series_hourly):
     """overall / weekday / weekend, each further split by low / high volume."""
     is_weekday = df["weekday"] & ~df["holiday_flag"]
-    base = {"overall": df, "weekday": df[is_weekday], "weekend": df[~is_weekday]}
+    day_masks = {
+        "overall": np.ones(len(df), bool),
+        "weekday": is_weekday,
+        "weekend": ~is_weekday,
+    }
 
-    subsets = {}
-    for name, sub in base.items():
-        subsets[name] = sub
-        for group in VOLUME_GROUPS:
-            subsets[f"{name}_{group}_volume"] = filter_by_mean_demand(
-                imputed_df=sub,
+    # per-series mean demand does not depend on the day slice, and each call
+    # groups the whole hourly table, so do it once per group, not once per slice
+    # (df has a fresh RangeIndex after add_series_metadata, so index membership
+    # is a safe row mask)
+    volume_masks = {
+        group: df.index.isin(
+            filter_by_mean_demand(
+                imputed_df=df,
                 series_hourly=series_hourly,
                 group=group,
                 mean_source="full",
-            )
+            ).index
+        )
+        for group in VOLUME_GROUPS
+    }
+
+    subsets = {}
+    for day_name, day_mask in day_masks.items():
+        subsets[day_name] = df[day_mask]
+        for group, vol_mask in volume_masks.items():
+            subsets[f"{day_name}_{group}_volume"] = df[day_mask & vol_mask]
     return subsets
 
 
@@ -240,7 +275,7 @@ def main():
 
             # convert to dataframe and attach metadata
             imputation_df = TO_DATAFRAME[num_quantiles](calib_set, calib_index, output)
-            imputation_df = add_series_metadata(imputation_df)  # see note on arguments
+            imputation_df = add_series_metadata(imputation_df, series_hourly)
 
             # evaluate every subset
             row = {
@@ -253,10 +288,13 @@ def main():
                 "num_quantiles": num_quantiles,
                 **latency,
             }
-            for subset_name, subset_df in make_subsets(imputation_df, series_hourly).items():
-                metrics = evaluate_subset(
-                    subset_df, series_hourly, has_intervals=num_quantiles is not None
-                )
+            # scaled errors once per run (one pass over the hourly table per
+            # lag), then every subset just slices them
+            errors = scaled_absolute_errors(imputation_df, MASE_LAGS, series_hourly)
+            for subset_name, subset_df in make_subsets(
+                imputation_df, series_hourly
+            ).items():
+                metrics = evaluate_subset(subset_df, errors)
                 row.update({f"{subset_name}_{k}": v for k, v in metrics.items()})
 
             # one append per run, so a run is either fully recorded or not at all
