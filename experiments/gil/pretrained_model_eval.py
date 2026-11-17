@@ -35,7 +35,9 @@ MODEL_DIRECTORY = Path("experiments/gil/models")
 RESULTS_DIR = Path("results/imputation")
 RESULTS_STEM = "pretrained_model_eval_py_execution_1"
 RUNS_FILE = RESULTS_DIR / f"{RESULTS_STEM}_runs.csv"  # one row per run
-METRICS_FILE = RESULTS_DIR / f"{RESULTS_STEM}_metrics.csv"  # long: run x subset x metric
+METRICS_FILE = (
+    RESULTS_DIR / f"{RESULTS_STEM}_metrics.csv"
+)  # long: run x subset x metric
 REPO_DIR = Path(__file__).resolve().parent
 
 SEEDS = [86400, 4, 42]

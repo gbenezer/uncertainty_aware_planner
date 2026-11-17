@@ -36,8 +36,8 @@ def _percent_error_summary(total_abs_diff, total_diff, total_actual, n) -> dict:
 
 
 def _in_open_hours(datetimes: pd.Series) -> pd.Series:
-    """ takes a pandas Series of datetime information (either as str or pd.Timestamp),
-    extracts the hour information, and generates a boolean pandas Series indicating 
+    """takes a pandas Series of datetime information (either as str or pd.Timestamp),
+    extracts the hour information, and generates a boolean pandas Series indicating
     whether the row data was collected during the open hours of the store.
     """
     hour = pd.to_datetime(datetimes).dt.hour
@@ -79,9 +79,9 @@ def calculate_imputation_percent_errors(eval_pypots, imputation_point_estimate) 
 
 def _open_hour_sales_on_valid_days(valid_rows, series_hourly) -> tuple[float, int]:
     """Private helper function that outputs the tuple (total sales, hour count) tuple
-    over every open hour of the (series, day) pairs present in `valid_rows`, 
+    over every open hour of the (series, day) pairs present in `valid_rows`,
     observed hours included."""
-    keys = list(SERIES_KEYS) # technically already a list, but it's a harmless no-op
+    keys = list(SERIES_KEYS)  # technically already a list, but it's a harmless no-op
 
     # filter out unique [store_id, product_id, date] combinations
     # assumes that valid_rows contains a 'date' column that is either a datetime or
@@ -129,7 +129,7 @@ def calculate_imputation_errors_df(
     if include_observed and series_hourly is None:
         raise ValueError("include_observed=True requires series_hourly")
 
-    # filter to rows from days that have at least one masked hour 
+    # filter to rows from days that have at least one masked hour
     # and no true stockout.
     df = _valid_day_rows(imputed_hourly[_in_open_hours(imputed_hourly["datetime"])])
 
@@ -151,7 +151,7 @@ def calculate_imputation_errors_df(
 # ---------------------------------------------------------------------- MASE
 def _ase_column(lag_hours: int) -> str:
     """Simple helper function giving the proper column name for a given
-    absolute scaled error lag.""" 
+    absolute scaled error lag."""
     return f"ase_{lag_hours}hr"
 
 
@@ -180,8 +180,8 @@ def _observed_hours(
     # convert the datetime to an official pandas Timestamp Series if not already
     obs["datetime"] = pd.to_datetime(obs["datetime"])
 
-    # indirect anti-join observed data on (series, hour) to remove the hours 
-    # that are evaluated from the scale calculations downstream to prevent 
+    # indirect anti-join observed data on (series, hour) to remove the hours
+    # that are evaluated from the scale calculations downstream to prevent
     # information leakage
     eval_hours = eval_rows[[*keys, "datetime"]].drop_duplicates().assign(_eval=True)
     obs = obs.merge(eval_hours, on=[*keys, "datetime"], how="left")
@@ -195,7 +195,7 @@ def _naive_scale(obs: pd.DataFrame, lag_hours: int) -> pd.Series:
     Pairs are matched on timestamps, so gaps in a series are skipped instead of
     being bridged by a positional shift.
     """
-    keys = list(SERIES_KEYS) # again, another harmless no-op
+    keys = list(SERIES_KEYS)  # again, another harmless no-op
 
     # create a view with an overwritten datetime that is ahead in time by lag_hours
     lagged = obs.assign(datetime=obs["datetime"] + pd.Timedelta(hours=lag_hours))
@@ -232,7 +232,7 @@ def scaled_absolute_errors(
                        row was not evaluated or its series has no valid scale
                        (no usable lag pairs, or a constant series)
     """
-    keys = list(SERIES_KEYS) # another no-op
+    keys = list(SERIES_KEYS)  # another no-op
 
     # checking if the columns necessary for calculations exist and raising a
     # KeyError if not
@@ -282,16 +282,15 @@ def scaled_absolute_errors(
 
     # across all requested lags to calculate
     for lag in lags:
-
-        # inner join the evaluated hours with their 
+        # inner join the evaluated hours with their
         # appropriate store-product mean
         # then extract those means
         scale = ev.join(
-            # generates an appropriate set of all store-product means 
+            # generates an appropriate set of all store-product means
             # for a particular lag
-            _naive_scale(obs, lag), 
-            on=keys
-            )["scale"]
+            _naive_scale(obs, lag),
+            on=keys,
+        )["scale"]
         # NaN scale (no pairs) and zero scale (constant series) are both invalid
         out[_ase_column(lag)] = (abs_err / scale).where(scale > 0)
     return out
