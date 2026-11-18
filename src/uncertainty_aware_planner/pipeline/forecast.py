@@ -46,9 +46,12 @@ from uncertainty_aware_planner.models.forecasting.forecast_table import (
 )
 from uncertainty_aware_planner.utils.util_functions import get_git_state, set_seed
 
-
-ARCHITECTURES = {"tft": tft, "dlinear_baseline": dlinear, "dlinear_plus": dlinear}
-
+ARCHITECTURES = {
+    "tft": tft,
+    "dlinear_baseline": dlinear,
+    "dlinear_plus": dlinear,
+    "dlinear_quantile": dlinear_quantile,
+}
 
 
 def _merge(base: dict, override: dict) -> dict:
