@@ -234,3 +234,10 @@ slurm/job_logs/*
 
 # macOS Finder metadata
 .DS_Store
+
+# Directory with imputation model evaluation checkpoints
+models/cv_folds/*
+
+# Directory with intermediate imputation evaluation
+# metric results prior to pooling
+results/imputation/cv_folds/units/*
