@@ -1,0 +1,42 @@
+# Improved DLinear (point forecast). Same model and training as dlinear_forecasting_baseline.yaml plus the
+# changes chosen on validation data only (inner week 06-12..06-18 trained through 06-11, and the team folds;
+# never calib or test), see results/forecasting/dlinear_ablation.md:
+#   final_lookback_days 28: 49 training windows per series instead of 15 (project split)
+#   mask_stockout_targets:  the loss skips target days with a 6:00-22:00 stockout (censored sales)
+#   revin_in_stock_stats:   RevIN statistics from in-stock lookback days only
+#   future_covariates:      planned inputs of the forecast days (no observed future weather)
+# Inner-week WAPE 31.72% against 34.22% for the baseline (3 seeds, paired, 3/3 better). Frozen 2026-11-15
+# before its first test-week scoring.
+architecture: dlinear_plus
+model_id: fc-dlinear-plus
+data_config: configs/data.yaml
+
+point_forecast: true
+quantiles: [0.5]
+
+windows:
+  final_lookback_days: 28
+  fold_lookback_days: 21
+
+model:
+  moving_avg: 28
+  revin: true
+  mask_stockout_targets: true
+  revin_in_stock_stats: true
+  future_covariates: [discount, activity_flag, holiday_flag, day_of_week]
+
+train:
+  learning_rate: 1.0e-3
+  epochs: 6
+  batch_size: 1024
+  drop_last: true
+  patience: 5
+  device: cpu
+
+output_dir: data/processed/forecast
+run_dir: data/runs/forecasting
+
+smoke:
+  output_dir: data/processed/forecast_smoke
+  run_dir: data/runs/forecasting_smoke
+  train: {epochs: 2, batch_size: 16, drop_last: false}
