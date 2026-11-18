@@ -30,7 +30,7 @@ CONFIG_FILES = [
 PUBLIC_DATA_CONFIG_FILE = Path("configs/data.yaml")
 SPLIT_CONFIG_FILE = Path("configs/splits.yaml")
 
-DATA_DIR = Path("experiments/gil/data")
+DATA_DIR = Path("data/hf_cache")
 MODEL_DIRECTORY = Path("experiments/gil/models")
 RESULTS_DIR = Path("results/imputation")
 RESULTS_STEM = "pretrained_model_eval_py_execution_1"
