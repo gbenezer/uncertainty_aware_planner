@@ -7,7 +7,7 @@ import yaml
 
 DATA_PATH = Path("data/processed/demand_daily/imp-none-censored.parquet")
 SPLITS_PATH = Path("configs/splits.yaml")
-OUTPUT_PATH = Path("data/processed/slices.parquet")
+OUTPUT_PATH = Path("data/processed/jeena_slices_experimental.parquet")
 
 KEYS = ["store_id", "product_id"]
 

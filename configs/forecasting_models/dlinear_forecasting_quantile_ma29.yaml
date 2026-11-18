@@ -4,7 +4,7 @@
 # 2.5%, 50%, and 97.5%.
 
 architecture: dlinear_quantile
-model_id: dlinear_forecasting_quantile_ma29.yaml
+model_id: fc-dlinear-quantile-ma29
 data_config: configs/data.yaml
 
 # Quantile levels for prediction intervals
