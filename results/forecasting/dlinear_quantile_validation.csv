@@ -1,0 +1,7 @@
+
+model,fold,seed,horizon,rows,midpoint_wape,median_wape,quantile_crossing_rate,negative_clip_rate
+dlinear_quantile_ma7,1,2025,7,7700000,45.04,39.64,0.00,26.49
+dlinear_quantile_ma15,1,2025,7,7700000,44.97,,0.00,26.71
+dlinear_quantile_ma29,1,2025,7,7700000,44.86,,0.00,26.71
+dlinear_quantile_ma29,2,2025,7,7700000,45.05,,0.00,26.47
+dlinear_quantile_ma7,2,2025,7,7700000,45.38,,0.00,26.56

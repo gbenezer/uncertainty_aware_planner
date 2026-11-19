@@ -33,3 +33,16 @@ def tft_cfg(tmp_path):
     model_cfg["output_dir"] = str(tmp_path / "forecast")
     model_cfg["run_dir"] = str(tmp_path / "runs")
     return model_cfg
+
+
+@pytest.fixture
+def dlinear_quantile_cfg(tmp_path):
+    """Small DLinear Quantile configuration for integration tests."""
+    model_cfg = smoke_config(
+        load_yaml("configs/forecasting_models/dlinear_forecasting_quantile.yaml")
+    )
+    model_cfg["output_dir"] = str(tmp_path / "forecast")
+    model_cfg["run_dir"] = str(tmp_path / "runs")
+    model_cfg["model_id"] = "fc-dlinear-quantile-test"
+    model_cfg["trainer"]["limit_predict_batches"] = None
+    return model_cfg
