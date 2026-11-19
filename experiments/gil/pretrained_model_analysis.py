@@ -53,6 +53,12 @@ RUN_SUMMARY_RENAME_MAP = {
     k: f"median_{k}" if SUM_REGEX.search(k) is None else f"sum_{k}"
     for k in RUN_DATA_COLUMNS
 }
+RUN_DATA_FIGURE_MAP = {
+    "latency_total_s_mean": ("Inference Latency<br>Mean, Seconds", True),
+    "latency_total_s_std": ("Inference Latency<br>Standard Deviation, Seconds", True),
+    "latency_total_s_median": ("Inference Latency<br>Median, Seconds", True),
+    "latency_peak_gpu_mem_mb": ("Inference Peak<br>GPU Memory, MB", False),
+}
 
 
 # data preprocessing
@@ -78,6 +84,30 @@ run_data_summary_df = (
     .agg(RUN_DATA_AGGREGATION_MAP)
     .rename(columns=RUN_SUMMARY_RENAME_MAP)
 )
+
+# run latency figures
+for key, value in RUN_DATA_FIGURE_MAP.items():
+    run_fig = px.violin(
+        run_data_subset_df,
+        x="model_type",
+        y=key,
+        box=True,
+        points="all",
+        color="num_quantiles",
+        labels={
+            key: value[0],
+            "model_type": "Model Type",
+            "num_quantiles": "Number of<br>Estimated Quantiles",
+        },
+        category_orders={"num_quantiles": [1, 2, 3]},
+        template="seaborn",
+    )
+    if value[1]:
+        run_fig.update_yaxes(range=[0, None])
+    file_name = f"{key}_violin_plot.html"
+    file_path = FIGURE_DIR / file_name
+    run_fig.write_html(file_path)
+
 # run_data_summary_df.to_csv(
 #     (SUMMARY_DIR / "pretrained_model_eval_py_execution_1_latency_summary.csv")
 # )
