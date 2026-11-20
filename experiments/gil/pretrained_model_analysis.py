@@ -42,6 +42,9 @@ NO_DAY_FORMULA = "value ~ volume + model_type + num_quantiles"
 NO_VOLUME_FORMULA = "value ~ day_type + model_type + num_quantiles"
 NO_QUANTILE_FORMULA = "value ~ day_type + volume + model_type"
 NO_MODEL_FORMULA = "value ~ day_type + volume + num_quantiles"
+FULL_LINEAR_FORMULA_WITH_N = (
+    "value ~ day_type + volume + model_type + num_quantiles + n"
+)
 
 # data import
 run_df = pd.read_csv(RUN_PATH)
@@ -240,13 +243,16 @@ for metric_type in metric_df["metric"].cat.categories:
         SECOND_ORDER_FORMULA, data=filtered_df, return_type="dataframe"
     )
 
-    # impact of variable subtraction
+    # impact of variable subtraction (and addition)
     y_nd, X_nd = dmatrices(NO_DAY_FORMULA, data=filtered_df, return_type="dataframe")
     y_nv, X_nv = dmatrices(NO_VOLUME_FORMULA, data=filtered_df, return_type="dataframe")
     y_nq, X_nq = dmatrices(
         NO_QUANTILE_FORMULA, data=filtered_df, return_type="dataframe"
     )
     y_nm, X_nm = dmatrices(NO_MODEL_FORMULA, data=filtered_df, return_type="dataframe")
+    y_wn, X_wn = dmatrices(
+        FULL_LINEAR_FORMULA_WITH_N, data=filtered_df, return_type="dataframe"
+    )
 
     # OLS model definitions and fitting
     model = sm.OLS(y, X).fit()
@@ -257,6 +263,7 @@ for metric_type in metric_df["metric"].cat.categories:
     no_volume_model = sm.OLS(y_nv, X_nv).fit()
     no_quantile_model = sm.OLS(y_nq, X_nq).fit()
     no_model_model = sm.OLS(y_nm, X_nm).fit()
+    linear_model_with_n = sm.OLS(y_wn, X_wn).fit()
 
     # output to stdout
     print(metric_type)
@@ -278,37 +285,64 @@ for metric_type in metric_df["metric"].cat.categories:
     print(anova_lm(no_quantile_model, linear_model))
     print("impact of model type")
     print(anova_lm(no_model_model, linear_model))
+    print("impact of adding n")
+    print(anova_lm(linear_model, linear_model_with_n))
+
     print("full linear model")
     print(linear_model.summary())
     print("linear model without day")
     print(no_day_model.summary())
 
-    # # remove NaN from baseline entries
-    # if metric_type in ["mpiw", "picp"]:
-    #     filtered_df = filtered_df.dropna()
-    #     summary_df = filtered_df.groupby(METRIC_SUMMARY_COLUMNS).agg(
-    #         **{
-    #             f"{metric_type}_mean": pd.NamedAgg(column="value", aggfunc="mean"),
-    #             f"{metric_type}_median": pd.NamedAgg(column="value", aggfunc="median"),
-    #             f"{metric_type}_std": pd.NamedAgg(column="value", aggfunc="std"),
-    #             f"{metric_type}_total_group_n": pd.NamedAgg(column="n", aggfunc="sum"),
-    #             f"{metric_type}_mean_group_n": pd.NamedAgg(column="n", aggfunc="mean"),
-    #             f"{metric_type}_median_group_n": pd.NamedAgg(column="n", aggfunc="median"),
-    #             f"{metric_type}_std_group_n": pd.NamedAgg(column="n", aggfunc="std"),
-    #         }
-    #     ).reset_index()
+    # remove NaN from baseline entries
+    if metric_type in ["mpiw", "picp"]:
+        filtered_df = filtered_df.dropna()
+        summary_df = (
+            filtered_df.groupby(METRIC_SUMMARY_COLUMNS)
+            .agg(
+                **{
+                    f"{metric_type}_mean": pd.NamedAgg(column="value", aggfunc="mean"),
+                    f"{metric_type}_median": pd.NamedAgg(
+                        column="value", aggfunc="median"
+                    ),
+                    f"{metric_type}_std": pd.NamedAgg(column="value", aggfunc="std"),
+                    f"{metric_type}_total_group_n": pd.NamedAgg(
+                        column="n", aggfunc="sum"
+                    ),
+                    f"{metric_type}_mean_group_n": pd.NamedAgg(
+                        column="n", aggfunc="mean"
+                    ),
+                    f"{metric_type}_median_group_n": pd.NamedAgg(
+                        column="n", aggfunc="median"
+                    ),
+                    f"{metric_type}_std_group_n": pd.NamedAgg(
+                        column="n", aggfunc="std"
+                    ),
+                }
+            )
+            .reset_index()
+        )
 
-    # else:
-    #     summary_df = filtered_df.groupby(METRIC_SUMMARY_COLUMNS).agg(
-    #         **{
-    #             f"{metric_type}_mean": pd.NamedAgg(column="value", aggfunc="mean"),
-    #             f"{metric_type}_median": pd.NamedAgg(column="value", aggfunc="median"),
-    #             f"{metric_type}_std": pd.NamedAgg(column="value", aggfunc="std"),
-    #             f"{metric_type}_group_n_per_seed": pd.NamedAgg(column="n", aggfunc="median"),
-    #             f"{metric_type}_total_group_n": pd.NamedAgg(column="n", aggfunc="sum"),
-    #         }
-    #     ).reset_index()
+    else:
+        summary_df = (
+            filtered_df.groupby(METRIC_SUMMARY_COLUMNS)
+            .agg(
+                **{
+                    f"{metric_type}_mean": pd.NamedAgg(column="value", aggfunc="mean"),
+                    f"{metric_type}_median": pd.NamedAgg(
+                        column="value", aggfunc="median"
+                    ),
+                    f"{metric_type}_std": pd.NamedAgg(column="value", aggfunc="std"),
+                    f"{metric_type}_group_n_per_seed": pd.NamedAgg(
+                        column="n", aggfunc="median"
+                    ),
+                    f"{metric_type}_total_group_n": pd.NamedAgg(
+                        column="n", aggfunc="sum"
+                    ),
+                }
+            )
+            .reset_index()
+        )
 
-    # file_name = PRETRAINED_STEM + f"_{metric_type}_summary.csv"
-    # file_path = SUMMARY_DIR / file_name
-    # summary_df.to_csv(file_path)
+    file_name = PRETRAINED_STEM + f"_{metric_type}_summary.csv"
+    file_path = SUMMARY_DIR / file_name
+    summary_df.to_csv(file_path)
