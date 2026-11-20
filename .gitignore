@@ -241,5 +241,6 @@ models/cv_folds/*
 # Directory with intermediate imputation evaluation
 # metric results prior to pooling
 results/imputation/cv_folds/units/*
+
 # advisory lock used by pipeline/evaluate_forecasting.py while it merges metrics
 results/**/.evaluate.lock
