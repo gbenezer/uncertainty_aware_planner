@@ -34,6 +34,9 @@ METRIC_TYPE_NAME_MAP = {
 }
 FORMULA = "value ~ day_type * volume + model_type + num_quantiles"
 FULL_LINEAR_FORMULA = "value ~ day_type + volume + model_type + num_quantiles"
+LINEAR_FORMULA_WITH_MODEL_QUANTILE_INTERACTION = (
+    "value ~ day_type + volume + model_type * num_quantiles"
+)
 SECOND_ORDER_FORMULA = "value ~ day_type * volume + model_type * num_quantiles"
 NO_DAY_FORMULA = "value ~ volume + model_type + num_quantiles"
 NO_VOLUME_FORMULA = "value ~ day_type + model_type + num_quantiles"
@@ -228,6 +231,11 @@ for metric_type in metric_df["metric"].cat.categories:
     y_lm, X_lm = dmatrices(
         FULL_LINEAR_FORMULA, data=filtered_df, return_type="dataframe"
     )
+    y_mq, X_mq = dmatrices(
+        LINEAR_FORMULA_WITH_MODEL_QUANTILE_INTERACTION,
+        data=filtered_df,
+        return_type="dataframe",
+    )
     y_so, X_so = dmatrices(
         SECOND_ORDER_FORMULA, data=filtered_df, return_type="dataframe"
     )
@@ -244,6 +252,7 @@ for metric_type in metric_df["metric"].cat.categories:
     model = sm.OLS(y, X).fit()
     linear_model = sm.OLS(y_lm, X_lm).fit()
     second_order_model = sm.OLS(y_so, X_so).fit()
+    mq_model = sm.OLS(y_mq, X_mq).fit()
     no_day_model = sm.OLS(y_nd, X_nd).fit()
     no_volume_model = sm.OLS(y_nv, X_nv).fit()
     no_quantile_model = sm.OLS(y_nq, X_nq).fit()
@@ -252,11 +261,15 @@ for metric_type in metric_df["metric"].cat.categories:
     # output to stdout
     print(metric_type)
 
-    print("model vs. linear")
+    print("Interaction Terms")
+    print("model with day/volume interaction vs. linear")
     print(anova_lm(linear_model, model))
-    print("second order vs. linear")
+    print("model with model/quantile interaction vs. linear")
+    print(anova_lm(linear_model, mq_model))
+    print("Model with day/volume and model/quantile interactions vs. linear")
     print(anova_lm(linear_model, second_order_model))
 
+    print("Variable Exclusion")
     print("impact of day")
     print(anova_lm(no_day_model, linear_model))
     print("impact of volume")
