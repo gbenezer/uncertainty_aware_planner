@@ -1,0 +1,42 @@
+# DLinear forecasting baseline (Feature Cards 2.1: "DLinear architecture trained using the loss and exact
+# architecture from the dataset paper repository (not quantile)"). Port of Dingdong-Inc/frn-50k-baseline
+# @ 8af694a, demand_forecasting/DLinear, with the run settings of train_predict.sh (see
+# models/forecasting/dlinear.py). Published (paper Table 3): 31.56% WAPE / -4.89% WPE on raw sales,
+# 30.60% / +4.02% on DLinear-recovered demand.
+architecture: dlinear_baseline
+model_id: fc-dlinear-baseline
+data_config: configs/data.yaml  # target, splits and the horizon come from here
+
+# One output trained with an L1 loss, i.e. a median forecast: written as q500 in the run directory and as
+# estimated_demand in the forecast table, whose q025/q975 stay null (CONTRACTS.md 2.5, non-quantile baseline).
+point_forecast: true
+quantiles: [0.5]
+
+windows:
+  final_lookback_days: 62  # authors' seq_len (the TFT uses 70)
+  fold_lookback_days: 21  # folds have 28 train days: one 21 + 7 window per series, as for the TFT
+
+model:
+  moving_avg: 28  # authors' kernel; even, so 13 days are padded in front and 14 at the end
+  revin: true  # train_predict.sh passes --revin False, which argparse (type=bool) reads as True
+  mask_stockout_targets: false
+  revin_in_stock_stats: false
+  future_covariates: []
+
+train:
+  learning_rate: 1.0e-3  # Adam; halved after every epoch from the second on (lradj type1)
+  epochs: 6
+  batch_size: 1024
+  drop_last: true
+  patience: 5  # EarlyStopping on the training loss; the best epoch is kept
+  device: cpu
+
+# Forecast tables (CONTRACTS.md 2.5) and run directories; both gitignored.
+output_dir: data/processed/forecast
+run_dir: data/runs/forecasting
+
+# --smoke overrides: a few small batches, separate folders.
+smoke:
+  output_dir: data/processed/forecast_smoke
+  run_dir: data/runs/forecasting_smoke
+  train: {epochs: 2, batch_size: 16, drop_last: false}

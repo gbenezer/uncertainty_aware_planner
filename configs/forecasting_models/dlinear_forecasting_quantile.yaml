@@ -1,0 +1,49 @@
+
+# DLinear Quantile Forecasting
+# Predicts 7-day demand using three quantiles:
+# 2.5%, 50%, and 97.5%.
+
+architecture: dlinear_quantile
+model_id: fc-dlinear-quantile
+data_config: configs/data.yaml
+
+# Quantile levels for prediction intervals
+quantiles: [0.025, 0.5, 0.975]
+
+# DLinear model settings
+model:
+  moving_avg: 7
+  individual: false
+  learning_rate: 0.001
+  weight_decay: 0.0001
+
+# Training settings
+trainer:
+  max_epochs: 6
+  accelerator: auto
+  devices: 1
+  limit_train_batches: null
+
+# Data loading settings
+dataloader:
+  batch_size: 1024
+  num_workers: 0
+
+# Output locations
+output_dir: data/processed/forecast
+run_dir: data/runs/forecasting
+
+# Quick smoke-test configuration
+smoke:
+  output_dir: data/processed/forecast_smoke
+  run_dir: data/runs/forecasting_smoke
+
+  trainer:
+    max_epochs: 1
+    accelerator: cpu
+    limit_train_batches: 2
+    limit_predict_batches: 2
+
+  dataloader:
+    batch_size: 32
+    num_workers: 0

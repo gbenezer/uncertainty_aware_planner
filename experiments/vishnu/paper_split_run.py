@@ -33,6 +33,7 @@ def main() -> None:
     args = parser.parse_args()
 
     model_cfg = load_yaml(args.config)
+    model_cfg["config_path"] = args.config
     model_cfg["output_dir"] = model_cfg["output_dir"] + "_paper_split"
     model_cfg["run_dir"] = model_cfg["run_dir"] + "_paper_split"
     data_cfg = load_config(model_cfg["data_config"])
