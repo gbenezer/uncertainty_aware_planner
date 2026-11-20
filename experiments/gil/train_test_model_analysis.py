@@ -283,10 +283,8 @@ for metric_type in metric_df["metric"].cat.categories:
     print(anova_lm(no_quantile_model, linear_model))
     print("impact of model type")
     print(anova_lm(no_model_model, linear_model))
-    print("full linear model")
-    print(linear_model.summary())
-    print("linear model without day")
-    print(no_day_model.summary())
+    print("Linear model + model/quantile interaction")
+    print(mq_model.summary())
 
     # # remove NaN from baseline entries
     # if metric_type in ["mpiw", "picp"]:
