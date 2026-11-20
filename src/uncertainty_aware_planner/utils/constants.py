@@ -25,6 +25,22 @@ PRIMARY_KEYS = ["store_id", "product_id", "dt"]
 # other key listings
 SERIES_KEYS = ["store_id", "product_id"]
 DAY_KEYS = ["store_id", "product_id", "date"]
+DAILY_METADATA_COLS = [
+    "city_id",
+    "management_group_id",
+    "first_category_id",
+    "second_category_id",
+    "third_category_id",
+    "scaled_daily_demand",
+    "number_stockout_open_hours",
+    "discount",
+    "holiday_flag",
+    "activity_flag",
+    "precpt",
+    "avg_temperature",
+    "avg_humidity",
+    "avg_wind_level",
+]
 
 # number of hours the store is open
 NUMBER_OPEN_HOURS = 16

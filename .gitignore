@@ -235,5 +235,11 @@ slurm/job_logs/*
 # macOS Finder metadata
 .DS_Store
 
+# Directory with imputation model evaluation checkpoints
+models/cv_folds/*
+
+# Directory with intermediate imputation evaluation
+# metric results prior to pooling
+results/imputation/cv_folds/units/*
 # advisory lock used by pipeline/evaluate_forecasting.py while it merges metrics
 results/**/.evaluate.lock

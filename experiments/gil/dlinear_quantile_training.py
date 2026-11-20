@@ -19,8 +19,8 @@ from uncertainty_aware_planner.models.imputation import (
 # script constants
 
 # model configs
-DLINEAR_QUANTILE_MEDIAN_CONFIG_FILE = Path(
-    "configs/imputation_models/dlinear_imputation_quantile_median.yaml"
+DLINEAR_QUANTILE_CONFIG_FILE = Path(
+    "configs/imputation_models/dlinear_imputation_quantile.yaml"
 )
 
 # data configs
@@ -39,7 +39,7 @@ SEEDS = [86400, 4, 42]
 SHA = get_git_state(REPO_DIR)
 
 # loading config files for model
-dlinear_quantile_median_config = load_yaml(DLINEAR_QUANTILE_MEDIAN_CONFIG_FILE)
+dlinear_quantile_config = load_yaml(DLINEAR_QUANTILE_CONFIG_FILE)
 
 # load necessary data pipeline elements
 cfg = load_config()
@@ -54,10 +54,10 @@ for seed in SEEDS:
     set_seed(seed)
 
     # construct the model
-    m = DLinear_Imputation_Quantile(dlinear_quantile_median_config)
+    m = DLinear_Imputation_Quantile(dlinear_quantile_config)
 
     # fit on the training dataset
     m.fit(train_set)
 
-    RUN_DIRECTORY = MODEL_DIRECTORY / f"seed_{seed}_dlinear_quantile"
+    RUN_DIRECTORY = MODEL_DIRECTORY / f"seed_{seed}_dlinear_quantile_interval_only"
     m.save(directory=RUN_DIRECTORY)
