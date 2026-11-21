@@ -49,6 +49,37 @@ LINEAR_FORMULA_WITH_N_AND_MQ = (
     "value ~ day_type + volume + model_type * num_quantiles + n"
 )
 
+# slideshow figure styling
+BASE_FONT_SIZE = 22  # tick labels, legend entries, facet labels, annotations
+AXIS_TITLE_FONT_SIZE = 26
+LEGEND_TITLE_FONT_SIZE = 24
+
+
+def apply_slide_style(fig, height: int | None = None):
+    """Enlarge all text in a figure so it is legible in a slideshow."""
+    fig.update_layout(
+        font=dict(size=BASE_FONT_SIZE),
+        legend=dict(
+            font=dict(size=BASE_FONT_SIZE),
+            title=dict(font=dict(size=LEGEND_TITLE_FONT_SIZE)),
+        ),
+        margin=dict(l=100, r=40, t=40, b=80),
+    )
+    fig.update_xaxes(
+        title_font=dict(size=AXIS_TITLE_FONT_SIZE),
+        tickfont=dict(size=BASE_FONT_SIZE),
+    )
+    fig.update_yaxes(
+        title_font=dict(size=AXIS_TITLE_FONT_SIZE),
+        tickfont=dict(size=BASE_FONT_SIZE),
+    )
+    # covers facet labels and hline annotations
+    fig.update_annotations(font=dict(size=BASE_FONT_SIZE))
+    if height is not None:
+        fig.update_layout(height=height)
+    return fig
+
+
 # data import
 run_df = pd.read_csv(RUN_PATH)
 metric_df = pd.read_csv(METRIC_PATH)
@@ -118,6 +149,7 @@ for key, value in RUN_DATA_FIGURE_MAP.items():
     )
     if value[1]:
         run_fig.update_yaxes(range=[0, None])
+    apply_slide_style(run_fig)
     file_name = f"{key}_violin_plot.html"
     file_path = FIGURE_DIR / file_name
     run_fig.write_html(file_path)
@@ -202,12 +234,16 @@ def create_violin_plots(df, metric_str: str, array: bool = True):
             line_dash="dot",
             line_width=2,
             annotation_text="Naive Forecast Performance",
-            annotation_position="top right",
+            annotation_position="top left",
         )
 
         fig.update_shapes(
             layer="above",
         )
+
+    # the sizing doesn't work for the array plots
+    if not array:
+        apply_slide_style(fig)
 
     return fig
 
@@ -232,10 +268,10 @@ for metric_type in metric_df["metric"].cat.categories:
     if metric_type in ["mpiw", "picp"]:
         filtered_df = filtered_df.dropna()
 
-    # removing aggregated values that may cause collinearity
-    # because of dependent information
-    filtered_df = filtered_df[filtered_df["day_type"] != "overall"]
-    filtered_df = filtered_df[filtered_df["volume"] != "all"]
+    # # removing aggregated values that may cause collinearity
+    # # because of dependent information
+    # filtered_df = filtered_df[filtered_df["day_type"] != "overall"]
+    # filtered_df = filtered_df[filtered_df["volume"] != "all"]
 
     # typical models
     y, X = dmatrices(FORMULA, data=filtered_df, return_type="dataframe")
@@ -276,7 +312,6 @@ for metric_type in metric_df["metric"].cat.categories:
     no_model_model = sm.OLS(y_nm, X_nm).fit()
     linear_model_with_n = sm.OLS(y_wn, X_wn).fit()
     linear_model_with_n_and_mq = sm.OLS(y_wnmq, X_wnmq).fit()
-    
 
     # output to stdout
     print(metric_type)
