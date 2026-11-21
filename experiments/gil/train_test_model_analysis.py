@@ -154,9 +154,7 @@ for key, value in RUN_DATA_FIGURE_MAP.items():
     file_path = FIGURE_DIR / file_name
     run_fig.write_html(file_path)
 
-# run_data_summary_df.to_csv(
-#     (SUMMARY_DIR / "pretrained_model_eval_py_execution_1_latency_summary.csv")
-# )
+run_data_summary_df.to_csv((SUMMARY_DIR / "cv_fold_latency_summary.csv"))
 
 # run metadata incorporation
 metric_df = metric_df.merge(
