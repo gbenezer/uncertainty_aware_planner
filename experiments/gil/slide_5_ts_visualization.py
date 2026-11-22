@@ -132,3 +132,17 @@ worst_mase_figure = create_time_series_demand_figure(
     product_id=worst_mase_product,
 )
 worst_mase_figure.write_html((INFERENCE_FIGURE_DIR / "worst_mase_figure_example.html"))
+
+worst_picp_figure = create_time_series_demand_figure(
+    inference_df=worst_picp_series_df,
+    store_id=worst_picp_store,
+    product_id=worst_picp_product,
+)
+worst_picp_figure.write_html((INFERENCE_FIGURE_DIR / "worst_picp_figure_example.html"))
+
+worst_mpiw_figure = create_time_series_demand_figure(
+    inference_df=worst_mpiw_series_df,
+    store_id=worst_mpiw_store,
+    product_id=worst_mpiw_product,
+)
+worst_mpiw_figure.write_html((INFERENCE_FIGURE_DIR / "worst_mpiw_figure_example.html"))
