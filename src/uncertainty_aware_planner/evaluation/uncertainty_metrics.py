@@ -147,7 +147,9 @@ def prediction_interval_coverage_fraction_by_group(
         value_name="picp",
         n_name="n_picp",
     )
-    out.insert(out.columns.get_loc("picp") + 1, "coverage_gap", out["picp"] - nominal_coverage)
+    out.insert(
+        out.columns.get_loc("picp") + 1, "coverage_gap", out["picp"] - nominal_coverage
+    )
     return out
 
 
