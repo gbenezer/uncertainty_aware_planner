@@ -9,101 +9,146 @@ import uncertainty_aware_planner.evaluation.uncertainty_metrics as um
 # constants that can be modulated
 INFERENCE_DATA_DIR = Path("results/imputation/pretrained_model_eval/model_outputs")
 FILE_STEM = "pretrained_model_inference_output"
-SEED = 86400
-MODEL_TYPE = "DLinear_Imputation_Quantile"
-NUM_QUANTILES = 3
-EXAMPLE_FILE = FILE_STEM + f"_seed_{SEED}_{MODEL_TYPE}_{NUM_QUANTILES}_quantiles.csv"
-EXAMPLE_FILE_PATH = INFERENCE_DATA_DIR / EXAMPLE_FILE
+SEEDS = [86400, 4, 42]
+THRESHOLD = 1 / 24
+MEAN_SOURCE = "full"
+MODEL_TYPE_QUANTILE_NUMBERS = [
+    ("DLinear_Imputation_Baseline", None),
+    ("DLinear_Imputation_Quantile", 2),
+    ("DLinear_Imputation_Quantile", 3),
+    ("TimesNet_Imputation_Quantile", 3),
+]
+SERIES_HOURLY = ieh.load_series_hourly("data/hf_cache")
+UNCERTAINTY_COLUMNS = ["store_id", "product_id", "picp", "n_picpmpiw", "n_mpiw"]
 
-# load the inference df and metadata
-test_df = help_fun.import_inference_table(EXAMPLE_FILE_PATH)
-series_hourly = ieh.load_series_hourly("data/hf_cache")
-test_df_with_data = help_fun.add_series_metadata(
-    imputed=test_df, series_hourly=series_hourly
-)
+for model_combo in MODEL_TYPE_QUANTILE_NUMBERS:
+    # extract relevant model parameters
+    model_type = model_combo[0]
+    num_quantiles = model_combo[1]
+    calculate_uncertainty = True if num_quantiles is not None else False
 
-# calculate the scaled error for each hour where it is defined
-scaled_error_output_df = em.scaled_absolute_errors(
-    imputed_df=test_df, lags=(1,), series_hourly=series_hourly
-)
+    # output the model parameters to stdout
+    print(f"Model Type: {model_type}")
+    print(f"Number of Quantiles: {num_quantiles if num_quantiles is not None else 1}")
 
-# joining the dataframes
-eval_df = test_df_with_data.join(scaled_error_output_df)
+    for seed in SEEDS:
+        print(f"Seed: {seed}")
+        file_name = (
+            FILE_STEM + f"_seed_{seed}_{model_type}_{num_quantiles}_quantiles.csv"
+        )
+        file_path = INFERENCE_DATA_DIR / file_name
 
-# getting the low-volume slice
-# defined to be 1/24 of a unit per-hour mean demand (1 unit per-day mean demand)
-# with the mean taken across the full dataset (train, calibration, and test)
-low_volume_eval_df = help_fun.filter_by_mean_demand(
-    eval_df, series_hourly, group="low", threshold=1 / 24, mean_source="full"
-)
+        # load the appropriate data
+        inference_df = help_fun.import_inference_table(EXAMPLE_FILE_PATH)
 
-# getting the high-volume slice
-# defined to be 1/24 of a unit per-hour mean demand (1 unit per-day mean demand)
-# with the mean taken across the full dataset (train, calibration, and test)
-high_volume_eval_df = help_fun.filter_by_mean_demand(
-    eval_df, series_hourly, group="high", threshold=1 / 24, mean_source="full"
-)
+        # calculate the scaled absolute error
+        error_df = em.scaled_absolute_errors(
+            imputed_df=inference_df, lags=(1,), series_hourly=SERIES_HOURLY
+        )
 
+        # add the inference data to the calculated errors
+        error_eval_df = inference_df.join(error_df)
 
-# getting the store-product series that have the highest 1-hour MASE
-# with the scale defined over the calibration week
-store_product_mase_summary = (
-    eval_df[eval_df["evaluated"]]
-    .groupby(["store_id", "product_id"])
-    .agg({"ase_1hr": "mean"})
-    .reset_index()
-    .sort_values(by="ase_1hr", ascending=False)
-)
-low_vol_store_product_mase_summary = (
-    low_volume_eval_df[low_volume_eval_df["evaluated"]]
-    .groupby(["store_id", "product_id"])
-    .agg({"ase_1hr": "mean"})
-    .reset_index()
-    .sort_values(by="ase_1hr", ascending=False)
-)
+        # slice along the low and high volume partitions
+        low_volume_error_eval_df = help_fun.filter_by_mean_demand(
+            error_eval_df,
+            SERIES_HOURLY,
+            group="low",
+            threshold=THRESHOLD,
+            mean_source=MEAN_SOURCE,
+        )
+        high_volume_error_eval_df = help_fun.filter_by_mean_demand(
+            error_eval_df,
+            SERIES_HOURLY,
+            group="high",
+            threshold=THRESHOLD,
+            mean_source=MEAN_SOURCE,
+        )
 
-high_vol_store_product_mase_summary = (
-    high_volume_eval_df[high_volume_eval_df["evaluated"]]
-    .groupby(["store_id", "product_id"])
-    .agg({"ase_1hr": "mean"})
-    .reset_index()
-    .sort_values(by="ase_1hr", ascending=False)
-)
+        # summarize the 1-hour MASE across series
+        store_product_mase_summary = (
+            error_eval_df[error_eval_df["evaluated"]]
+            .groupby(["store_id", "product_id"])
+            .agg({"ase_1hr": "mean"})
+            .reset_index()
+            .sort_values(by="ase_1hr", ascending=False)
+        )
+        low_vol_store_product_mase_summary = (
+            low_volume_error_eval_df[low_volume_error_eval_df["evaluated"]]
+            .groupby(["store_id", "product_id"])
+            .agg({"ase_1hr": "mean"})
+            .reset_index()
+            .sort_values(by="ase_1hr", ascending=False)
+        )
 
-print("Overall Top 5 1-hour MASE Store-Product Series")
-print(store_product_mase_summary.head())
-print("Low Volume Top 5 1-hour MASE Store-Product Series")
-print(low_vol_store_product_mase_summary.head())
-print("High Volume Top 5 1-hour MASE Store-Product Series")
-print(high_vol_store_product_mase_summary.head())
+        high_vol_store_product_mase_summary = (
+            high_volume_error_eval_df[high_volume_error_eval_df["evaluated"]]
+            .groupby(["store_id", "product_id"])
+            .agg({"ase_1hr": "mean"})
+            .reset_index()
+            .sort_values(by="ase_1hr", ascending=False)
+        )
 
-# evaluating uncertainty metrics on a per-series basis
-store_product_uncertainty_summary = um.interval_metrics_by_group(eval_df)
-low_volume_store_product_uncertainty_summary = um.interval_metrics_by_group(
-    low_volume_eval_df
-)
-high_volume_store_product_uncertainty_summary = um.interval_metrics_by_group(
-    high_volume_eval_df
-)
+        # evaluating uncertainty metrics on a per-series basis
+        store_product_uncertainty_summary = um.interval_metrics_by_group(error_eval_df)
+        low_volume_store_product_uncertainty_summary = um.interval_metrics_by_group(
+            low_volume_error_eval_df
+        )
+        high_volume_store_product_uncertainty_summary = um.interval_metrics_by_group(
+            high_volume_error_eval_df
+        )
 
-print("Overall Bottom 5 PICP Store-Product Series")
-print(store_product_uncertainty_summary.sort_values(by="picp").head())
-print("Low Volume Bottom 5 PICP Store-Product Series")
-print(low_volume_store_product_uncertainty_summary.sort_values(by="picp").head())
-print("High Volume Bottom 5 PICP Store-Product Series")
-print(high_vol_store_product_mase_summary.sort_values(by="picp").head())
+        # sort by PICP
+        store_product_picp = store_product_uncertainty_summary.sort_values(by="picp")
+        low_volume_store_product_picp = (
+            low_volume_store_product_uncertainty_summary.sort_values(by="picp")
+        )
+        high_volume_store_product_picp = (
+            high_volume_store_product_uncertainty_summary.sort_values(by="picp")
+        )
 
-print("Overall Top 5 MPIW Store-Product Series")
-print(store_product_uncertainty_summary.sort_values(by="mpiw", ascending=False).head())
-print("Low Volume Top 5 MPIW Store-Product Series")
-print(
-    low_volume_store_product_uncertainty_summary.sort_values(
-        by="mpiw", ascending=False
-    ).head()
-)
-print("High Volume Top 5 MPIW Store-Product Series")
-print(
-    high_volume_store_product_uncertainty_summary.sort_values(
-        by="mpiw", ascending=False
-    ).head()
-)
+        # sort by MPIW
+        store_product_mpiw = store_product_uncertainty_summary.sort_values(
+            by="mpiw", ascending=False
+        )
+        low_volume_store_product_mpiw = (
+            low_volume_store_product_uncertainty_summary.sort_values(
+                by="mpiw", ascending=False
+            )
+        )
+        high_volume_store_product_mpiw = (
+            high_volume_store_product_uncertainty_summary.sort_values(
+                by="mpiw", ascending=False
+            )
+        )
+
+        print("\n")
+
+        print("Overall Top 5 1-hour MASE Store-Product Series")
+        print(store_product_mase_summary.head())
+        print("Low Volume Top 5 1-hour MASE Store-Product Series")
+        print(low_vol_store_product_mase_summary.head())
+        print("High Volume Top 5 1-hour MASE Store-Product Series")
+        print(high_vol_store_product_mase_summary.head())
+
+        print("\n")
+
+        print("Overall Bottom 5 PICP Store-Product Series")
+        print(store_product_picp[UNCERTAINTY_COLUMNS].head())
+        print("Low Volume Bottom 5 PICP Store-Product Series")
+        print(low_volume_store_product_picp[UNCERTAINTY_COLUMNS].head())
+        print("High Volume Bottom 5 PICP Store-Product Series")
+        print(high_volume_store_product_picp[UNCERTAINTY_COLUMNS].head())
+
+        print("\n")
+
+        print("Overall Top 5 MPIW Store-Product Series")
+        print(store_product_mpiw[UNCERTAINTY_COLUMNS].head())
+        print("Low Volume Top 5 MPIW Store-Product Series")
+        print(low_volume_store_product_mpiw[UNCERTAINTY_COLUMNS].head())
+        print("High Volume Top 5 MPIW Store-Product Series")
+        print(high_volume_store_product_mpiw[UNCERTAINTY_COLUMNS].head())
+
+        print("\n")
+        print("\n")
+        print("\n")
