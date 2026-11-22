@@ -103,7 +103,7 @@ def create_time_series_demand_figure(inference_df, store_id, product_id):
         go.Scatter(
             x=datetime,
             y=lower_quantile,
-            name="Interval",
+            name="Lower Quantile (2.5%) Estimate",
             line=dict(color="black", width=4, dash="dot"),
         )
     )
@@ -111,6 +111,7 @@ def create_time_series_demand_figure(inference_df, store_id, product_id):
         go.Scatter(
             x=datetime,
             y=upper_quantile,
+            name="Upper Quantile (97.5%) Estimate",
             line=dict(color="black", width=4, dash="dot"),
         )
     )
