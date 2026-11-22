@@ -89,11 +89,25 @@ RUN_DATA_COLUMNS = [s for s in run_df.columns if s.startswith("latency_")] + [
     "train_seconds",
     "eval_seconds",
 ]
-RUN_DATA_AGGREGATION_MAP = {
+RUN_DATA_AGGREGATION_MAP_MEDIAN = {
     k: "median" if SUM_REGEX.search(k) is None else "sum" for k in RUN_DATA_COLUMNS
 }
-RUN_SUMMARY_RENAME_MAP = {
+RUN_DATA_AGGREGATION_MAP_MEAN = {
+    k: "mean" if SUM_REGEX.search(k) is None else "sum" for k in RUN_DATA_COLUMNS
+}
+RUN_DATA_AGGREGATION_MAP_STD = {
+    k: "std" if SUM_REGEX.search(k) is None else "sum" for k in RUN_DATA_COLUMNS
+}
+RUN_SUMMARY_RENAME_MAP_MEDIAN = {
     k: f"median_{k}" if SUM_REGEX.search(k) is None else f"sum_{k}"
+    for k in RUN_DATA_COLUMNS
+}
+RUN_SUMMARY_RENAME_MAP_MEAN = {
+    k: f"mean_{k}" if SUM_REGEX.search(k) is None else f"sum_{k}"
+    for k in RUN_DATA_COLUMNS
+}
+RUN_SUMMARY_RENAME_MAP_STD = {
+    k: f"std_{k}" if SUM_REGEX.search(k) is None else f"sum_{k}"
     for k in RUN_DATA_COLUMNS
 }
 RUN_DATA_FIGURE_MAP = {
@@ -124,10 +138,20 @@ run_df["model_type"] = run_df["model_type"].cat.rename_categories(MODEL_TYPE_REN
 # run latency summary table
 run_data_subset = RUN_GROUP_COLUMNS + RUN_DATA_COLUMNS
 run_data_subset_df = run_df[run_data_subset]
-run_data_summary_df = (
+run_data_summary_df_median = (
     run_data_subset_df.groupby(RUN_GROUP_COLUMNS)
-    .agg(RUN_DATA_AGGREGATION_MAP)
-    .rename(columns=RUN_SUMMARY_RENAME_MAP)
+    .agg(RUN_DATA_AGGREGATION_MAP_MEDIAN)
+    .rename(columns=RUN_SUMMARY_RENAME_MAP_MEDIAN)
+)
+run_data_summary_df_mean = (
+    run_data_subset_df.groupby(RUN_GROUP_COLUMNS)
+    .agg(RUN_DATA_AGGREGATION_MAP_MEAN)
+    .rename(columns=RUN_SUMMARY_RENAME_MAP_MEAN)
+)
+run_data_summary_df_std = (
+    run_data_subset_df.groupby(RUN_GROUP_COLUMNS)
+    .agg(RUN_DATA_AGGREGATION_MAP_STD)
+    .rename(columns=RUN_SUMMARY_RENAME_MAP_STD)
 )
 
 # run latency figures
@@ -154,7 +178,9 @@ for key, value in RUN_DATA_FIGURE_MAP.items():
     file_path = FIGURE_DIR / file_name
     run_fig.write_html(file_path)
 
-run_data_summary_df.to_csv((SUMMARY_DIR / "cv_fold_latency_summary.csv"))
+run_data_summary_df_median.to_csv((SUMMARY_DIR / "cv_fold_latency_summary_medians.csv"))
+run_data_summary_df_mean.to_csv((SUMMARY_DIR / "cv_fold_latency_summary_means.csv"))
+run_data_summary_df_std.to_csv((SUMMARY_DIR / "cv_fold_latency_summary_stds.csv"))
 
 # run metadata incorporation
 metric_df = metric_df.merge(
