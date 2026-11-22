@@ -94,6 +94,7 @@ def apply_slide_style(fig, height: int | None = None):
         title_font=dict(size=AXIS_TITLE_FONT_SIZE),
         tickfont=dict(size=BASE_FONT_SIZE),
         tickangle=-45,
+        tickformat="%Y-%m-%d",
     )
     fig.update_yaxes(
         title_font=dict(size=AXIS_TITLE_FONT_SIZE),
@@ -151,7 +152,7 @@ def create_time_series_demand_figure(inference_df, store_id, product_id):
 
     fig.update_layout(
         title=dict(
-            text=f"Calibration Week Demand Time Series<br>For Store {store_id}, Product {product_id}"
+            text=f"Calibration Week Demand Time Series For Store {store_id}, Product {product_id}"
         ),
         xaxis=dict(title=dict(text="Datetime")),
         yaxis=dict(title=dict(text="Scaled Sales<br>Demand")),
