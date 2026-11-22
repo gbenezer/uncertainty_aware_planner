@@ -5,12 +5,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-FORECAST_DIR = Path("data/processed/forecast/fc-dlinear-quantile-2025")
+FORECAST_DIR = Path(
+    "data/processed/forecast/imp-none-censored/fc-dlinear-quantile-2025"
+)
 
 CALIB_PATH = FORECAST_DIR / "final_calib.parquet"
 TEST_PATH = FORECAST_DIR / "final_test.parquet"
 
-OUTPUT_PATH = FORECAST_DIR / "calibrated" / "final_test.parquet"
+OUTPUT_PATH = FORECAST_DIR / "calibrated_experimental" / "final_test.parquet"
 
 ALPHA = 0.05
 

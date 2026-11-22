@@ -13,7 +13,9 @@ from pathlib import Path
 import numpy as np
 import pyarrow.parquet as pq
 
-DEFAULT_FORECAST_DIR = Path("data/processed/forecast/fc-dlinear-quantile-2025")
+DEFAULT_FORECAST_DIR = Path(
+    "data/processed/forecast/imp-none-censored/fc-dlinear-quantile-2025"
+)
 
 DEFAULT_OUTPUT = Path("results/forecasting/dlinear_interval_evaluation.csv")
 

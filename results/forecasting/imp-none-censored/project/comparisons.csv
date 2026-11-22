@@ -1,5 +1,5 @@
 model_id,imputation_run_id,protocol,point,baseline_model_id,baseline_imputation_run_id,wape_a,wape_b,delta,ci_low,ci_high,n_series,n_rows,n_boot
 fc-dlinear-plus,imp-none-censored,project,estimated_demand,fc-dlinear-baseline,imp-none-censored,0.3069524742510156,0.3174088584400031,-0.0104563841889875,-0.0113431396260025,-0.0095504797326928,50000,206562,1000
 fc-tft-quantile,imp-none-censored,project,estimated_demand,fc-dlinear-baseline,imp-none-censored,0.3326992517772948,0.3174088584400031,0.0152903933372916,0.0135829522760412,0.0171799167151335,50000,206562,1000
-fc-dlinear-plus,imp-none-censored,project,q500,fc-dlinear-baseline,imp-none-censored,0.3069524742510156,0.31740885844000316,-0.010456384188987589,-0.01134313962600255,-0.009550479732692862,50000,206562,1000
-fc-tft-quantile,imp-none-censored,project,q500,fc-dlinear-baseline,imp-none-censored,0.3235761316612822,0.31740885844000316,0.006167273221279024,0.004407785340195392,0.008055413971941181,50000,206562,1000
+fc-dlinear-plus,imp-none-censored,project,q500,fc-dlinear-baseline,imp-none-censored,0.3069524742510156,0.3174088584400031,-0.0104563841889875,-0.0113431396260025,-0.0095504797326928,50000,206562,1000
+fc-tft-quantile,imp-none-censored,project,q500,fc-dlinear-baseline,imp-none-censored,0.3235761316612822,0.3174088584400031,0.006167273221279,0.0044077853401953,0.0080554139719411,50000,206562,1000

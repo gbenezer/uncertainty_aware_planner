@@ -7,8 +7,10 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-FORECAST_DIR = Path("data/processed/forecast/fc-dlinear-quantile-2025")
-SLICES_PATH = Path("data/processed/slices.parquet")
+FORECAST_DIR = Path(
+    "data/processed/forecast/imp-none-censored/fc-dlinear-quantile-2025"
+)
+SLICES_PATH = Path("data/processed/jeena_slices_experimental.parquet")
 OUTPUT_PATH = Path("results/forecasting/dlinear_ma7_slice_evaluation.csv")
 
 KEYS = ["store_id", "product_id"]

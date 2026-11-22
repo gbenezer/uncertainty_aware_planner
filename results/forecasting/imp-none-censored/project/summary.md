@@ -7,7 +7,7 @@
   absolute value. WPE sign as in the dataset paper: positive = over-forecast, negative = under-forecast.
   **Paper-style WAPE** is the dataset paper's own scoring (the ratio per target day, averaged over the days),
   shown only to compare with its published numbers.
-- **Test:** mean Â± SD over seeds (number of seeds). **Fold CV:** mean Â± SD over all (fold, seed) validation
+- **Test:** mean ± SD over seeds (number of seeds). **Fold CV:** mean ± SD over all (fold, seed) validation
   runs (number of runs); SD_cv is that SD.
 - **Published:** Wang et al. 2025 (arXiv:2505.16319), Table 3. **Pass (A.7.2):** test WAPE <= published +
   SD_cv, with SD_cv from the >= 3-fold cross-validation (Dev Contract, Appendix A.7, item 2).
@@ -15,16 +15,30 @@
   **Improvement:** (published - test WAPE) / SD_cv. **A.7.2 literal:** |fold CV mean - published| <= SD_cv.
 - **PICP / MPIW:** the team functions in `evaluation/uncertainty_metrics.py`: rows with both bounds,
   degenerate intervals (lower = upper, e.g. [0, 0]) left out.
-- Metric rows follow `contracts/CONTRACTS.md` Â§2.10, plus imputation_run_id, protocol, point and n_skipped.
+- Metric rows follow `contracts/CONTRACTS.md` §2.10, plus imputation_run_id, protocol, point and n_skipped.
 - WAPE, WPE and PICP in percent; MASE and MPIW (normalized sales units) as plain numbers.
+
+## dlinear_forecasting_quantile_ma29.yaml (imp-none-censored, project, point q500)
+
+| Slice | Test WAPE | Test WPE | Paper-style WAPE | Fold CV WAPE | Published WAPE / WPE | Pass | >= 1 SD better (optional) | Improvement (SD_cv) | A.7.2 literal |
+|---|---|---|---|---|---|---|---|---|---|
+| all | n/a | n/a | n/a | 39.00 ± 0.58 (6) | n/a / n/a | n/a | n/a | n/a | n/a |
+| low_sales | n/a | n/a | n/a | 45.12 ± 0.54 (6) | n/a / n/a | n/a | n/a | n/a | n/a |
+| high_sales | n/a | n/a | n/a | 33.29 ± 1.15 (6) | n/a / n/a | n/a | n/a | n/a | n/a |
+
+| Slice | Test MASE | Test PICP95 | Test MPIW95 | Test PICP95 (cal) | Test MPIW95 (cal) |
+|---|---|---|---|---|---|
+| all | n/a | n/a | n/a | n/a | n/a |
+| low_sales | n/a | n/a | n/a | n/a | n/a |
+| high_sales | n/a | n/a | n/a | n/a | n/a |
 
 ## fc-dlinear-baseline (imp-none-censored, project, point estimated_demand)
 
 | Slice | Test WAPE | Test WPE | Paper-style WAPE | Fold CV WAPE | Published WAPE / WPE | Pass | >= 1 SD better (optional) | Improvement (SD_cv) | A.7.2 literal |
 |---|---|---|---|---|---|---|---|---|---|
-| all | 31.74 Â± 0.01 (3) | -7.38 Â± 0.08 (3) | 31.76 | 38.06 Â± 0.80 (18) | 31.56 / -4.89 | yes | no | -0.23 | no |
-| low_sales | 39.38 Â± 0.02 (3) | -4.34 Â± 0.08 (3) | 39.60 | 45.35 Â± 0.65 (18) | 39.78 / -1.03 | yes | no | 0.62 | no |
-| high_sales | 26.19 Â± 0.00 (3) | -9.60 Â± 0.08 (3) | 26.14 | 32.30 Â± 0.84 (18) | 25.68 / -7.63 | yes | no | -0.61 | no |
+| all | 31.74 ± 0.01 (3) | -7.38 ± 0.08 (3) | 31.76 | 38.06 ± 0.80 (18) | 31.56 / -4.89 | yes | no | -0.23 | no |
+| low_sales | 39.38 ± 0.02 (3) | -4.34 ± 0.08 (3) | 39.60 | 45.35 ± 0.65 (18) | 39.78 / -1.03 | yes | no | 0.62 | no |
+| high_sales | 26.19 ± 0.00 (3) | -9.60 ± 0.08 (3) | 26.14 | 32.30 ± 0.84 (18) | 25.68 / -7.63 | yes | no | -0.61 | no |
 
 | Slice | Test MASE | Test PICP95 | Test MPIW95 | Test PICP95 (cal) | Test MPIW95 (cal) |
 |---|---|---|---|---|---|
@@ -36,9 +50,9 @@
 
 | Slice | Test WAPE | Test WPE | Paper-style WAPE | Fold CV WAPE | Published WAPE / WPE | Pass | >= 1 SD better (optional) | Improvement (SD_cv) | A.7.2 literal |
 |---|---|---|---|---|---|---|---|---|---|
-| all | 31.74 Â± 0.01 (3) | -7.38 Â± 0.08 (3) | 31.76 | 38.06 Â± 0.80 (18) | 31.56 / -4.89 | yes | no | -0.23 | no |
-| low_sales | 39.38 Â± 0.02 (3) | -4.34 Â± 0.08 (3) | 39.60 | 45.35 Â± 0.65 (18) | 39.78 / -1.03 | yes | no | 0.62 | no |
-| high_sales | 26.19 Â± 0.00 (3) | -9.60 Â± 0.08 (3) | 26.14 | 32.30 Â± 0.84 (18) | 25.68 / -7.63 | yes | no | -0.61 | no |
+| all | 31.74 ± 0.01 (3) | -7.38 ± 0.08 (3) | 31.76 | 38.06 ± 0.80 (18) | 31.56 / -4.89 | yes | no | -0.23 | no |
+| low_sales | 39.38 ± 0.02 (3) | -4.34 ± 0.08 (3) | 39.60 | 45.35 ± 0.65 (18) | 39.78 / -1.03 | yes | no | 0.62 | no |
+| high_sales | 26.19 ± 0.00 (3) | -9.60 ± 0.08 (3) | 26.14 | 32.30 ± 0.84 (18) | 25.68 / -7.63 | yes | no | -0.61 | no |
 
 | Slice | Test MASE | Test PICP95 | Test MPIW95 | Test PICP95 (cal) | Test MPIW95 (cal) |
 |---|---|---|---|---|---|
@@ -50,9 +64,9 @@
 
 | Slice | Test WAPE | Test WPE | Paper-style WAPE | Fold CV WAPE | Published WAPE / WPE | Pass | >= 1 SD better (optional) | Improvement (SD_cv) | A.7.2 literal |
 |---|---|---|---|---|---|---|---|---|---|
-| all | 30.70 Â± 0.02 (3) | -11.89 Â± 0.09 (3) | 30.67 | 38.23 Â± 2.26 (18) | 31.56 / -4.89 | yes | no | 0.38 | no |
-| low_sales | 37.87 Â± 0.01 (3) | -11.87 Â± 0.11 (3) | 37.97 | 45.80 Â± 2.62 (18) | 39.78 / -1.03 | yes | no | 0.73 | no |
-| high_sales | 25.49 Â± 0.02 (3) | -11.91 Â± 0.08 (3) | 25.43 | 32.26 Â± 1.97 (18) | 25.68 / -7.63 | yes | no | 0.10 | no |
+| all | 30.70 ± 0.02 (3) | -11.89 ± 0.09 (3) | 30.67 | 38.23 ± 2.26 (18) | 31.56 / -4.89 | yes | no | 0.38 | no |
+| low_sales | 37.87 ± 0.01 (3) | -11.87 ± 0.11 (3) | 37.97 | 45.80 ± 2.62 (18) | 39.78 / -1.03 | yes | no | 0.73 | no |
+| high_sales | 25.49 ± 0.02 (3) | -11.91 ± 0.08 (3) | 25.43 | 32.26 ± 1.97 (18) | 25.68 / -7.63 | yes | no | 0.10 | no |
 
 | Slice | Test MASE | Test PICP95 | Test MPIW95 | Test PICP95 (cal) | Test MPIW95 (cal) |
 |---|---|---|---|---|---|
@@ -64,9 +78,9 @@
 
 | Slice | Test WAPE | Test WPE | Paper-style WAPE | Fold CV WAPE | Published WAPE / WPE | Pass | >= 1 SD better (optional) | Improvement (SD_cv) | A.7.2 literal |
 |---|---|---|---|---|---|---|---|---|---|
-| all | 30.70 Â± 0.02 (3) | -11.89 Â± 0.09 (3) | 30.67 | 38.23 Â± 2.26 (18) | 31.56 / -4.89 | yes | no | 0.38 | no |
-| low_sales | 37.87 Â± 0.01 (3) | -11.87 Â± 0.11 (3) | 37.97 | 45.80 Â± 2.62 (18) | 39.78 / -1.03 | yes | no | 0.73 | no |
-| high_sales | 25.49 Â± 0.02 (3) | -11.91 Â± 0.08 (3) | 25.43 | 32.26 Â± 1.97 (18) | 25.68 / -7.63 | yes | no | 0.10 | no |
+| all | 30.70 ± 0.02 (3) | -11.89 ± 0.09 (3) | 30.67 | 38.23 ± 2.26 (18) | 31.56 / -4.89 | yes | no | 0.38 | no |
+| low_sales | 37.87 ± 0.01 (3) | -11.87 ± 0.11 (3) | 37.97 | 45.80 ± 2.62 (18) | 39.78 / -1.03 | yes | no | 0.73 | no |
+| high_sales | 25.49 ± 0.02 (3) | -11.91 ± 0.08 (3) | 25.43 | 32.26 ± 1.97 (18) | 25.68 / -7.63 | yes | no | 0.10 | no |
 
 | Slice | Test MASE | Test PICP95 | Test MPIW95 | Test PICP95 (cal) | Test MPIW95 (cal) |
 |---|---|---|---|---|---|
@@ -74,13 +88,27 @@
 | low_sales | 0.893 | n/a | n/a | n/a | n/a |
 | high_sales | 0.961 | n/a | n/a | n/a | n/a |
 
+## fc-dlinear-quantile (imp-none-censored, project, point q500)
+
+| Slice | Test WAPE | Test WPE | Paper-style WAPE | Fold CV WAPE | Published WAPE / WPE | Pass | >= 1 SD better (optional) | Improvement (SD_cv) | A.7.2 literal |
+|---|---|---|---|---|---|---|---|---|---|
+| all | 31.91 (1) | -2.54 (1) | 31.92 | 39.05 ± 0.62 (6) | 31.56 / -4.89 | yes | no | -0.56 | no |
+| low_sales | 38.44 (1) | -0.06 (1) | 38.61 | 45.07 ± 0.56 (6) | 39.78 / -1.03 | yes | yes | 2.42 | no |
+| high_sales | 25.56 (1) | -4.95 (1) | 25.50 | 33.42 ± 1.15 (6) | 25.68 / -7.63 | yes | no | 0.11 | no |
+
+| Slice | Test MASE | Test PICP95 | Test MPIW95 | Test PICP95 (cal) | Test MPIW95 (cal) |
+|---|---|---|---|---|---|
+| all | 0.936 | 95.85 | 2.097 | n/a | n/a |
+| low_sales | 0.946 | 96.46 | 1.606 | n/a | n/a |
+| high_sales | 0.907 | 93.77 | 3.761 | n/a | n/a |
+
 ## fc-tft-quantile (imp-none-censored, project, point estimated_demand)
 
 | Slice | Test WAPE | Test WPE | Paper-style WAPE | Fold CV WAPE | Published WAPE / WPE | Pass | >= 1 SD better (optional) | Improvement (SD_cv) | A.7.2 literal |
 |---|---|---|---|---|---|---|---|---|---|
-| all | 34.08 Â± 0.74 (3) | -7.87 Â± 1.97 (3) | 34.21 | 41.26 Â± 4.76 (18) | 31.75 / -7.37 | yes | no | -0.49 | no |
-| low_sales | 38.78 Â± 0.13 (3) | -0.91 Â± 5.93 (3) | 38.95 | 50.24 Â± 9.20 (18) | 37.04 / -1.72 | yes | no | -0.19 | no |
-| high_sales | 30.67 Â± 1.22 (3) | -12.93 Â± 1.25 (3) | 30.81 | 34.21 Â± 2.74 (18) | 27.95 / -11.46 | yes | no | -0.99 | no |
+| all | 34.08 ± 0.74 (3) | -7.87 ± 1.97 (3) | 34.21 | 41.26 ± 4.76 (18) | 31.75 / -7.37 | yes | no | -0.49 | no |
+| low_sales | 38.78 ± 0.13 (3) | -0.91 ± 5.93 (3) | 38.95 | 50.24 ± 9.20 (18) | 37.04 / -1.72 | yes | no | -0.19 | no |
+| high_sales | 30.67 ± 1.22 (3) | -12.93 ± 1.25 (3) | 30.81 | 34.21 ± 2.74 (18) | 27.95 / -11.46 | yes | no | -0.99 | no |
 
 | Slice | Test MASE | Test PICP95 | Test MPIW95 | Test PICP95 (cal) | Test MPIW95 (cal) |
 |---|---|---|---|---|---|
@@ -92,9 +120,9 @@
 
 | Slice | Test WAPE | Test WPE | Paper-style WAPE | Fold CV WAPE | Published WAPE / WPE | Pass | >= 1 SD better (optional) | Improvement (SD_cv) | A.7.2 literal |
 |---|---|---|---|---|---|---|---|---|---|
-| all | 33.30 Â± 0.31 (3) | -11.53 Â± 2.95 (3) | 33.44 | 39.33 Â± 2.82 (18) | 31.75 / -7.37 | yes | no | -0.55 | no |
-| low_sales | 38.89 Â± 1.02 (3) | -8.98 Â± 8.07 (3) | 39.04 | 44.81 Â± 3.06 (18) | 37.04 / -1.72 | yes | no | -0.60 | no |
-| high_sales | 29.24 Â± 0.62 (3) | -13.38 Â± 1.23 (3) | 29.39 | 35.01 Â± 4.15 (18) | 27.95 / -11.46 | yes | no | -0.31 | no |
+| all | 33.30 ± 0.31 (3) | -11.53 ± 2.95 (3) | 33.44 | 39.33 ± 2.82 (18) | 31.75 / -7.37 | yes | no | -0.55 | no |
+| low_sales | 38.89 ± 1.02 (3) | -8.98 ± 8.07 (3) | 39.04 | 44.81 ± 3.06 (18) | 37.04 / -1.72 | yes | no | -0.60 | no |
+| high_sales | 29.24 ± 0.62 (3) | -13.38 ± 1.23 (3) | 29.39 | 35.01 ± 4.15 (18) | 27.95 / -11.46 | yes | no | -0.31 | no |
 
 | Slice | Test MASE | Test PICP95 | Test MPIW95 | Test PICP95 (cal) | Test MPIW95 (cal) |
 |---|---|---|---|---|---|

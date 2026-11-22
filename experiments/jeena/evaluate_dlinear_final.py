@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 FORECAST_PATH = Path(
-    "data/processed/forecast/fc-dlinear-quantile-2025/calibrated/final_test.parquet"
+    "data/processed/forecast/imp-none-censored/fc-dlinear-quantile-2025/calibrated/final_test.parquet"
 )
 
 SLICES_PATH = Path("data/processed/slices.parquet")
