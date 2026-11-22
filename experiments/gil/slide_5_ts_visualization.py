@@ -89,6 +89,7 @@ def apply_slide_style(fig, height: int | None = None):
             title=dict(font=dict(size=LEGEND_TITLE_FONT_SIZE)),
         ),
         margin=dict(l=100, r=40, t=40, b=80),
+        template="seaborn",
     )
     fig.update_xaxes(
         title_font=dict(size=AXIS_TITLE_FONT_SIZE),
