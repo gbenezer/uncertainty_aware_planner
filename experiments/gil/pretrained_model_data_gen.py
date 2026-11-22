@@ -66,9 +66,13 @@ for seed in SEEDS:
         imputed_data = model.impute(test_set=calib_set)
 
         # convert it to an appropriate hourly dataframe
-        imputed_df = ie.TO_DATAFRAME[num_quantiles](calib_set, calib_index, imputed_data)
+        imputed_df = ie.TO_DATAFRAME[num_quantiles](
+            calib_set, calib_index, imputed_data
+        )
 
         # save the dataframe in the appropriate directory
-        file_name = OUTPUT_STEM + f"_seed_{seed}_{model_type}_{num_quantiles}_quantiles.csv"
+        file_name = (
+            OUTPUT_STEM + f"_seed_{seed}_{model_type}_{num_quantiles}_quantiles.csv"
+        )
         file_path = OUTPUT_DIR / file_name
         imputed_df.to_csv(file_path)
