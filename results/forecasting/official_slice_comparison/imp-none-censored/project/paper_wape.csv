@@ -1,0 +1,4 @@
+feature,model_id,imputation_run_id,protocol,point,fold,seed,split,slice,value,n
+forecasting,fc-dlinear-quantile,imp-none-censored,project,q500,,2025,test,all,0.3192073162032143,206562
+forecasting,fc-dlinear-quantile,imp-none-censored,project,q500,,2025,test,low_sales,0.39985730773349726,153208
+forecasting,fc-dlinear-quantile,imp-none-censored,project,q500,,2025,test,high_sales,0.26142701161225573,53354

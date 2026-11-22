@@ -1,0 +1,4 @@
+model_id,imputation_run_id,protocol,point,slice,n_seeds,test_wape_mean,test_wape_sd,test_wpe_mean,test_wpe_sd,test_paper_wape_mean,cv_n,cv_wape_mean,cv_wape_sd,published_wape,published_wpe,pass,beats_by_1sd,improvement_sd,a72_literal,test_mase,test_picp95,test_mpiw95,test_picp95_cal,test_mpiw95_cal
+fc-dlinear-quantile,imp-none-censored,project,q500,all,1,0.3190502356876826,,-0.025394961100757823,,0.3192073162032143,0,,,0.3156,-0.0489,,,,,0.9363079784436315,0.9584737392516849,2.0973762170492196,,
+fc-dlinear-quantile,imp-none-censored,project,q500,low_sales,1,0.3974655853991439,,0.009513373927049294,,0.39985730773349726,0,,,0.3978,-0.0103,,,,,0.924090163608174,0.9687418411571197,1.5265233920944545,,
+fc-dlinear-quantile,imp-none-censored,project,q500,high_sales,1,0.26210350885556943,,-0.05074606169913803,,0.26142701161225573,0,,,0.2568,-0.07629999999999999,,,,,0.9691676976823232,0.9289785510724464,3.7371545957365915,,

@@ -1,0 +1,16 @@
+feature,model_id,fold,seed,split,slice,metric,calibrated,value,n,imputation_run_id,protocol,point,n_skipped
+forecasting,fc-dlinear-quantile,,2025,test,all,wape,False,0.3190502356876826,206562,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,all,wpe,False,-0.025394961100757823,206562,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,low_sales,wape,False,0.3974655853991439,153208,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,low_sales,wpe,False,0.009513373927049294,153208,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,high_sales,wape,False,0.26210350885556943,53354,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,high_sales,wpe,False,-0.05074606169913803,53354,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,all,mase,False,0.9363079784436315,50000,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,low_sales,mase,False,0.924090163608174,36448,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,high_sales,mase,False,0.9691676976823232,13552,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,all,picp95,False,0.9584737392516849,206544,imp-none-censored,project,q500,18
+forecasting,fc-dlinear-quantile,,2025,test,all,mpiw95,False,2.0973762170492196,206544,imp-none-censored,project,q500,18
+forecasting,fc-dlinear-quantile,,2025,test,low_sales,picp95,False,0.9687418411571197,153208,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,low_sales,mpiw95,False,1.5265233920944545,153208,imp-none-censored,project,q500,0
+forecasting,fc-dlinear-quantile,,2025,test,high_sales,picp95,False,0.9289785510724464,53336,imp-none-censored,project,q500,18
+forecasting,fc-dlinear-quantile,,2025,test,high_sales,mpiw95,False,3.7371545957365915,53336,imp-none-censored,project,q500,18
