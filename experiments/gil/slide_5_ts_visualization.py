@@ -75,9 +75,9 @@ worst_mpiw_series_df = inference_df[worst_mpiw_boolean]
 # bad practice, but copy-pasting a useful function from another script
 
 # slideshow figure styling
-BASE_FONT_SIZE = 22  # tick labels, legend entries, facet labels, annotations
-AXIS_TITLE_FONT_SIZE = 26
-LEGEND_TITLE_FONT_SIZE = 24
+BASE_FONT_SIZE = 18  # tick labels, legend entries, facet labels, annotations
+AXIS_TITLE_FONT_SIZE = 22
+LEGEND_TITLE_FONT_SIZE = 20
 
 
 def apply_slide_style(fig, height: int | None = None):
@@ -93,6 +93,7 @@ def apply_slide_style(fig, height: int | None = None):
     fig.update_xaxes(
         title_font=dict(size=AXIS_TITLE_FONT_SIZE),
         tickfont=dict(size=BASE_FONT_SIZE),
+        tickangle=-45,
     )
     fig.update_yaxes(
         title_font=dict(size=AXIS_TITLE_FONT_SIZE),
