@@ -72,6 +72,38 @@ worst_mase_series_df = inference_df[worst_mase_boolean]
 worst_picp_series_df = inference_df[worst_picp_boolean]
 worst_mpiw_series_df = inference_df[worst_mpiw_boolean]
 
+# bad practice, but copy-pasting a useful function from another script
+
+# slideshow figure styling
+BASE_FONT_SIZE = 22  # tick labels, legend entries, facet labels, annotations
+AXIS_TITLE_FONT_SIZE = 26
+LEGEND_TITLE_FONT_SIZE = 24
+
+
+def apply_slide_style(fig, height: int | None = None):
+    """Enlarge all text in a figure so it is legible in a slideshow."""
+    fig.update_layout(
+        font=dict(size=BASE_FONT_SIZE),
+        legend=dict(
+            font=dict(size=BASE_FONT_SIZE),
+            title=dict(font=dict(size=LEGEND_TITLE_FONT_SIZE)),
+        ),
+        margin=dict(l=100, r=40, t=40, b=80),
+    )
+    fig.update_xaxes(
+        title_font=dict(size=AXIS_TITLE_FONT_SIZE),
+        tickfont=dict(size=BASE_FONT_SIZE),
+    )
+    fig.update_yaxes(
+        title_font=dict(size=AXIS_TITLE_FONT_SIZE),
+        tickfont=dict(size=BASE_FONT_SIZE),
+    )
+    # covers facet labels and hline annotations
+    fig.update_annotations(font=dict(size=BASE_FONT_SIZE))
+    if height is not None:
+        fig.update_layout(height=height)
+    return fig
+
 
 def create_time_series_demand_figure(inference_df, store_id, product_id):
 
@@ -126,23 +158,29 @@ def create_time_series_demand_figure(inference_df, store_id, product_id):
     return fig
 
 
-worst_mase_figure = create_time_series_demand_figure(
-    inference_df=worst_mase_series_df,
-    store_id=worst_mase_store,
-    product_id=worst_mase_product,
+worst_mase_figure = apply_slide_style(
+    create_time_series_demand_figure(
+        inference_df=worst_mase_series_df,
+        store_id=worst_mase_store,
+        product_id=worst_mase_product,
+    )
 )
 worst_mase_figure.write_html((INFERENCE_FIGURE_DIR / "worst_mase_figure_example.html"))
 
-worst_picp_figure = create_time_series_demand_figure(
-    inference_df=worst_picp_series_df,
-    store_id=worst_picp_store,
-    product_id=worst_picp_product,
+worst_picp_figure = apply_slide_style(
+    create_time_series_demand_figure(
+        inference_df=worst_picp_series_df,
+        store_id=worst_picp_store,
+        product_id=worst_picp_product,
+    )
 )
 worst_picp_figure.write_html((INFERENCE_FIGURE_DIR / "worst_picp_figure_example.html"))
 
-worst_mpiw_figure = create_time_series_demand_figure(
-    inference_df=worst_mpiw_series_df,
-    store_id=worst_mpiw_store,
-    product_id=worst_mpiw_product,
+worst_mpiw_figure = apply_slide_style(
+    create_time_series_demand_figure(
+        inference_df=worst_mpiw_series_df,
+        store_id=worst_mpiw_store,
+        product_id=worst_mpiw_product,
+    )
 )
 worst_mpiw_figure.write_html((INFERENCE_FIGURE_DIR / "worst_mpiw_figure_example.html"))
