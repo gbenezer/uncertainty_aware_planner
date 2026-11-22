@@ -19,16 +19,20 @@ MODEL_TYPE_QUANTILE_NUMBERS = [
     ("TimesNet_Imputation_Quantile", 3),
 ]
 SERIES_HOURLY = ieh.load_series_hourly("data/hf_cache")
-UNCERTAINTY_COLUMNS = [
+PICP_COLUMNS = [
     "store_id",
     "product_id",
     "picp",
     "coverage_gap",
     "n_picp",
+]
+MPIW_COLUMNS = [
+    "store_id",
+    "product_id",
     "mpiw",
+    "n_mpiw",
     "median_piw",
     "std_piw",
-    "n_mpiw",
 ]
 
 for model_combo in MODEL_TYPE_QUANTILE_NUMBERS:
@@ -124,45 +128,52 @@ for model_combo in MODEL_TYPE_QUANTILE_NUMBERS:
             store_product_picp = store_product_uncertainty_summary.sort_values(
                 by="picp"
             )
+            store_product_picp = store_product_picp[PICP_COLUMNS]
+
             low_volume_store_product_picp = (
                 low_volume_store_product_uncertainty_summary.sort_values(by="picp")
             )
+            low_volume_store_product_picp = low_volume_store_product_picp[PICP_COLUMNS]
             high_volume_store_product_picp = (
                 high_volume_store_product_uncertainty_summary.sort_values(by="picp")
             )
+            high_volume_store_product_picp = high_volume_store_product_picp[PICP_COLUMNS]
 
             # sort by MPIW
             store_product_mpiw = store_product_uncertainty_summary.sort_values(
                 by="mpiw", ascending=False
             )
+            store_product_mpiw = store_product_mpiw[MPIW_COLUMNS]
             low_volume_store_product_mpiw = (
                 low_volume_store_product_uncertainty_summary.sort_values(
                     by="mpiw", ascending=False
                 )
             )
+            low_volume_store_product_mpiw = low_volume_store_product_mpiw[MPIW_COLUMNS]
             high_volume_store_product_mpiw = (
                 high_volume_store_product_uncertainty_summary.sort_values(
                     by="mpiw", ascending=False
                 )
             )
+            high_volume_store_product_mpiw = high_volume_store_product_mpiw[MPIW_COLUMNS]
 
             print("\n")
 
             print("Overall Bottom 5 PICP Store-Product Series")
-            print(store_product_picp[UNCERTAINTY_COLUMNS].head())
+            print(store_product_picp.head())
             print("Low Volume Bottom 5 PICP Store-Product Series")
-            print(low_volume_store_product_picp[UNCERTAINTY_COLUMNS].head())
+            print(low_volume_store_product_picp.head())
             print("High Volume Bottom 5 PICP Store-Product Series")
-            print(high_volume_store_product_picp[UNCERTAINTY_COLUMNS].head())
+            print(high_volume_store_product_picp.head())
 
             print("\n")
 
             print("Overall Top 5 MPIW Store-Product Series")
-            print(store_product_mpiw[UNCERTAINTY_COLUMNS].head())
+            print(store_product_mpiw.head())
             print("Low Volume Top 5 MPIW Store-Product Series")
-            print(low_volume_store_product_mpiw[UNCERTAINTY_COLUMNS].head())
+            print(low_volume_store_product_mpiw.head())
             print("High Volume Top 5 MPIW Store-Product Series")
-            print(high_volume_store_product_mpiw[UNCERTAINTY_COLUMNS].head())
+            print(high_volume_store_product_mpiw.head())
 
         print("\n")
         print("\n")
