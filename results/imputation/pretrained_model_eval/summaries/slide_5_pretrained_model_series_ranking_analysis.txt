@@ -1,0 +1,791 @@
+[34m
+████████╗██╗███╗   ███╗███████╗    ███████╗███████╗██████╗ ██╗███████╗███████╗    █████╗ ██╗
+╚══██╔══╝██║████╗ ████║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║██╔════╝██╔════╝   ██╔══██╗██║
+   ██║   ██║██╔████╔██║█████╗█████╗███████╗█████╗  ██████╔╝██║█████╗  ███████╗   ███████║██║
+   ██║   ██║██║╚██╔╝██║██╔══╝╚════╝╚════██║██╔══╝  ██╔══██╗██║██╔══╝  ╚════██║   ██╔══██║██║
+   ██║   ██║██║ ╚═╝ ██║███████╗    ███████║███████╗██║  ██║██║███████╗███████║██╗██║  ██║██║
+   ╚═╝   ╚═╝╚═╝     ╚═╝╚══════╝    ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝╚═╝
+ai4ts v0.0.3 - building AI for unified time-series analysis, https://time-series.ai [0m
+
+Model Type: DLinear_Imputation_Baseline
+Number of Quantiles: 1
+Seed: 86400
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+26797       878          51  6.285338
+19607       567          38  5.991349
+3689        126          38  4.265243
+1657         55          67  3.942702
+23306       717         657  3.661204
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+16169       878          51  6.285338
+11671       567          38  5.991349
+2223        126          38  4.265243
+1000         55          67  3.942702
+13918       717         657  3.661204
+High Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+9318        711          92  3.556138
+10185       822         694  3.283476
+7301        526         122  3.143326
+885          74         600  3.084826
+7863        562         467  2.991259
+
+
+
+
+
+
+Seed: 4
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+26797       878          51  6.357797
+19607       567          38  6.109263
+3689        126          38  4.397263
+1657         55          67  3.847176
+23306       717         657  3.831529
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+16169       878          51  6.357797
+11671       567          38  6.109263
+2223        126          38  4.397263
+1000         55          67  3.847176
+13918       717         657  3.831529
+High Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+10185       822         694  3.307796
+9318        711          92  3.244601
+885          74         600  2.941878
+2678        192         467  2.873100
+7863        562         467  2.835792
+
+
+
+
+
+
+Seed: 42
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+19607       567          38  6.595931
+26797       878          51  6.394435
+13113       376         672  4.683835
+3689        126          38  4.491613
+1657         55          67  3.946632
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+11671       567          38  6.595931
+16169       878          51  6.394435
+7762        376         672  4.683835
+2223        126          38  4.491613
+1000         55          67  3.946632
+High Volume Top 5 1-hour MASE Store-Product Series
+      store_id  product_id   ase_1hr
+9318       711          92  3.867810
+2678       192         467  3.802465
+885         74         600  3.587418
+2069       160         600  3.492485
+7301       526         122  3.479102
+
+
+
+
+
+
+Model Type: DLinear_Imputation_Quantile
+Number of Quantiles: 2
+Seed: 86400
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+26797       878          51  8.403106
+19607       567          38  6.865254
+3689        126          38  5.792291
+23306       717         657  5.459085
+12725       364         384  5.316001
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+16169       878          51  8.403106
+11671       567          38  6.865254
+2223        126          38  5.792291
+13918       717         657  5.459085
+7526        364         384  5.316001
+High Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+2678        192         467  4.994351
+5718        408         694  4.410493
+10057       812          38  3.957721
+10025       806          38  3.891964
+5049        350         467  3.546638
+
+
+Overall Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+25882       414         381  0.200000     -0.750000      10
+5609        101         441  0.333333     -0.616667      24
+27041       433         835  0.375000     -0.575000      24
+17940       269         835  0.375000     -0.575000      24
+10161       169          70  0.400000     -0.550000      15
+Low Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+14915       414         381  0.200000     -0.750000      10
+13272       361         381  0.416667     -0.533333      24
+8905        235         379  0.416667     -0.533333      24
+17296       479         218  0.458333     -0.491667      24
+18928       529          37  0.458333     -0.491667      48
+High Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+2392        101         441  0.333333     -0.616667      24
+11450       433         835  0.375000     -0.575000      24
+7662        269         835  0.375000     -0.575000      24
+4286        169          70  0.400000     -0.550000      15
+12440       472         381  0.409091     -0.540909      22
+
+
+Overall Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+27005       432         267  3.820341      14    4.215037  1.802460
+38733       630         267  3.803145      12    4.114338  1.665463
+34066       547         267  3.772520      33    3.507180  2.284092
+28388       453         267  3.709481      23    3.670546  2.213567
+19276       292         267  3.472790      23    3.037816  2.635637
+Low Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+16037       443         294  0.488346      20    0.514722  0.079354
+25916       769         657  0.485870       9    0.536297  0.098863
+2411         74         768  0.410811      16    0.429333  0.093187
+1387         41         768  0.399106      20    0.419120  0.065298
+5634        163         802  0.386888      34    0.374666  0.134798
+High Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+11437       432         267  3.820341      14    4.215037  1.802460
+16352       630         267  3.803145      12    4.114338  1.665463
+14374       547         267  3.772520      33    3.507180  2.284092
+11997       453         267  3.709481      23    3.670546  2.213567
+8174        292         267  3.472790      23    3.037816  2.635637
+
+
+
+
+
+
+Seed: 4
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id    ase_1hr
+26797       878          51  10.392181
+19607       567          38   7.524015
+3689        126          38   6.914241
+12725       364         384   5.932113
+23306       717         657   5.701006
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id    ase_1hr
+16169       878          51  10.392181
+11671       567          38   7.524015
+2223        126          38   6.914241
+7526        364         384   5.932113
+13918       717         657   5.701006
+High Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+2678        192         467  5.511995
+5718        408         694  4.220967
+10025       806          38  4.189737
+8911        667         600  3.992336
+5049        350         467  3.916234
+
+
+Overall Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+10161       169          70  0.400000     -0.550000      15
+327           3         290  0.500000     -0.450000      10
+46533       822         694  0.555556     -0.394444       9
+20720       312         580  0.571429     -0.378571      14
+12598       196         631  0.600000     -0.350000      10
+Low Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+11764       309         424  0.666667     -0.283333       9
+27601       846         302  0.666667     -0.283333       9
+18497       515         467  0.666667     -0.283333       9
+13765       376         672  0.684211     -0.265789      19
+9884        259          18  0.700000     -0.250000      10
+High Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+4286        169          70  0.400000     -0.550000      15
+146           3         290  0.500000     -0.450000      10
+19422       822         694  0.555556     -0.394444       9
+8828        312         580  0.571429     -0.378571      14
+5341        196         631  0.600000     -0.350000      10
+
+
+Overall Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+19276       292         267  3.864984      17    3.680615  2.733784
+34066       547         267  3.516498      33    3.337879  2.038717
+31136       499         267  3.303521      21    3.174693  1.376486
+31660       508         267  3.260737      16    3.481927  1.430300
+28388       453         267  3.177649      17    2.907087  2.081112
+Low Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+1387         41         768  0.523172      20    0.523804  0.078082
+16037       443         294  0.497802      20    0.497251  0.045165
+8166        216           6  0.430565      15    0.403984  0.128372
+14259       391         600  0.419714      18    0.415842  0.140121
+3584        113         550  0.417477      18    0.415752  0.131446
+High Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+8174        292         267  3.864984      17    3.680615  2.733784
+14374       547         267  3.516498      33    3.337879  2.038717
+13163       499         267  3.303521      21    3.174693  1.376486
+13372       508         267  3.260737      16    3.481927  1.430300
+11997       453         267  3.177649      17    2.907087  2.081112
+
+
+
+
+
+
+Seed: 42
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+26797       878          51  8.223622
+19607       567          38  6.940382
+3689        126          38  6.009504
+6700        192         467  5.481531
+23306       717         657  5.415873
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+16169       878          51  8.223622
+11671       567          38  6.940382
+2223        126          38  6.009504
+13918       717         657  5.415873
+9063        443         294  5.315306
+High Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+2678        192         467  5.481531
+10057       812          38  4.675985
+5718        408         694  4.220221
+5049        350         467  4.078070
+4200        282          38  4.020782
+
+
+Overall Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+10161       169          70  0.466667     -0.483333      15
+23869       376         672  0.526316     -0.423684      19
+16651       250         694  0.545455     -0.404545      11
+8373        147         300  0.550000     -0.400000      20
+32023       515         467  0.555556     -0.394444       9
+Low Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+13765       376         672  0.526316     -0.423684      19
+18497       515         467  0.555556     -0.394444       9
+16514       457         115  0.625000     -0.325000      24
+27040       821         460  0.651515     -0.298485      66
+20537       567         291  0.666667     -0.283333       9
+High Volume Bottom 5 PICP Store-Product Series
+      store_id  product_id      picp  coverage_gap  n_picp
+4286       169          70  0.466667     -0.483333      15
+7109       250         694  0.545455     -0.404545      11
+3535       147         300  0.550000     -0.400000      20
+4266       168         306  0.583333     -0.366667      12
+5497       200         215  0.588235     -0.361765      17
+
+
+Overall Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+38733       630         267  4.316078      12    4.491483  1.789792
+34066       547         267  4.193133      33    3.958741  2.371991
+27005       432         267  4.105142      14    4.025138  1.781538
+48335       870         267  4.069955       9    4.265960  1.410619
+28388       453         267  3.969227      23    3.822584  2.336466
+Low Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+16037       443         294  0.514089      20    0.531754  0.085021
+1387         41         768  0.461601      20    0.482441  0.079629
+2411         74         768  0.449137      16    0.445582  0.085461
+8705        231          38  0.428337      10    0.386735  0.191921
+22421       631         810  0.426744      17    0.422220  0.096023
+High Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+16352       630         267  4.316078      12    4.491483  1.789792
+14374       547         267  4.193133      33    3.958741  2.371991
+11437       432         267  4.105142      14    4.025138  1.781538
+20133       870         267  4.069955       9    4.265960  1.410619
+11997       453         267  3.969227      23    3.822584  2.336466
+
+
+
+
+
+
+Model Type: DLinear_Imputation_Quantile
+Number of Quantiles: 3
+Seed: 86400
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+26797       878          51  6.207738
+19607       567          38  5.828604
+15295       443         294  4.465052
+3689        126          38  4.063213
+1657         55          67  3.945864
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+16169       878          51  6.207738
+11671       567          38  5.828604
+9063        443         294  4.465052
+2223        126          38  4.063213
+1000         55          67  3.945864
+High Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+10185       822         694  3.224953
+7301        526         122  3.193273
+9318        711          92  3.171655
+7863        562         467  2.986210
+885          74         600  2.931564
+
+
+Overall Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+46533       822         694  0.555556     -0.394444       9
+47865       856         117  0.555556     -0.394444      18
+36290       579         117  0.578947     -0.371053      19
+10107       168         306  0.583333     -0.366667      12
+10161       169          70  0.600000     -0.350000      15
+Low Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+23017       656         864  0.666667     -0.283333       9
+20537       567         291  0.666667     -0.283333       9
+2715         84         496  0.700000     -0.250000      10
+21708       602         772  0.727273     -0.222727      11
+4457        138         672  0.727273     -0.222727      11
+High Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+19422       822         694  0.555556     -0.394444       9
+19944       856         117  0.555556     -0.394444      18
+15327       579         117  0.578947     -0.371053      19
+4266        168         306  0.583333     -0.366667      12
+4286        169          70  0.600000     -0.350000      15
+
+
+Overall Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+31660       508         267  4.130535      17    4.414647  1.792552
+19276       292         267  3.795964      23    3.036928  3.054670
+38733       630         267  3.585672      12    3.476384  1.816191
+6684        122         267  3.501897      17    3.562761  1.254358
+22744       356         267  3.483198      17    3.506971  1.576152
+Low Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+16662       460         845  0.462523      15    0.474249  0.094750
+1400         42         355  0.447766      15    0.455259  0.090757
+5634        163         802  0.444408      34    0.428245  0.129839
+16396       453         467  0.435912      20    0.396279  0.181708
+19877       552         223  0.431149      17    0.445203  0.107930
+High Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+13372       508         267  4.130535      17    4.414647  1.792552
+8174        292         267  3.795964      23    3.036928  3.054670
+16352       630         267  3.585672      12    3.476384  1.816191
+2816        122         267  3.501897      17    3.562761  1.254358
+9647        356         267  3.483198      17    3.506971  1.576152
+
+
+
+
+
+
+Seed: 4
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+26797       878          51  6.338569
+19607       567          38  5.759908
+3689        126          38  4.097049
+19155       556          37  3.877666
+18049       526         122  3.840269
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+16169       878          51  6.338569
+11671       567          38  5.759908
+2223        126          38  4.097049
+11421       556          37  3.877666
+1000         55          67  3.808184
+High Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+7301        526         122  3.840269
+9318        711          92  3.567981
+10185       822         694  3.232621
+4623        311         122  3.230659
+2853        200         215  3.177167
+
+
+Overall Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+8373        147         300  0.352941     -0.597059      17
+10161       169          70  0.533333     -0.416667      15
+32023       515         467  0.555556     -0.394444       9
+46533       822         694  0.555556     -0.394444       9
+26678       427         215  0.562500     -0.387500      16
+Low Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+18497       515         467  0.555556     -0.394444       9
+13765       376         672  0.631579     -0.318421      19
+25110       740          95  0.666667     -0.283333      12
+19735       548         783  0.666667     -0.283333       9
+27601       846         302  0.666667     -0.283333       9
+High Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+3535        147         300  0.352941     -0.597059      17
+4286        169          70  0.533333     -0.416667      15
+19422       822         694  0.555556     -0.394444       9
+11285       427         215  0.562500     -0.387500      16
+11009       417         215  0.583333     -0.366667      12
+
+
+Overall Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+38733       630         267  4.432388      12    4.790023  1.784269
+27005       432         267  4.256080      14    4.134077  1.834492
+34066       547         267  4.227616      32    3.779142  2.303358
+28388       453         267  4.166335      23    4.130916  2.146785
+21941       339         267  3.861706      24    3.797764  2.002707
+Low Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+16037       443         294  0.513857      20    0.530484  0.068195
+1387         41         768  0.465446      20    0.471956  0.065429
+2411         74         768  0.465309      16    0.452533  0.085317
+22421       631         810  0.441992      17    0.447743  0.108449
+25916       769         657  0.438488       9    0.440818  0.071941
+High Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+16352       630         267  4.432388      12    4.790023  1.784269
+11437       432         267  4.256080      14    4.134077  1.834492
+14374       547         267  4.227616      32    3.779142  2.303358
+11997       453         267  4.166335      23    4.130916  2.146785
+9306        339         267  3.861706      24    3.797764  2.002707
+
+
+
+
+
+
+Seed: 42
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+15295       443         294  7.703934
+26797       878          51  6.204661
+19607       567          38  5.826196
+3689        126          38  4.047538
+1657         55          67  3.881092
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+9063        443         294  7.703934
+16169       878          51  6.204661
+11671       567          38  5.826196
+2223        126          38  4.047538
+1000         55          67  3.881092
+High Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+9318        711          92  3.340973
+10185       822         694  3.292679
+7301        526         122  3.108811
+885          74         600  2.998395
+7863        562         467  2.940666
+
+
+Overall Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+10161       169          70  0.466667     -0.483333      15
+38676       628         691  0.500000     -0.450000      20
+16651       250         694  0.545455     -0.404545      11
+47334       846         302  0.555556     -0.394444       9
+46533       822         694  0.555556     -0.394444       9
+Low Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+27601       846         302  0.555556     -0.394444       9
+18497       515         467  0.555556     -0.394444       9
+13765       376         672  0.631579     -0.318421      19
+11764       309         424  0.666667     -0.283333       9
+9884        259          18  0.700000     -0.250000      10
+High Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+4286        169          70  0.466667     -0.483333      15
+16324       628         691  0.500000     -0.450000      20
+7109        250         694  0.545455     -0.404545      11
+19422       822         694  0.555556     -0.394444       9
+6076        216         300  0.583333     -0.366667      12
+
+
+Overall Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+19276       292         267  3.522668      20    3.633695  2.697154
+28388       453         267  3.370611      17    2.918839  2.035505
+31660       508         267  3.329539      17    3.554423  1.523229
+31136       499         267  3.245955      21    3.336100  1.174500
+48335       870         267  3.176517       9    3.459883  1.254750
+Low Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+1387         41         768  0.508894      20    0.538571  0.093919
+16037       443         294  0.467641      20    0.473446  0.055644
+8166        216           6  0.447697      15    0.438310  0.138711
+3584        113         550  0.446351      18    0.445532  0.140920
+2803         89         467  0.427259      19    0.441008  0.082397
+High Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+8174        292         267  3.522668      20    3.633695  2.697154
+11997       453         267  3.370611      17    2.918839  2.035505
+13372       508         267  3.329539      17    3.554423  1.523229
+13163       499         267  3.245955      21    3.336100  1.174500
+20133       870         267  3.176517       9    3.459883  1.254750
+
+
+
+
+
+
+Model Type: TimesNet_Imputation_Quantile
+Number of Quantiles: 3
+Seed: 86400
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+19607       567          38  6.469925
+26797       878          51  6.202507
+13113       376         672  4.812913
+7881        216         300  4.375809
+3689        126          38  4.364702
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+11671       567          38  6.469925
+16169       878          51  6.202507
+7762        376         672  4.812913
+2223        126          38  4.364702
+11421       556          37  4.022676
+High Volume Top 5 1-hour MASE Store-Product Series
+      store_id  product_id   ase_1hr
+3170       216         300  4.375809
+885         74         600  4.070042
+5378       378         600  4.060380
+5836       417         144  3.968254
+7301       526         122  3.943795
+
+
+Overall Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+42150       711          92  0.400000     -0.550000      10
+48773       878          92  0.444444     -0.505556       9
+16670       251          93  0.444444     -0.505556       9
+40256       667         207  0.461538     -0.488462      13
+32879       531          41  0.461538     -0.488462      13
+Low Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+9549        251          93  0.444444     -0.505556       9
+23301       667         207  0.461538     -0.488462      13
+13765       376         672  0.473684     -0.476316      19
+18            0         439  0.473684     -0.476316      19
+21807       607         351  0.500000     -0.450000      12
+High Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+17751       711          92  0.400000     -0.550000      10
+20307       878          92  0.444444     -0.505556       9
+13877       531          41  0.461538     -0.488462      13
+10955       413         834  0.500000     -0.450000      10
+13780       526         122  0.500000     -0.450000      18
+
+
+Overall Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+26777       429         367  6.006697      79    6.005156  1.504680
+46050       813         120  4.139696      15    4.718565  1.401148
+20995       317         395  3.966284      34    4.150227  0.729907
+19276       292         267  3.960960      24    3.973559  0.181629
+26780       429         395  3.938533      42    3.558069  1.158352
+Low Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+15449       429         367  6.006697      79    6.005156  1.504680
+12060       317         395  3.966284      34    4.150227  0.729907
+15450       429         395  3.938533      42    3.558069  1.158352
+15081       419         239  3.373659      10    3.235034  0.613369
+15463       429         687  3.229574      15    3.317918  0.224751
+High Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+19228       813         120  4.139696      15    4.718565  1.401148
+8174        292         267  3.960960      24    3.973559  0.181629
+366          15         318  3.802708      44    3.764680  1.354385
+13372       508         267  3.580491      17    3.585790  0.131142
+9647        356         267  3.570046      17    3.514968  0.194883
+
+
+
+
+
+
+Seed: 4
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+19607       567          38  7.212682
+26797       878          51  6.188699
+23160       712         435  5.324820
+23306       717         657  5.199625
+13113       376         672  4.819971
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+11671       567          38  7.212682
+16169       878          51  6.188699
+13832       712         435  5.324820
+13918       717         657  5.199625
+7762        376         672  4.819971
+High Volume Top 5 1-hour MASE Store-Product Series
+      store_id  product_id   ase_1hr
+1061        88         580  4.751966
+885         74         600  4.666368
+8911       667         600  4.512981
+5026       348          38  4.447855
+136          9         600  4.266698
+
+
+Overall Bottom 5 PICP Store-Product Series
+       store_id  product_id  picp  coverage_gap  n_picp
+36183       577         806   0.0         -0.95       4
+6654        121         662   0.0         -0.95       1
+3201         57         213   0.0         -0.95       1
+4474         79         596   0.0         -0.95       2
+29805       477          11   0.0         -0.95       2
+Low Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id  picp  coverage_gap  n_picp
+3852        121         662   0.0         -0.95       1
+28524       880         301   0.0         -0.95       2
+1853         57         213   0.0         -0.95       1
+26727       809         792   0.0         -0.95       1
+17225       477          11   0.0         -0.95       2
+High Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+1908         79         596  0.000000     -0.950000       2
+19230       813         132  0.125000     -0.825000       8
+13780       526         122  0.222222     -0.727778      18
+18609       768         834  0.300000     -0.650000      10
+17935       722         218  0.333333     -0.616667      15
+
+
+Overall Top 5 MPIW Store-Product Series
+       store_id  product_id       mpiw  n_mpiw  median_piw   std_piw
+27005       432         267  10.522395      14   10.177607  1.160191
+27601       440         267   6.610062      44    6.662749  2.944489
+25562       409         267   4.670040      24    4.848813  1.201444
+4805         87         267   4.590617      34    3.350184  3.172736
+35636       568         267   3.204293      30    3.511338  0.723426
+Low Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+3199        101          37  1.289425      23    1.352401  0.129911
+5066        151         843  0.943400      10    0.978570  0.061737
+1955         59         212  0.927099      21    0.946849  0.054551
+4169        131         500  0.897234      19    0.910442  0.040350
+20317       562         212  0.836498      13    0.856941  0.062800
+High Volume Top 5 MPIW Store-Product Series
+       store_id  product_id       mpiw  n_mpiw  median_piw   std_piw
+11437       432         267  10.522395      14   10.177607  1.160191
+11681       440         267   6.610062      44    6.662749  2.944489
+10824       409         267   4.670040      24    4.848813  1.201444
+2053         87         267   4.590617      34    3.350184  3.172736
+15069       568         267   3.204293      30    3.511338  0.723426
+
+
+
+
+
+
+Seed: 42
+
+
+Overall Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+19607       567          38  6.469925
+26797       878          51  6.188699
+13113       376         672  4.819971
+3689        126          38  4.364702
+2237         74         600  4.070042
+Low Volume Top 5 1-hour MASE Store-Product Series
+       store_id  product_id   ase_1hr
+11671       567          38  6.469925
+16169       878          51  6.188699
+7762        376         672  4.819971
+2223        126          38  4.364702
+1000         55          67  3.977865
+High Volume Top 5 1-hour MASE Store-Product Series
+      store_id  product_id   ase_1hr
+885         74         600  4.070042
+7301       526         122  4.069372
+5378       378         600  4.060380
+9318       711          92  3.972344
+5836       417         144  3.928077
+
+
+Overall Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+29528       472         740  0.000000     -0.950000       1
+6939        128         250  0.000000     -0.950000       1
+11866       188         834  0.214286     -0.735714      14
+14551       221         351  0.222222     -0.727778       9
+10107       168         306  0.250000     -0.700000      12
+Low Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+4016        128         250  0.000000     -0.950000       1
+8354        221         351  0.222222     -0.727778       9
+13765       376         672  0.285714     -0.664286      14
+8828        234          23  0.333333     -0.616667       9
+11137       293         422  0.363636     -0.586364      11
+High Volume Bottom 5 PICP Store-Product Series
+       store_id  product_id      picp  coverage_gap  n_picp
+12450       472         740  0.000000     -0.950000       1
+5021        188         834  0.214286     -0.735714      14
+10180       379         600  0.250000     -0.700000      12
+4266        168         306  0.250000     -0.700000      12
+6835        241          41  0.250000     -0.700000      16
+
+
+Overall Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+34066       547         267  4.187719      40    4.265361  0.665496
+45170       787         832  4.021347      21    4.436688  1.856139
+45160       787         562  3.929426      20    3.885994  0.426204
+22744       356         267  3.869392      17    3.823281  0.370343
+3968         69         267  3.868130      17    3.836047  0.347904
+Low Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+24627       721         315  2.728114      22    2.829414  0.688405
+3433        108         718  2.150591      18    2.172107  0.425256
+27380       835         599  2.056128      24    2.050465  0.410508
+24795       728           4  1.985017      18    2.001639  0.375947
+26287       787         356  1.847179      28    1.750002  0.341803
+High Volume Top 5 MPIW Store-Product Series
+       store_id  product_id      mpiw  n_mpiw  median_piw   std_piw
+14374       547         267  4.187719      40    4.265361  0.665496
+18871       787         832  4.021347      21    4.436688  1.856139
+18868       787         562  3.929426      20    3.885994  0.426204
+9647        356         267  3.869392      17    3.823281  0.370343
+1672         69         267  3.868130      17    3.836047  0.347904
+
+
+
+
+
+
