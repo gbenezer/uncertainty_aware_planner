@@ -1,12 +1,10 @@
-
-from pathlib import Path
-from datetime import datetime, timezone
 import csv
+from datetime import UTC, datetime
+from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-
 
 # Page setup
 st.set_page_config(
@@ -22,33 +20,14 @@ st.caption("FreshRetailNet-50K | Processed Daily Demand")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 DATA_PATH = (
-    PROJECT_ROOT
-    / "data"
-    / "processed"
-    / "demand_daily"
-    / "imp-none-censored.parquet"
+    PROJECT_ROOT / "data" / "processed" / "demand_daily" / "imp-none-censored.parquet"
 )
 
-OVERRIDES_PATH = (
-    PROJECT_ROOT
-    / "data"
-    / "processed"
-    / "planner_edits.csv"
-)
+OVERRIDES_PATH = PROJECT_ROOT / "data" / "processed" / "planner_edits.csv"
 
-RECOVERED_PATH = (
-    PROJECT_ROOT
-    / "results"
-    / "dashboard"
-    / "recovered_demand.csv"
-)
+RECOVERED_PATH = PROJECT_ROOT / "results" / "dashboard" / "recovered_demand.csv"
 
-FORECAST_PATH = (
-    PROJECT_ROOT
-    / "results"
-    / "dashboard"
-    / "forecast_7day.csv"
-)
+FORECAST_PATH = PROJECT_ROOT / "results" / "dashboard" / "forecast_7day.csv"
 
 OVERRIDE_COLUMNS = [
     "timestamp",
@@ -89,10 +68,7 @@ def load_data():
 
 # Load saved corrections
 def load_overrides():
-    if (
-        not OVERRIDES_PATH.exists()
-        or OVERRIDES_PATH.stat().st_size == 0
-    ):
+    if not OVERRIDES_PATH.exists() or OVERRIDES_PATH.stat().st_size == 0:
         return pd.DataFrame(columns=OVERRIDE_COLUMNS)
 
     data = pd.read_csv(
@@ -108,10 +84,7 @@ def load_overrides():
         data["corrected"] = True
     else:
         data["corrected"] = (
-            data["corrected"]
-            .astype(str)
-            .str.lower()
-            .isin(["true", "1", "yes"])
+            data["corrected"].astype(str).str.lower().isin(["true", "1", "yes"])
         )
 
     for column in OVERRIDE_COLUMNS:
@@ -128,10 +101,7 @@ def save_override(correction):
         exist_ok=True,
     )
 
-    if (
-        OVERRIDES_PATH.exists()
-        and OVERRIDES_PATH.stat().st_size > 0
-    ):
+    if OVERRIDES_PATH.exists() and OVERRIDES_PATH.stat().st_size > 0:
         with OVERRIDES_PATH.open(
             "r",
             newline="",
@@ -149,10 +119,7 @@ def save_override(correction):
                 index=False,
             )
 
-    write_header = (
-        not OVERRIDES_PATH.exists()
-        or OVERRIDES_PATH.stat().st_size == 0
-    )
+    write_header = not OVERRIDES_PATH.exists() or OVERRIDES_PATH.stat().st_size == 0
 
     with OVERRIDES_PATH.open(
         "a",
@@ -195,17 +162,10 @@ def get_model_output(path, required_columns):
             path.stat().st_mtime_ns,
         )
 
-        missing = [
-            column
-            for column in required_columns
-            if column not in data.columns
-        ]
+        missing = [column for column in required_columns if column not in data.columns]
 
         if missing:
-            return None, (
-                "Model output is missing columns: "
-                + ", ".join(missing)
-            )
+            return None, ("Model output is missing columns: " + ", ".join(missing))
 
         data = data[
             (data["store_id"] == str(store_id))
@@ -214,8 +174,7 @@ def get_model_output(path, required_columns):
 
         if data.empty:
             return None, (
-                "No model predictions are available "
-                "for this store and product."
+                "No model predictions are available for this store and product."
             )
 
         return data, None
@@ -226,9 +185,7 @@ def get_model_output(path, required_columns):
 
 # Verify dataset
 if not DATA_PATH.exists():
-    st.error(
-        f"Processed dataset not found: {DATA_PATH}"
-    )
+    st.error(f"Processed dataset not found: {DATA_PATH}")
     st.stop()
 
 df = load_data()
@@ -247,23 +204,17 @@ with col1:
         sorted(df["store_id"].dropna().unique()),
     )
 
-store_df = df[
-    df["store_id"] == store_id
-]
+store_df = df[df["store_id"] == store_id]
 
 with col2:
     product_id = st.selectbox(
         "Select Product",
-        sorted(
-            store_df["product_id"].dropna().unique()
-        ),
+        sorted(store_df["product_id"].dropna().unique()),
     )
 
 
 # Filter selected product
-filtered = store_df[
-    store_df["product_id"] == product_id
-].copy()
+filtered = store_df[store_df["product_id"] == product_id].copy()
 
 filtered = filtered.sort_values("date")
 
@@ -274,15 +225,11 @@ if filtered.empty:
 
 # Product information
 st.divider()
-st.subheader(
-    f"Store {store_id} | Product {product_id}"
-)
+st.subheader(f"Store {store_id} | Product {product_id}")
 
 total_days = filtered["date"].nunique()
 average_demand = filtered["demand_total"].mean()
-zero_demand_days = (
-    filtered["demand_observed"] == 0
-).sum()
+zero_demand_days = (filtered["demand_observed"] == 0).sum()
 
 
 # Summary metrics
@@ -359,9 +306,7 @@ with tab1:
             errors="coerce",
         )
 
-        recovered = recovered.dropna(
-            subset=["date", "recovered_demand"]
-        )
+        recovered = recovered.dropna(subset=["date", "recovered_demand"])
 
         recovered = recovered.drop_duplicates(
             subset=["date"],
@@ -401,10 +346,7 @@ with tab1:
             )
 
         else:
-            recovered_error = (
-                "No recovered-demand values match "
-                "the historical dates."
-            )
+            recovered_error = "No recovered-demand values match the historical dates."
 
     if recovered is None or recovered_error is not None:
         st.line_chart(
@@ -431,10 +373,7 @@ with tab1:
 with tab2:
     st.subheader("7-Day Demand Forecast")
 
-    st.caption(
-        "Forecasted daily demand with 95% "
-        "prediction intervals."
-    )
+    st.caption("Forecasted daily demand with 95% prediction intervals.")
 
     # Load forecast results
     forecast, forecast_error = get_model_output(
@@ -450,10 +389,7 @@ with tab2:
     )
 
     if forecast is None:
-        st.info(
-            "Seven-day forecast is not available yet. "
-            f"{forecast_error}"
-        )
+        st.info(f"Seven-day forecast is not available yet. {forecast_error}")
 
     else:
         forecast["forecast_date"] = pd.to_datetime(
@@ -476,9 +412,7 @@ with tab2:
             ]
         )
 
-        forecast = forecast.sort_values(
-            "forecast_date"
-        )
+        forecast = forecast.sort_values("forecast_date")
 
         forecast = forecast.drop_duplicates(
             subset=["forecast_date"],
@@ -486,30 +420,22 @@ with tab2:
         )
 
         # Validate prediction intervals
-        valid_intervals = (
-            (forecast["lower"] <= forecast["forecast"])
-            & (forecast["forecast"] <= forecast["upper"])
+        valid_intervals = (forecast["lower"] <= forecast["forecast"]) & (
+            forecast["forecast"] <= forecast["upper"]
         )
 
-        forecast = forecast[
-            valid_intervals
-        ].copy()
+        forecast = forecast[valid_intervals].copy()
 
         # Display the first seven forecast dates
         forecast = forecast.head(7)
 
         if forecast.empty:
-            st.warning(
-                "No valid forecast predictions "
-                "were found for this product."
-            )
+            st.warning("No valid forecast predictions were found for this product.")
 
         else:
             if len(forecast) != 7:
                 st.warning(
-                    "Only "
-                    f"{len(forecast)} forecast days "
-                    "are currently available."
+                    f"Only {len(forecast)} forecast days are currently available."
                 )
 
             # Forecast summary metrics
@@ -627,21 +553,18 @@ with tab2:
                         "Date",
                         format="YYYY-MM-DD",
                     ),
-                    "Forecasted Demand":
-                        st.column_config.NumberColumn(
-                            "Forecasted Demand",
-                            format="%.3f",
-                        ),
-                    "Lower Bound (95%)":
-                        st.column_config.NumberColumn(
-                            "Lower Bound (95%)",
-                            format="%.3f",
-                        ),
-                    "Upper Bound (95%)":
-                        st.column_config.NumberColumn(
-                            "Upper Bound (95%)",
-                            format="%.3f",
-                        ),
+                    "Forecasted Demand": st.column_config.NumberColumn(
+                        "Forecasted Demand",
+                        format="%.3f",
+                    ),
+                    "Lower Bound (95%)": st.column_config.NumberColumn(
+                        "Lower Bound (95%)",
+                        format="%.3f",
+                    ),
+                    "Upper Bound (95%)": st.column_config.NumberColumn(
+                        "Upper Bound (95%)",
+                        format="%.3f",
+                    ),
                 },
             )
 
@@ -672,35 +595,21 @@ with tab3:
         ValueError,
         pd.errors.ParserError,
     ) as error:
-        st.error(
-            f"Could not load corrections: {error}"
-        )
+        st.error(f"Could not load corrections: {error}")
         st.stop()
 
     # Select date
-    available_dates = (
-        filtered["date"]
-        .dt.date
-        .dropna()
-        .drop_duplicates()
-        .tolist()
-    )
+    available_dates = filtered["date"].dt.date.dropna().drop_duplicates().tolist()
 
     selected_date = st.selectbox(
         "Select Date",
         available_dates,
-        format_func=lambda date: date.strftime(
-            "%B %d, %Y"
-        ),
+        format_func=lambda date: date.strftime("%B %d, %Y"),
     )
 
-    selected_row = filtered[
-        filtered["date"].dt.date == selected_date
-    ].iloc[0]
+    selected_row = filtered[filtered["date"].dt.date == selected_date].iloc[0]
 
-    original_demand = float(
-        selected_row["demand_total"]
-    )
+    original_demand = float(selected_row["demand_total"])
 
     # Find existing corrections
     product_overrides = overrides[
@@ -709,8 +618,7 @@ with tab3:
     ].copy()
 
     previous_corrections = product_overrides[
-        product_overrides["date"]
-        == selected_date.isoformat()
+        product_overrides["date"] == selected_date.isoformat()
     ]
 
     # Determine correction status
@@ -719,28 +627,18 @@ with tab3:
         already_corrected = False
 
     else:
-        latest_correction = (
-            previous_corrections.iloc[-1]
-        )
+        latest_correction = previous_corrections.iloc[-1]
 
-        current_demand = float(
-            latest_correction["new_value"]
-        )
+        current_demand = float(latest_correction["new_value"])
 
-        already_corrected = bool(
-            latest_correction["corrected"]
-        )
+        already_corrected = bool(latest_correction["corrected"])
 
     # Display correction status
     if already_corrected:
-        st.success(
-            "Corrected: This record has a saved "
-            "manual correction."
-        )
+        st.success("Corrected: This record has a saved manual correction.")
     else:
         st.info(
-            "Not corrected: No confirmed manual "
-            "correction is recorded for this date."
+            "Not corrected: No confirmed manual correction is recorded for this date."
         )
 
     # Display demand values
@@ -759,9 +657,7 @@ with tab3:
         )
 
     # Correction form
-    with st.form(
-        f"demand_override_form_{store_id}_{product_id}_{selected_date}"
-    ):
+    with st.form(f"demand_override_form_{store_id}_{product_id}_{selected_date}"):
         corrected_demand = st.number_input(
             "Corrected Demand (Scaled)",
             min_value=0.0,
@@ -781,10 +677,7 @@ with tab3:
 
         reason = st.text_area(
             "Reason for Correction",
-            placeholder=(
-                "Example: Stockout was incorrectly "
-                "recorded as in stock."
-            ),
+            placeholder=("Example: Stockout was incorrectly recorded as in stock."),
         )
 
         save = st.form_submit_button(
@@ -795,33 +688,19 @@ with tab3:
     # Save correction
     if save:
         if not is_corrected:
-            st.warning(
-                "Please check 'Mark this record "
-                "as corrected' before saving."
-            )
+            st.warning("Please check 'Mark this record as corrected' before saving.")
 
         elif not reason.strip():
-            st.error(
-                "Please provide a reason "
-                "for the correction."
-            )
+            st.error("Please provide a reason for the correction.")
 
-        elif (
-            abs(
-                corrected_demand - current_demand
-            ) < 1e-9
-            and already_corrected
-        ):
+        elif abs(corrected_demand - current_demand) < 1e-9 and already_corrected:
             st.warning(
-                "This record is already corrected "
-                "and the demand value is unchanged."
+                "This record is already corrected and the demand value is unchanged."
             )
 
         else:
             correction = {
-                "timestamp": datetime.now(
-                    timezone.utc
-                ).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "store_id": str(store_id),
                 "product_id": str(product_id),
                 "date": selected_date.isoformat(),
@@ -834,26 +713,19 @@ with tab3:
             try:
                 save_override(correction)
 
-                st.success(
-                    "Correction saved successfully!"
-                )
+                st.success("Correction saved successfully!")
 
                 st.rerun()
 
             except OSError as error:
-                st.error(
-                    f"Could not save correction: {error}"
-                )
+                st.error(f"Could not save correction: {error}")
 
     # Correction history
     st.divider()
     st.subheader("Correction History")
 
     if product_overrides.empty:
-        st.info(
-            "No corrections recorded "
-            "for this product."
-        )
+        st.info("No corrections recorded for this product.")
 
     else:
         history = product_overrides[
@@ -935,9 +807,7 @@ with tab4:
         y_label="Average Humidity",
     )
 
-    st.subheader(
-        "Holiday and Activity Indicators"
-    )
+    st.subheader("Holiday and Activity Indicators")
 
     st.line_chart(
         filtered,
